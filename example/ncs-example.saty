@@ -5,6 +5,7 @@
 
 let-inline \diagram cellssf = {\NCS.diagram(cellssf);}
 let-block +diagram cellssf = '<+NCS.diagram(cellssf);>
+let-math \diagram-m cellssf = ${\NCS.diagram-m!(cellssf)}
 
 in
 
@@ -100,5 +101,68 @@ document (|
         varr {${n}} {}];
        [obj {${J}}; harr {} {${o}}; emp; emp;
         obj {${K}}; harr {} {${p}}; obj {${L}}]]));%
+    \code(`\NCS.diagram-m`); is suitable for drawing diagrams in math formulas.
+    \d-code(```
+    \eqn(${
+      \paren{
+        \NCS.diagram-m
+        !(fun tb -> (
+          let emp = tb#emp in
+          let obj = tb#obj in
+          let harr = tb#harr in
+          let varr = tb#varr in
+          [[obj {${A}}; harr {${f}} {}; obj {${B}};
+            harr {${=}} {}; obj {${B}}];
+           [varr {} {${=}};
+            obj {${\mathord{\Downarrow} \epsilon}};
+            varr {${g}} {}; obj {${\mathord{\Downarrow} \eta}};
+            varr {${=}} {}];
+           [obj {${A}}; harr {} {${=}}; obj {${A}};
+            harr {} {${f}}; obj {${B}}]]
+        ))
+      } =
+      \paren{
+        \NCS.diagram-m
+        !(fun tb -> (
+          let emp = tb#emp in
+          let obj = tb#obj in
+          let harr = tb#harr in
+          let varr = tb#varr in
+          [[obj {${A}}; harr {${f}} {}; obj {${B}}];
+           [varr {} {${=}}; obj {${=}}; varr {${=}} {}];
+           [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
+      }
+    });
+```);%
+    \eqn(${
+      \paren{
+        \diagram-m
+        !(fun tb -> (
+          let emp = tb#emp in
+          let obj = tb#obj in
+          let harr = tb#harr in
+          let varr = tb#varr in
+          [[obj {${A}}; harr {${f}} {}; obj {${B}};
+            harr {${=}} {}; obj {${B}}];
+           [varr {} {${=}};
+            obj {${\mathord{\Downarrow} \epsilon}};
+            varr {${g}} {}; obj {${\mathord{\Downarrow} \eta}};
+            varr {${=}} {}];
+           [obj {${A}}; harr {} {${=}}; obj {${A}};
+            harr {} {${f}}; obj {${B}}]]
+        ))
+      } =
+      \paren{
+        \diagram-m
+        !(fun tb -> (
+          let emp = tb#emp in
+          let obj = tb#obj in
+          let harr = tb#harr in
+          let varr = tb#varr in
+          [[obj {${A}}; harr {${f}} {}; obj {${B}}];
+           [varr {} {${=}}; obj {${=}}; varr {${=}} {}];
+           [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
+      }
+    });%
   }
 >

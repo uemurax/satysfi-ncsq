@@ -23,6 +23,13 @@ val +diagram : [(|
   varr : inline-text -> inline-text -> cell;
 |) -> (cell list) list] block-cmd
 
+val \diagram-m : [(|
+  emp : cell;
+  obj : inline-text -> cell;
+  harr : inline-text -> inline-text -> cell;
+  varr : inline-text -> inline-text -> cell;
+|) -> (cell list) list] math-cmd
+
 end = struct
 
 type direction =
@@ -391,7 +398,7 @@ let varr ctx l r = arr ctx Down l r
 let get-grs-bbox grs =
 List.fold-right
 (fun gr ((x0, y0), (x1, y1)) ->
- (let ((gx0, gx1), (gy0, gy1)) = get-graphics-bbox gr in
+ (let ((gx0, gy0), (gx1, gy1)) = get-graphics-bbox gr in
   ((Length.min x0 gx0, Length.min y0 gy0), (Length.max x1 gx1, Length.max y1 gy1))))
 ((0pt, 0pt), (0pt, 0pt))
 grs
@@ -409,7 +416,7 @@ let ((x0, y0), (x1, y1)) = get-grs-bbox grs in
 let ym = (y0 +' y1) *' 0.5 -' 4pt in
 let w = x1 -' x0 in
 let h = y1 -' ym in
-let d = ym in
+let d = ym -' y0 in
 inline-graphics w h d
 (fun (px, py) ->
  (List.map (shift-graphics (px -' x0, py -' ym)) grs))
@@ -419,5 +426,8 @@ line-break true true ctx (inline-fil ++ diagram ctx cellssf ++ inline-fil)
 
 let-inline ctx \diagram cellssf =
 inline-fil ++ embed-block-breakable ctx (read-block ctx '<+diagram(cellssf);>)
+
+let-math \diagram-m cellssf =
+text-in-math MathOrd (fun ctx -> diagram ctx cellssf)
 
 end
