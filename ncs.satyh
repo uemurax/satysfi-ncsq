@@ -372,8 +372,9 @@ let arrow-config-default ctx = (|
 |)
 
 let arr ctx dir l r =
-let grl = draw-text (0pt, 0pt) (read-inline ctx l) in
-let grr = draw-text (0pt, 0pt) (read-inline ctx r) in
+let label-ctx = set-font-size (get-font-size ctx *' 0.75) ctx in
+let grl = draw-text (0pt, 0pt) (read-inline label-ctx l) in
+let grr = draw-text (0pt, 0pt) (read-inline label-ctx r) in
 Arrow (arrow-config-default ctx, dir, grl, grr)
 
 let harr ctx l r = arr ctx Right l r
