@@ -16,6 +16,13 @@ val \diagram : [(|
   varr : inline-text -> inline-text -> cell;
 |) -> (cell list) list] inline-cmd
 
+val +diagram : [(|
+  emp : cell;
+  obj : inline-text -> cell;
+  harr : inline-text -> inline-text -> cell;
+  varr : inline-text -> inline-text -> cell;
+|) -> (cell list) list] block-cmd
+
 end = struct
 
 type direction =
@@ -399,13 +406,18 @@ let r = (|
 let cellss = cellssf r in
 let grs = draw-diagram cellss in
 let ((x0, y0), (x1, y1)) = get-grs-bbox grs in
+let ym = (y0 +' y1) *' 0.5 -' 4pt in
 let w = x1 -' x0 in
-let h = y1 -' y0 in
-let d = 0pt in
+let h = y1 -' ym in
+let d = ym in
 inline-graphics w h d
 (fun (px, py) ->
- (List.map (shift-graphics (px -' x0, py -' y0)) grs))
+ (List.map (shift-graphics (px -' x0, py -' ym)) grs))
 
-let-inline ctx \diagram cellssf = diagram ctx cellssf
+let-block ctx +diagram cellssf =
+line-break true true ctx (inline-fil ++ diagram ctx cellssf ++ inline-fil)
+
+let-inline ctx \diagram cellssf =
+inline-fil ++ embed-block-breakable ctx (read-block ctx '<+diagram(cellssf);>)
 
 end
