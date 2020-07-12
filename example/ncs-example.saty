@@ -14,7 +14,7 @@ document (|
   author = {Taichi Uemura};
 |) '<
   +p{
-    A diagram is drawn by building a rectangular array of objects, horizontal arrows and virtical arrows. (Diagonal arrows are not supported.)
+    To draw a diagram, pass \code(`\NCS.diagram`); a function building a rectangular array of objects, horizontal arrows and vertical arrows. (Diagonal arrows are not supported.)
     \d-code(```
     \NCS.diagram
     (fun tb ->
