@@ -1,0 +1,19 @@
+@require: stdjareport
+@import: ../ncs
+
+document (|
+  title = {NCS Examples};
+  author = {Taichi Uemura};
+|) '<
+  +p{
+    \NCS.diagram(
+    fun tb ->
+    (let emp = tb#emp in
+    let obj = tb#obj in
+    let harr = tb#harr in
+    let varr = tb#varr in
+    [[obj {${A}}   ; harr {very long label} {}; obj {${B}}; harr {short label} {}; obj {${C}}    ];
+    [varr {} {${h}}; emp                      ; emp       ; emp                  ; varr {${p}} {}];
+    [obj {${D}}    ; harr {} {${g}}           ; emp       ; emp                  ; obj {${E}}]   ]));
+  }
+>

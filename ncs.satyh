@@ -1,0 +1,410 @@
+@require: pervasives
+@require: list
+@require: base/tuple
+@require: base/length
+@require: option
+@require: gr
+
+module NCS : sig
+
+type cell
+
+val \diagram : [(|
+  emp : cell;
+  obj : inline-text -> cell;
+  harr : inline-text -> inline-text -> cell;
+  varr : inline-text -> inline-text -> cell;
+|) -> (cell list) list] inline-cmd
+
+end = struct
+
+type direction =
+| Right
+| Down
+
+type arrow-config = (|
+  head-len : length;
+  tail-len : length;
+  left-label-pos : length;
+  right-label-pos : length;
+  color : color;
+|)
+
+type paddings = length * length * length * length
+
+type cell =
+| Empty
+| Object of graphics * paddings
+| Arrow of arrow-config * direction * graphics * graphics
+
+let-rec zip-with f xs ys =
+match (xs, ys) with
+| ([], _) -> List.map (fun y -> (f None (Some y))) ys
+| (_, []) -> List.map (fun x -> (f (Some x) None)) xs
+| (x :: xs, y :: ys) -> f (Some x) (Some y) :: zip-with f xs ys
+
+let transpose fill xss =
+List.fold-right
+(zip-with
+ (fun y ys ->
+  Option.from fill y :: Option.from [] ys))
+[]
+xss
+
+let zip x0 y0 =
+zip-with
+(fun x y ->
+ (Option.from x0 x, Option.from y0 y))
+
+% Bottom and top lines of an object/horizontal-arrow
+let get-obj-bt cell =
+match cell with
+| Empty -> (0pt, 0pt)
+| Object (gr, (_, _, pt, pb)) ->
+(let ((_, y0), (_, y1)) = get-graphics-bbox gr in
+ (y0 -' pb, y1 +' pt))
+| Arrow (_, dir, l, r) ->
+(match dir with
+ | Right ->
+ (let ((_, ly0), (_, ly1)) = get-graphics-bbox l in
+  let ((_, ry0), (_, ry1)) = get-graphics-bbox r in
+  (ly1 -' ly0, 0pt -' (ry1 -' ry0)))
+ | Down -> (0pt, 0pt))
+
+% Left and right lines of an object/vertical-arrow
+let get-obj-lr cell =
+match cell with
+| Empty -> (0pt, 0pt)
+| Object (gr, (pl, pr, _, _)) ->
+(let ((x0, _), (x1, _)) = get-graphics-bbox gr in
+ (x0 -' pl, x1 +' pr))
+| Arrow (_, dir, l, r) ->
+(match dir with
+ | Right -> (0pt, 0pt)
+ | Down ->
+ (let ((lx0, _), (lx1, _)) = get-graphics-bbox l in
+  let ((rx0, _), (rx1, _)) = get-graphics-bbox r in
+  (lx1 -' lx0, 0pt -' (rx1 -' rx0))))
+
+let get-objs-boundary bdf cells =
+List.fold-right
+(fun cell (x, y) ->
+ (let (x1, y1) = bdf cell in
+  (Length.min x x1, Length.max y y1)))
+(0pt, 0pt)
+cells
+
+let get-objs-bt = get-objs-boundary get-obj-bt
+
+let get-objss-bts cellss = List.map get-objs-bt cellss
+
+let get-objs-lr = get-objs-boundary get-obj-lr
+
+let get-objss-lrs cellss = List.map get-objs-lr (transpose Empty cellss)
+
+% Find the first object in a list of cells
+let find-object cxs =
+let-rec aux xs ys =
+match ys with
+| [] -> (xs, None, [])
+| y :: ys ->
+(match y with
+ | (Object _, _) -> (xs, Some y, ys)
+ | _ -> aux (y :: xs) ys)
+in
+aux [] cxs
+
+% Find the first virtical arrow in a lisf of cells
+let find-arrow dir cxs0 obx cxs =
+let-rec aux xs src ys zs =
+match zs with
+| [] -> (xs, src, ys, None, [])
+| z :: zs ->
+(match z with
+ | (Object _, _) -> aux (List.append ys (src :: xs)) z [] zs
+ | (Arrow (_, dir1, _, _), _) ->
+ (match (dir, dir1) with
+  | (Right, Right) -> (xs, src, ys, Some z, zs)
+  | (Down, Down) -> (xs, src, ys, Some z, zs)
+  | _ -> aux xs src (z :: ys) zs)
+ | _ -> aux xs src (z :: ys) zs)
+in
+aux cxs0 obx [] cxs
+
+let find-varrow cxs0 obx cxs = find-arrow Down cxs0 obx cxs
+
+let find-harrow cxs0 obx cxs = find-arrow Right cxs0 obx cxs
+
+let d-sum zs =
+List.fold-right
+(fun (_, (x, y)) l ->
+ l +' (y -' x))
+0pt zs
+
+let update-bts src xs arr ys tgt =
+match arr with
+| (Arrow (cfg, Down, l, r), (ab, at)) ->
+(let ((_, ly0), (_, ly1)) = get-graphics-bbox l in
+ let ((_, ry0), (_, ry1)) = get-graphics-bbox r in
+ let head = cfg#head-len in
+ let tail = cfg#tail-len in
+ let ah = head +' tail +' ((Length.max ly1 ry1) -' (Length.min ly0 ly1)) in
+ let ch = at -' ab in
+ let xh = d-sum xs in
+ let yh = d-sum ys in
+ let (s, (sb, _)) = src in
+ let (t, (_, tt)) = tgt in
+ let (sy0, _) = get-obj-bt s in
+ let (_, ty1) = get-obj-bt t in
+ let h = ah -' (xh +' ch +' yh +' (sy0 -' sb) +' (tt -' ty1)) in
+ if 0pt <' h then
+ (let n = List.length xs + 1 + List.length ys in
+  let dh = h *' (0.5 /. (float n)) in
+  let f (z, (b, t)) = (z, (b -' dh, t +' dh)) in
+  (List.map f xs, f arr, List.map f ys))
+ else
+ (xs, arr, ys))
+| _ -> (xs, arr, ys)
+
+let update-lrs src xs arr ys tgt =
+match arr with
+| (Arrow (cfg, Right, l, r), (al, ar)) ->
+(let ((lx0, _), (lx1, _)) = get-graphics-bbox l in
+ let ((rx0, _), (rx1, _)) = get-graphics-bbox r in
+ let head = cfg#head-len in
+ let tail = cfg#tail-len in
+ let aw = head +' tail +' ((Length.max lx1 rx1) -' (Length.min lx0 lx1)) in
+ let cw = ar -' al in
+ let xw = d-sum xs in
+ let yw = d-sum ys in
+ let (s, (_, sr)) = src in
+ let (t, (tl, _)) = tgt in
+ let (_, sx1) = get-obj-lr s in
+ let (tx0, _) = get-obj-lr t in
+ let w = aw -' (xw +' cw +' yw +' (sr -' sx1) +' (tx0 -' tl)) in
+ if 0pt <' w then
+ (let n = List.length xs + 1 + List.length ys in
+  let dw = w *' (0.5 /. (float n)) in
+  let f (z, (l, r)) = (z, (l -' dw, r +' dw)) in
+  (List.map f xs, f arr, List.map f ys))
+ else
+ (xs, arr, ys))
+| _ -> (xs, arr, ys)
+
+% Adjust boundaries of a column/row of cells, assuming boundaris of
+% objects have been calculated.
+let adjust-cells-boundaries findf updf cells pqs =
+let cpqs = zip Empty (0pt, 0pt) cells pqs in
+let (xs, src, ys) = find-object cpqs in
+match src with
+| None -> pqs
+| Some src ->
+(let-rec aux xs src ys =
+ let (xs, src, ys, arr, zs) = findf xs src ys in
+ match arr with
+ | None -> List.reverse (List.append ys (src :: xs)) % zs must be []
+ | Some arr ->
+ (let (zs, tgt, ws) = find-object zs in
+  match tgt with
+  | None -> List.reverse (List.append zs (arr :: List.append ys (src :: xs))) % ws must be []
+  | Some tgt ->
+  (let (ys1, arr1, zs1) = updf src ys arr zs tgt in
+   aux (List.append zs1 (arr1 :: List.append ys1 (src :: xs))) tgt ws))
+ in
+ let cpqs1 = aux xs src ys in
+ List.map Pair.snd cpqs1)
+
+let adjust-cells-bts = adjust-cells-boundaries find-varrow update-bts
+
+let adjust-cellss-bts cellss bts =
+List.fold-right adjust-cells-bts bts (transpose Empty cellss)
+
+let adjust-cells-lrs = adjust-cells-boundaries find-harrow update-lrs
+
+let adjust-cellss-lrs cellss lrs =
+List.fold-right adjust-cells-lrs lrs cellss
+
+let make-vgrid bts =
+let (ls, _) =
+List.fold-right
+(fun (b, t) (ls, h) ->
+ (let h1 = h -' b in
+  (h1 :: ls, h1 +' t)))
+([], 0pt)
+bts in
+ls
+
+let make-hgrid lrs =
+let (ls, _) =
+List.fold-right
+(fun (l, r) (ls, w) ->
+ (let w1 = w -' r in
+  (w1 :: ls, w1 +' l)))
+([], 0pt)
+lrs in
+ls
+
+let draw-objects vgrid hgrid cellss =
+let grsss =
+zip-with
+(fun y cells ->
+ (let y = Option.from 0pt y in
+  let cells = Option.from [] cells in
+  zip-with
+  (fun x cell ->
+   (let x = Option.from 0pt x in
+    let cell = Option.from Empty cell in
+    match cell with
+    | Object (gr, _) -> [shift-graphics (x, y) gr]
+    | _ -> []))
+  hgrid cells))
+vgrid cellss in
+List.concat (List.concat grsss)
+
+let draw-arrow arr from to =
+match arr with
+| Arrow (cfg, dir, l, r) ->
+(let (x0, y0) = from in
+ let (x1, y1) = to in
+ let ga = Gr.arrow 0.5pt cfg#color 6pt 5pt 1.5pt from to in
+ let ((lx0, ly0), (lx1, ly1)) = get-graphics-bbox l in
+ let ((rx0, ry0), (rx1, ry1)) = get-graphics-bbox r in
+ let llp = cfg#left-label-pos in
+ let rlp = cfg#right-label-pos in
+ let (gl, gr) =
+ match dir with
+ | Down ->
+ (let label-t = y0 -' cfg#tail-len in
+  let label-b = y1 +' cfg#head-len in
+  let label-c = (label-t +' label-b) *' 0.5 in
+  let gl = shift-graphics ((x0 -' lx0) +' llp, label-c -' (ly0 +' ly1) *' 0.5) l in
+  let gr = shift-graphics ((x0 -' rx1) -' rlp, label-c -' (ry0 +' ry1) *' 0.5) r in
+  (gl, gr))
+ | Right ->
+ (let label-l = x0 +' cfg#tail-len in
+  let label-r = x1 -' cfg#head-len in
+  let label-c = (label-l +' label-r) *' 0.5 in
+  let gl = shift-graphics (label-c -' (lx0 +' lx1) *' 0.5, y0 +' llp) l in
+  let gr = shift-graphics (label-c -' (rx0 +' rx1) *' 0.5, (y0 -' ry1) -' rlp) r in
+  (gl, gr))
+ in
+ gl :: gr :: ga)
+| _ -> []
+
+let draw-varrow x src arr tgt =
+let (s, sc) = src in
+let (a, _) = arr in
+let (t, tc) = tgt in
+let (sb, _) = get-obj-bt s in
+let (_, tt) = get-obj-bt t in
+let ar-beg = sc +' sb in
+let ar-end = tc +' tt in
+draw-arrow a (x, ar-beg) (x, ar-end)
+
+let draw-harrow y src arr tgt =
+let (s, sc) = src in
+let (a, _) = arr in
+let (t, tc) = tgt in
+let (_, sr) = get-obj-lr s in
+let (tl, _) = get-obj-lr t in
+let ar-beg = sc +' sr in
+let ar-end = tc +' tl in
+draw-arrow a (ar-beg, y) (ar-end, y)
+
+let draw-arrows findf drawf vgrid hgrid cellss =
+let grss =
+zip-with
+(fun x cells ->
+ (let x = Option.from 0pt x in
+  let cells = Option.from [] cells in
+  let cxs = zip Empty 0pt cells vgrid in
+  let (_, src, ys) = find-object cxs in
+  match src with
+  | None -> []
+  | Some src ->
+  (let-rec aux src ys =
+   let (_, src, _, arr, zs) = findf [] src ys in
+   match arr with
+   | None -> []
+   | Some arr ->
+   (let (_, tgt, ws) = find-object zs in
+    match tgt with
+    | None -> []
+    | Some tgt ->
+    (let grs = drawf x src arr tgt in
+     List.append grs (aux tgt ws)))
+   in
+   aux src ys)))
+hgrid cellss in
+List.concat grss
+
+let draw-varrows vgrid hgrid cellss = draw-arrows find-varrow draw-varrow vgrid hgrid (transpose Empty cellss)
+
+let draw-harrows vgrid hgrid cellss = draw-arrows find-harrow draw-harrow hgrid vgrid cellss
+
+let draw-diagram cellss =
+let bts0 = get-objss-bts cellss in
+let bts = adjust-cellss-bts cellss bts0 in
+let lrs0 = get-objss-lrs cellss in
+let lrs = adjust-cellss-lrs cellss lrs0 in
+let vgrid = make-vgrid bts in
+let hgrid = make-hgrid lrs in
+let objs = draw-objects vgrid hgrid cellss in
+let varrs = draw-varrows vgrid hgrid cellss in
+let harrs = draw-harrows vgrid hgrid cellss in
+List.concat [objs; varrs; harrs]
+
+let emp ctx = Empty
+
+let obj ctx m =
+let gr = draw-text (0pt, 0pt) (read-inline ctx m) in
+let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
+let pd = 3pt in
+let pds = (pd, pd, pd, pd) in
+Object (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
+
+let arrow-config-default ctx = (|
+  head-len = 8pt;
+  tail-len = 8pt;
+  color = get-text-color ctx;
+  left-label-pos = 4pt;
+  right-label-pos = 4pt;
+|)
+
+let arr ctx dir l r =
+let grl = draw-text (0pt, 0pt) (read-inline ctx l) in
+let grr = draw-text (0pt, 0pt) (read-inline ctx r) in
+Arrow (arrow-config-default ctx, dir, grl, grr)
+
+let harr ctx l r = arr ctx Right l r
+
+let varr ctx l r = arr ctx Down l r
+
+let get-grs-bbox grs =
+List.fold-right
+(fun gr ((x0, y0), (x1, y1)) ->
+ (let ((gx0, gx1), (gy0, gy1)) = get-graphics-bbox gr in
+  ((Length.min x0 gx0, Length.min y0 gy0), (Length.max x1 gx1, Length.max y1 gy1))))
+((0pt, 0pt), (0pt, 0pt))
+grs
+
+let diagram ctx cellssf =
+let r = (|
+  emp = emp ctx;
+  obj = obj ctx;
+  harr = harr ctx;
+  varr = varr ctx;
+|) in
+let cellss = cellssf r in
+let grs = draw-diagram cellss in
+let ((x0, y0), (x1, y1)) = get-grs-bbox grs in
+let w = x1 -' x0 in
+let h = y1 -' y0 in
+let d = 0pt in
+inline-graphics w h d
+(fun (px, py) ->
+ (List.map (shift-graphics (px -' x0, py -' y0)) grs))
+
+let-inline ctx \diagram cellssf = diagram ctx cellssf
+
+end
