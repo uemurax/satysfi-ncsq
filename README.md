@@ -12,6 +12,10 @@ rectangular diagrams.
 
 Put [ncs.satyh](ncs.satyh) into a package directory.
 
+### Dependency
+
+*   [satysfi-base](https://github.com/nyuichi/satysfi-base)
+
 ## Usage
 
 See [example/](example/).
