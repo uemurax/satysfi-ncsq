@@ -1,6 +1,6 @@
 # Non-Commutative Squares
 
-*Non-Commutative Squares* (NCS) is a
+*Non-Commutative Squares* (NCSq) is a
 [SATySFi](https://github.com/gfngfn/SATySFi) package for drawing
 rectangular diagrams.
 
@@ -10,7 +10,7 @@ rectangular diagrams.
 
 ## Install
 
-Put [ncs.satyh](ncs.satyh) into a package directory.
+Put [ncsq.satyh](ncsq.satyh) into a package directory.
 
 ### Dependency
 

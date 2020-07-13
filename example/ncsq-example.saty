@@ -1,22 +1,22 @@
 @require: stdjareport
-@import: ../ncs
+@import: ../ncsq
 @require: code
 @require: math
 
-let-inline \diagram cellssf = {\NCS.diagram(cellssf);}
-let-block +diagram cellssf = '<+NCS.diagram(cellssf);>
-let-math \diagram-m cellssf = ${\NCS.diagram-m!(cellssf)}
+let-inline \diagram cellssf = {\NCSq.diagram(cellssf);}
+let-block +diagram cellssf = '<+NCSq.diagram(cellssf);>
+let-math \diagram-m cellssf = ${\NCSq.diagram-m!(cellssf)}
 
 in
 
 document (|
-  title = {NCS Examples};
+  title = {NCSq Examples};
   author = {Taichi Uemura};
 |) '<
   +p{
-    To draw a diagram, pass \code(`\NCS.diagram`); a function building a rectangular array of objects, horizontal arrows and vertical arrows. (Diagonal arrows are not supported.)
+    To draw a diagram, pass \code(`\NCSq.diagram`); a function building a rectangular array of objects, horizontal arrows and vertical arrows. (Diagonal arrows are not supported.)
     \d-code(```
-    \NCS.diagram
+    \NCSq.diagram
     (fun tb ->
      (let emp = tb#emp in
       let obj = tb#obj in
@@ -37,7 +37,7 @@ document (|
        [obj {${C}}    ; harr {} {${k}}; obj {${D}}    ]]));%
     Arrows stretch automatically.
     \d-code(```
-    \NCS.diagram
+    \NCSq.diagram
     (fun tb ->
      (let emp = tb#emp in
       let obj = tb#obj in
@@ -62,7 +62,7 @@ document (|
         obj {${E}}; harr {} {${f}}; obj {${F}}]]));%
     The source and the target of an arrow are automatically detected: the source of a horizontal arrow is the nearest object on the left\; the target of a horizontal arrow is the nearest object on the right\; the source of a vertical arrow is the nearest object above\; the target of a vertical arrow is the nearest object below. (If the source or the target of an arrow is not found, then the arrow will not be drawn.)
     \d-code(```
-    \NCS.diagram(fun tb -> (
+    \NCSq.diagram(fun tb -> (
       let emp = tb#emp in
       let obj = tb#obj in
       let harr = tb#harr in
@@ -103,7 +103,7 @@ document (|
         obj {${K}}; harr {} {${p}}; obj {${L}}]]));%
     One can also draw 2-arrows. (Internally, a 2-arrow is an object to which “${\Downarrow}” is appended.)
     \d-code(```
-    \NCS.diagram(fun tb -> (
+    \NCSq.diagram(fun tb -> (
       let obj = tb#obj in
       let harr = tb#harr in
       let varr = tb#varr in
@@ -120,11 +120,11 @@ document (|
       [[obj {${A}}; harr {${f}} {}; obj {${B}}];
        [varr {} {${g}}; arr2 {${\alpha}}; varr {${h}} {}];
        [obj {${C}}; harr {} {${k}}; obj {${D}}]]));%
-    \code(`\NCS.diagram-m`); is suitable for drawing diagrams in math formulas.
+    \code(`\NCSq.diagram-m`); is suitable for drawing diagrams in math formulas.
     \d-code(```
     \eqn(${
       \paren{
-        \NCS.diagram-m
+        \NCSq.diagram-m
         !(fun tb -> (
           let obj = tb#obj in
           let harr = tb#harr in
@@ -139,7 +139,7 @@ document (|
         ))
       } =
       \paren{
-        \NCS.diagram-m
+        \NCSq.diagram-m
         !(fun tb -> (
           let obj = tb#obj in
           let harr = tb#harr in

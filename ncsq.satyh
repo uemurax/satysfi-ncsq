@@ -6,7 +6,7 @@
 @require: gr
 @require: math
 
-module NCS : sig
+module NCSq : sig
 
 type cell
 
