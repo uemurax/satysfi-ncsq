@@ -1,7 +1,7 @@
 # Non-Commutative Squares
 
 *Non-Commutative Squares* (NCS) is a
-[SATySFi](https://github.com/gfngfn/SATySFi) library for drawing
+[SATySFi](https://github.com/gfngfn/SATySFi) package for drawing
 rectangular diagrams.
 
 ## Features
