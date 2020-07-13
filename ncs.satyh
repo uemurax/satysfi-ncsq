@@ -4,6 +4,7 @@
 @require: base/length
 @require: option
 @require: gr
+@require: math
 
 module NCS : sig
 
@@ -14,6 +15,7 @@ val \diagram : [(|
   obj : inline-text -> cell;
   harr : inline-text -> inline-text -> cell;
   varr : inline-text -> inline-text -> cell;
+  arr2 : inline-text -> cell;
 |) -> (cell list) list] inline-cmd
 
 val +diagram : [(|
@@ -21,6 +23,7 @@ val +diagram : [(|
   obj : inline-text -> cell;
   harr : inline-text -> inline-text -> cell;
   varr : inline-text -> inline-text -> cell;
+  arr2 : inline-text -> cell;
 |) -> (cell list) list] block-cmd
 
 val \diagram-m : [(|
@@ -28,6 +31,7 @@ val \diagram-m : [(|
   obj : inline-text -> cell;
   harr : inline-text -> inline-text -> cell;
   varr : inline-text -> inline-text -> cell;
+  arr2 : inline-text -> cell;
 |) -> (cell list) list] math-cmd
 
 end = struct
@@ -370,8 +374,8 @@ List.concat [objs; varrs; harrs]
 
 let emp ctx = Empty
 
-let obj ctx m =
-let gr = draw-text (0pt, 0pt) (read-inline ctx m) in
+let obj ctx it =
+let gr = draw-text (0pt, 0pt) (read-inline ctx it) in
 let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
 let pd = 3pt in
 let pds = (pd, pd, pd, pd) in
@@ -395,6 +399,17 @@ let harr ctx l r = arr ctx Right l r
 
 let varr ctx l r = arr ctx Down l r
 
+let arr2 ctx it =
+let ib1 = embed-math ctx ${\Downarrow} in
+let label-ctx = set-font-size (get-font-size ctx *' 0.75) ctx in
+let ib2 = read-inline label-ctx it in
+let gr = draw-text (0pt, 0pt) (ib1 ++ ib2) in
+let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
+let pdx = 6pt in
+let pdy = 3pt in
+let pds = (pdx, pdx, pdy, pdy) in
+Object (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
+
 let get-grs-bbox grs =
 List.fold-right
 (fun gr ((x0, y0), (x1, y1)) ->
@@ -409,6 +424,7 @@ let r = (|
   obj = obj ctx;
   harr = harr ctx;
   varr = varr ctx;
+  arr2 = arr2 ctx;
 |) in
 let cellss = cellssf r in
 let grs = draw-diagram cellss in
