@@ -2,6 +2,7 @@
 @import: ../ncsq
 @require: code
 @require: math
+@require: itemize
 
 let-inline \diagram cellssf = {\NCSq.diagram(cellssf);}
 let-block +diagram cellssf = '<+NCSq.diagram(cellssf);>
@@ -179,5 +180,40 @@ document (|
            [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
       }
     });%
+    Arrows can be backwards.
+    \d-code(```
+    \NCSq.diagram
+    (fun tb -> (
+      let obj = tb#obj in
+      let rarr = tb#rarr in
+      let uarr = tb#uarr in
+      let darr = tb#darr in
+      let arr2 = tb#arr2 in
+      [[obj {${C}}; rarr {よ} {};
+        obj {${\app{\mathbf{Fun}}{C^{\mathrm{op}}, \mathbf{Set}}}}];
+       [darr {} {${F}}; arr2 {}; uarr {} {${F^{*}}}];
+       [obj {${D}}; rarr {} {よ};
+        obj {${\app{\mathbf{Fun}}{D^{\mathrm{op}}, \mathbf{Set}}}}]]));
+```);%
+    \diagram
+    (fun tb -> (
+      let obj = tb#obj in
+      let rarr = tb#rarr in
+      let uarr = tb#uarr in
+      let darr = tb#darr in
+      let arr2 = tb#arr2 in
+      [[obj {${C}}; rarr {よ} {};
+        obj {${\app{\mathbf{Fun}}{C^{\mathrm{op}}, \mathbf{Set}}}}];
+       [darr {} {${F}}; arr2 {}; uarr {} {${F^{*}}}];
+       [obj {${D}}; rarr {} {よ};
+        obj {${\app{\mathbf{Fun}}{D^{\mathrm{op}}, \mathbf{Set}}}}]]));%
+    Here,
+    \listing{
+      * \code(`larr`); = left arrow
+      * \code(`rarr`); = right arrow
+      * \code(`uarr`); = up arrow
+      * \code(`darr`); = down arrow
+    }
+    In fact, \code(`harr`); and \code(`varr`); are aliases to \code(`rarr`); and \code(`darr`);, respectively.
   }
 >
