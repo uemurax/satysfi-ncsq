@@ -102,6 +102,27 @@ document (|
         varr {${n}} {}];
        [obj {${J}}; harr {} {${o}}; emp; emp;
         obj {${K}}; harr {} {${p}}; obj {${L}}]]));%
+    \code(`heq`); and \code(`veq`); draw horizontal and vertical, respectively, equality signs, so we can now draw a commutative “triangle”.
+    \d-code(```
+    \NCSq.diagram(fun tb -> (
+      let emp = tb#emp in
+      let obj = tb#obj in
+      let harr = tb#harr in
+      let varr = tb#varr in
+      let heq = tb#heq in
+      [[obj {${A}}; heq; obj {${A}}];
+       [varr {} {${f}}; emp; varr {${h}} {}];
+       [obj {${B}}; harr {} {${g}}; obj {${C}}]]));
+```);%
+    \diagram(fun tb -> (
+      let emp = tb#emp in
+      let obj = tb#obj in
+      let harr = tb#harr in
+      let varr = tb#varr in
+      let heq = tb#heq in
+      [[obj {${A}}; heq; obj {${A}}];
+       [varr {} {${f}}; emp; varr {${h}} {}];
+       [obj {${B}}; harr {} {${g}}; obj {${C}}]]));%
     One can also draw 2-arrows. (Internally, a 2-arrow is an object to which “${\Downarrow}” is appended.)
     \d-code(```
     \NCSq.diagram(fun tb -> (
@@ -111,7 +132,7 @@ document (|
       let arr2 = tb#arr2 in
       [[obj {${A}}; harr {${f}} {}; obj {${B}}];
        [varr {} {${g}}; arr2 {${\alpha}}; varr {${h}} {}];
-       [obj {${C}}; harr {} {${k}}; obj {${D}}]]));%
+       [obj {${C}}; harr {} {${k}}; obj {${D}}]]));
 ```);%
     \diagram(fun tb -> (
       let obj = tb#obj in
@@ -130,24 +151,24 @@ document (|
           let obj = tb#obj in
           let harr = tb#harr in
           let varr = tb#varr in
+          let heq = tb#heq in
+          let veq = tb#veq in
           let arr2 = tb#arr2 in
-          [[obj {${A}}; harr {${f}} {}; obj {${B}};
-            harr {${=}} {}; obj {${B}}];
-           [varr {} {${=}}; arr2 {${\epsilon}};
-            varr {${g}} {}; arr2 {${\eta}}; varr {${=}} {}];
-           [obj {${A}}; harr {} {${=}}; obj {${A}};
-            harr {} {${f}}; obj {${B}}]]
+          [[obj {${A}}; harr {${f}} {}; obj {${B}}; heq; obj {${B}}];
+           [veq; arr2 {${\epsilon}};
+            varr {${g}} {}; arr2 {${\eta}}; veq];
+           [obj {${A}}; heq; obj {${A}}; harr {} {${f}}; obj {${B}}]]
         ))
       } =
       \paren{
         \NCSq.diagram-m
         !(fun tb -> (
+          let emp = tb#emp in
           let obj = tb#obj in
           let harr = tb#harr in
-          let varr = tb#varr in
-          let arr2 = tb#arr2 in
+          let veq = tb#veq in
           [[obj {${A}}; harr {${f}} {}; obj {${B}}];
-           [varr {} {${=}}; arr2 {${=}}; varr {${=}} {}];
+           [veq; emp; veq];
            [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
       }
     });
@@ -159,24 +180,24 @@ document (|
           let obj = tb#obj in
           let harr = tb#harr in
           let varr = tb#varr in
+          let heq = tb#heq in
+          let veq = tb#veq in
           let arr2 = tb#arr2 in
-          [[obj {${A}}; harr {${f}} {}; obj {${B}};
-            harr {${=}} {}; obj {${B}}];
-           [varr {} {${=}}; arr2 {${\epsilon}};
-            varr {${g}} {}; arr2 {${\eta}}; varr {${=}} {}];
-           [obj {${A}}; harr {} {${=}}; obj {${A}};
-            harr {} {${f}}; obj {${B}}]]
+          [[obj {${A}}; harr {${f}} {}; obj {${B}}; heq; obj {${B}}];
+           [veq; arr2 {${\epsilon}};
+            varr {${g}} {}; arr2 {${\eta}}; veq];
+           [obj {${A}}; heq; obj {${A}}; harr {} {${f}}; obj {${B}}]]
         ))
       } =
       \paren{
         \diagram-m
         !(fun tb -> (
+          let emp = tb#emp in
           let obj = tb#obj in
           let harr = tb#harr in
-          let varr = tb#varr in
-          let arr2 = tb#arr2 in
+          let veq = tb#veq in
           [[obj {${A}}; harr {${f}} {}; obj {${B}}];
-           [varr {} {${=}}; arr2 {${=}}; varr {${=}} {}];
+           [veq; emp; veq];
            [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
       }
     });%
