@@ -17,6 +17,8 @@ val \diagram : [(|
   rarr : inline-text -> inline-text -> cell;
   uarr : inline-text -> inline-text -> cell;
   darr : inline-text -> inline-text -> cell;
+  heq : cell;
+  veq : cell;
   arr2 : inline-text -> cell;
   harr : inline-text -> inline-text -> cell;
   varr : inline-text -> inline-text -> cell;
@@ -29,6 +31,8 @@ val +diagram : [(|
   rarr : inline-text -> inline-text -> cell;
   uarr : inline-text -> inline-text -> cell;
   darr : inline-text -> inline-text -> cell;
+  heq : cell;
+  veq : cell;
   arr2 : inline-text -> cell;
   harr : inline-text -> inline-text -> cell;
   varr : inline-text -> inline-text -> cell;
@@ -41,6 +45,8 @@ val \diagram-m : [(|
   rarr : inline-text -> inline-text -> cell;
   uarr : inline-text -> inline-text -> cell;
   darr : inline-text -> inline-text -> cell;
+  heq : cell;
+  veq : cell;
   arr2 : inline-text -> cell;
   harr : inline-text -> inline-text -> cell;
   varr : inline-text -> inline-text -> cell;
@@ -61,7 +67,7 @@ type direction = direction1 * direction2
 type arrow-config = (|
   head-len : length;
   tail-len : length;
-  color : color;
+  draw : point -> point -> graphics list;
 |)
 
 type paddings = length * length * length * length
@@ -322,7 +328,7 @@ match arr with
   let s-front = sc +' bd-front dir1 (get-obj-bd dir1 s) in
   let t-back = tc +' bd-back dir1 (get-obj-bd dir1 t) in
   let (from, to) = arrow-from-to dir1 dir2 z s-front t-back in
-  let ga = Gr.arrow 0.5pt cfg#color 6pt 5pt 1.5pt from to in
+  let ga = cfg#draw from to in
   let ((ax0, ay0), (ax1, ay1)) = (from, to) in
   let ax = (ax0 +' ax1) *' 0.5 in
   let ay = (ay0 +' ay1) *' 0.5 in
@@ -384,7 +390,9 @@ Object (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
 let arrow-config-default ctx = (|
   head-len = 8pt;
   tail-len = 8pt;
-  color = get-text-color ctx;
+  draw =
+  (let color = get-text-color ctx in
+   Gr.arrow 0.5pt color 6pt 5pt 1.5pt);
 |)
 
 let arr ctx dir l r =
@@ -423,6 +431,34 @@ let harr = rarr
 
 let varr = darr
 
+let draw-eq ctx from to =
+let ((x0, y0), (x1, y1)) = (from, to) in
+let (x, y) = (x1 -' x0, y1 -' y0) in
+if Length.equal x 0pt && Length.equal y 0pt
+then
+[]
+else
+let xf = x /' 1pt in
+let yf = y /' 1pt in
+let r = 1.0 /. exp (0.5 *. log (xf *. xf +. yf *. yf)) in
+let d = 1pt in
+let dx = 0pt -' d *' (yf *. r) in
+let dy = d *' (xf *. r) in
+let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
+let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
+let color = get-text-color ctx in
+List.map (stroke 0.5pt color) [l1; l2]
+
+let eqarr ctx dir =
+Arrow ((|
+  (arrow-config-default ctx)
+  with
+  draw = draw-eq ctx;
+|), dir, [])
+
+let heq ctx = eqarr ctx (Horizontal, Forwards)
+let veq ctx = eqarr ctx (Vertical, Forwards)
+
 let arr2 ctx it =
 let ib1 = embed-math ctx ${\Downarrow} in
 let label-ctx = set-font-size (get-font-size ctx *' 0.75) ctx in
@@ -444,6 +480,8 @@ let r = (|
   darr = darr ctx;
   harr = harr ctx;
   varr = varr ctx;
+  heq = heq ctx;
+  veq = veq ctx;
   arr2 = arr2 ctx;
 |) in
 let cellss = cellssf r in
