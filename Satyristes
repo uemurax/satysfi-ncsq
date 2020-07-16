@@ -1,0 +1,11 @@
+(version 0.0.2)
+
+(library
+ (name "ncsq")
+ (version "0.0.1")
+ (sources
+  ((package "ncsq.satyh" "./ncsq.satyh")))
+ (opam "satysfi-ncsq.opam")
+ (dependencies
+  ((base ())
+   (dist ()))))
