@@ -19,3 +19,9 @@ Put [ncsq.satyh](ncsq.satyh) into a package directory.
 ## Usage
 
 See [example/](example/).
+
+## Related packages
+
+The standard library includes
+[cd](https://github.com/gfngfn/SATySFi/blob/master/lib-satysfi/dist/packages/cd.satyh)
+package which I follow in arrow style.

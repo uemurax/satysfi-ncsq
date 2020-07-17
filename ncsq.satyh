@@ -6,6 +6,10 @@
 @require: gr
 @require: math
 
+type ncsq-arrow-style =
+| Solid
+| Dashed
+
 module NCSq : sig
 
 type cell
@@ -13,43 +17,43 @@ type cell
 val \diagram : [(|
   emp : cell;
   obj : inline-text -> cell;
-  larr : inline-text -> inline-text -> cell;
-  rarr : inline-text -> inline-text -> cell;
-  uarr : inline-text -> inline-text -> cell;
-  darr : inline-text -> inline-text -> cell;
+  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
   heq : cell;
   veq : cell;
   arr2 : inline-text -> cell;
-  harr : inline-text -> inline-text -> cell;
-  varr : inline-text -> inline-text -> cell;
+  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
 |) -> (cell list) list] inline-cmd
 
 val +diagram : [(|
   emp : cell;
   obj : inline-text -> cell;
-  larr : inline-text -> inline-text -> cell;
-  rarr : inline-text -> inline-text -> cell;
-  uarr : inline-text -> inline-text -> cell;
-  darr : inline-text -> inline-text -> cell;
+  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
   heq : cell;
   veq : cell;
   arr2 : inline-text -> cell;
-  harr : inline-text -> inline-text -> cell;
-  varr : inline-text -> inline-text -> cell;
+  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
 |) -> (cell list) list] block-cmd
 
 val \diagram-m : [(|
   emp : cell;
   obj : inline-text -> cell;
-  larr : inline-text -> inline-text -> cell;
-  rarr : inline-text -> inline-text -> cell;
-  uarr : inline-text -> inline-text -> cell;
-  darr : inline-text -> inline-text -> cell;
+  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
   heq : cell;
   veq : cell;
   arr2 : inline-text -> cell;
-  harr : inline-text -> inline-text -> cell;
-  varr : inline-text -> inline-text -> cell;
+  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
+  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
 |) -> (cell list) list] math-cmd
 
 end = struct
@@ -387,15 +391,41 @@ let pd = 3pt in
 let pds = (pd, pd, pd, pd) in
 Object (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
 
+let draw-arrow ctx =
+let color = get-text-color ctx in
+Gr.arrow 0.5pt color 6pt 5pt 1.5pt
+
+let draw-dashed-arrow ctx =
+let color = get-text-color ctx in
+Gr.dashed-arrow 0.5pt (3pt, 3pt, 0pt) color 6pt 5pt 1.5pt
+
+let draw-eq ctx =
+let color = get-text-color ctx in
+fun from to ->
+(let ((x0, y0), (x1, y1)) = (from, to) in
+ let (x, y) = (x1 -' x0, y1 -' y0) in
+ if Length.equal x 0pt && Length.equal y 0pt
+ then
+ []
+ else
+ let xf = x /' 1pt in
+ let yf = y /' 1pt in
+ let r = 1.0 /. exp (0.5 *. log (xf *. xf +. yf *. yf)) in
+ let d = 1pt in
+ let dx = 0pt -' d *' (yf *. r) in
+ let dy = d *' (xf *. r) in
+ let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
+ let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
+ List.map (stroke 0.5pt color) [l1; l2])
+
 let arrow-config-default ctx = (|
   head-len = 8pt;
   tail-len = 8pt;
-  draw =
-  (let color = get-text-color ctx in
-   Gr.arrow 0.5pt color 6pt 5pt 1.5pt);
+  draw = draw-arrow ctx;
 |)
 
-let arr ctx dir l r =
+let arr ctx dir ?:style-opt l r =
+let style = Option.from Solid style-opt in
 let label-ctx = set-font-size (get-font-size ctx *' 0.75) ctx in
 let grl = draw-text (0pt, 0pt) (read-inline label-ctx l) in
 let grr = draw-text (0pt, 0pt) (read-inline label-ctx r) in
@@ -417,37 +447,25 @@ let (gr0, gr1) =
  (shift-graphics ((0pt -' pd) -' lx1, 0pt -' (ly0 +' ly1) *' 0.5) grl,
   shift-graphics (pd -' rx0, 0pt -' (ry0 +' ry1) *' 0.5) grr))
 in
-Arrow (arrow-config-default ctx, dir, [gr0; gr1])
+Arrow ((|
+  (arrow-config-default ctx)
+  with
+  draw = match style with
+  | Solid -> draw-arrow ctx
+  | Dashed -> draw-dashed-arrow ctx;
+|), dir, [gr0; gr1])
 
-let larr ctx l r = arr ctx (Horizontal, Backwards) l r
+let larr ctx = arr ctx (Horizontal, Backwards)
 
-let rarr ctx l r = arr ctx (Horizontal, Forwards) l r
+let rarr ctx = arr ctx (Horizontal, Forwards)
 
-let uarr ctx l r = arr ctx (Vertical, Backwards) l r
+let uarr ctx = arr ctx (Vertical, Backwards)
 
-let darr ctx l r = arr ctx (Vertical, Forwards) l r
+let darr ctx = arr ctx (Vertical, Forwards)
 
 let harr = rarr
 
 let varr = darr
-
-let draw-eq ctx from to =
-let ((x0, y0), (x1, y1)) = (from, to) in
-let (x, y) = (x1 -' x0, y1 -' y0) in
-if Length.equal x 0pt && Length.equal y 0pt
-then
-[]
-else
-let xf = x /' 1pt in
-let yf = y /' 1pt in
-let r = 1.0 /. exp (0.5 *. log (xf *. xf +. yf *. yf)) in
-let d = 1pt in
-let dx = 0pt -' d *' (yf *. r) in
-let dy = d *' (xf *. r) in
-let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
-let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
-let color = get-text-color ctx in
-List.map (stroke 0.5pt color) [l1; l2]
 
 let eqarr ctx dir =
 Arrow ((|

@@ -142,6 +142,8 @@ document (|
       [[obj {${A}}; harr {${f}} {}; obj {${B}}];
        [varr {} {${g}}; arr2 {${\alpha}}; varr {${h}} {}];
        [obj {${C}}; harr {} {${k}}; obj {${D}}]]));%
+  }
+  +p{
     \code(`\NCSq.diagram-m`); is suitable for drawing diagrams in math formulas.
     \d-code(```
     \eqn(${
@@ -201,6 +203,8 @@ document (|
            [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
       }
     });%
+  }
+  +p{
     Arrows can be backwards.
     \d-code(```
     \NCSq.diagram
@@ -236,5 +240,37 @@ document (|
       * \code(`darr`); = down arrow
     }
     In fact, \code(`harr`); and \code(`varr`); are aliases to \code(`rarr`); and \code(`darr`);, respectively.
+  }
+  +p{
+    Arrow functions such as \code(`rarr`); and \code(`darr`); accept an optional argument to change the style.
+    \d-code(```
+    \NCSq.diagram
+    (fun tb -> (
+      let emp = tb#emp in
+      let obj = tb#obj in
+      let larr = tb#larr in
+      let rarr = tb#rarr in
+      let darr = tb#darr in
+      let veq = tb#veq in
+      [[obj {${A}}; larr {} {${f}}; obj {${X}};
+        rarr {${g}} {}; obj {${B}}];
+       [veq; emp; darr ?:(Dashed) {${\paren{f, g}}} {}; emp; veq];
+       [obj {${A}}; larr {${p_{1}}} {}; obj {${A \times B}};
+        rarr {} {${p_{2}}}; obj {${B}}]]));
+```);%
+    \diagram
+    (fun tb -> (
+      let emp = tb#emp in
+      let obj = tb#obj in
+      let larr = tb#larr in
+      let rarr = tb#rarr in
+      let darr = tb#darr in
+      let veq = tb#veq in
+      [[obj {${A}}; larr {} {${f}}; obj {${X}};
+        rarr {${g}} {}; obj {${B}}];
+       [veq; emp; darr ?:(Dashed) {${\paren{f, g}}} {}; emp; veq];
+       [obj {${A}}; larr {${p_{1}}} {}; obj {${A \times B}};
+        rarr {} {${p_{2}}}; obj {${B}}]]));%
+    Currently, two styles \code(`Solid`); (default) and \code(`Dashed`); are supported.
   }
 >
