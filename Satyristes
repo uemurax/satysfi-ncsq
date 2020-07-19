@@ -9,3 +9,16 @@
  (dependencies
   ((base ())
    (dist ()))))
+
+(libraryDoc
+ (name "ncsq-doc")
+ (version "0.0.1")
+ (workingDirectory "example")
+ (build
+  ((satysfi "ncsq-example.saty" "-o" "ncsq-example.pdf")))
+ (sources
+  ((doc "ncsq-example.pdf" "example/ncsq-example.pdf")
+   (doc "ncsq-example.saty" "example/ncsq-example.saty")))
+ (opam "satysfi-ncsq-doc.opam")
+ (dependencies ((ncsq ())
+                (dist ()))))
