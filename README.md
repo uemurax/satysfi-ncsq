@@ -10,11 +10,13 @@ rectangular diagrams.
 
 ## Install
 
-Put [ncsq.satyh](ncsq.satyh) into a package directory.
+Using [Satyrographos](https://github.com/na4zagin3/satyrographos):
 
-### Dependency
-
-*   [satysfi-base](https://github.com/nyuichi/satysfi-base)
+```
+$ opam install satysfi-ncsq
+$ opam install satysfi-ncsq-doc # for documentation
+$ satyrographos install
+```
 
 ## Usage
 
