@@ -44,7 +44,9 @@ val equal : arrow-style
 
 % Utilities
 
+val transpose : (cell list) list -> (cell list) list
 val invert-v : (cell list) list -> (cell list) list
+val invert-h : (cell list) list -> (cell list) list
 
 % The following are DEPRECATED.
 
@@ -125,6 +127,8 @@ match (xs, ys) with
 | (_, []) -> List.map (fun x -> (f (Some x) None)) xs
 | (x :: xs, y :: ys) -> f (Some x) (Some y) :: zip-with f xs ys
 
+module Matrix = struct
+
 let transpose fill xss =
 List.fold-right
 (zip-with
@@ -132,6 +136,8 @@ List.fold-right
   Option.from fill y :: Option.from [] ys))
 []
 xss
+
+end
 
 let zip x0 y0 =
 zip-with
@@ -191,7 +197,7 @@ let get-objss-bts cellss = List.map get-objs-bt cellss
 
 let get-objs-lr = get-objs-boundary Horizontal
 
-let get-objss-lrs cellss = List.map get-objs-lr (transpose Empty-raw cellss)
+let get-objss-lrs cellss = List.map get-objs-lr (Matrix.transpose Empty-raw cellss)
 
 % Determine source and target of an arrow
 
@@ -295,7 +301,7 @@ match src with
 let adjust-cells-bts = adjust-cells-boundaries Vertical
 
 let adjust-cellss-bts cellss bts =
-List.fold-right adjust-cells-bts bts (transpose Empty-raw cellss)
+List.fold-right adjust-cells-bts bts (Matrix.transpose Empty-raw cellss)
 
 let adjust-cells-lrs = adjust-cells-boundaries Horizontal
 
@@ -402,7 +408,7 @@ zip-with
 hgrid cellss in
 List.concat grss
 
-let draw-varrows vgrid hgrid cellss = draw-arrows Vertical vgrid hgrid (transpose Empty-raw cellss)
+let draw-varrows vgrid hgrid cellss = draw-arrows Vertical vgrid hgrid (Matrix.transpose Empty-raw cellss)
 
 let draw-harrows vgrid hgrid cellss = draw-arrows Horizontal hgrid vgrid cellss
 
@@ -627,6 +633,31 @@ match cell with
 | _ -> cell
 
 let invert-v cellss = List.map (List.map invert-cell-vertically) (List.reverse cellss)
+
+let transpose-direction dir =
+match dir with
+| (Horizontal, dir2) -> (Vertical, dir2)
+| (Vertical, dir1) -> (Horizontal, dir1)
+
+let transpose-cell cell =
+match cell with
+| Arrow arr ->
+(Arrow (|
+  arr with
+  left-label = arr#right-label;
+  right-label = arr#left-label;
+  direction = transpose-direction arr#direction;
+|))
+| Arrow-2 arr-2 ->
+(Arrow-2 (|
+  arr-2 with
+  direction = transpose-direction arr-2#direction;
+|))
+| _ -> cell
+
+let transpose cellss = List.map (List.map transpose-cell) (Matrix.transpose empty cellss)
+
+let invert-h cellss = transpose (invert-v (transpose cellss))
 
 % The following are DEPRECATED
 

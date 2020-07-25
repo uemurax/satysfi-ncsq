@@ -261,6 +261,8 @@ arrow ?:left-label ?:right-label ?:style direction
   +chapter{Utilities}<
     +p{
       \code(`NCSq`); module provides some utilities for building diagrams.
+    }
+    +p{
       \code(`invert-v`); inverts a diagram vertically.
       \d-code(```
 % In preanble
@@ -271,13 +273,26 @@ let cellss1 = open NCSq in [
   [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
 ]
 in
-
-% In some inline text
-\NCSq.cd(cellss1);
-\NCSq.cd(NCSq.invert-v(cellss1));
+```);
+      \d-code(```
+      \NCSq.cd(cellss1);
 ```);
       \NCSq.cd(cellss1);
+      \d-code(```
+\NCSq.cd(NCSq.invert-v(cellss1));
+```);
       \NCSq.cd(NCSq.invert-v(cellss1));
+    }
+    +p{
+      \code(`transpose`); flips a diagram over its diagonal.
+      \NCSq.cd(NCSq.transpose(cellss1));
+    }
+    +p{
+      Using \code(`invert-v`); and \code(`transpose`);, one can invert a diagram horizontally, but why not preconfigure \code(`invert-h`); function.
+      \d-code(```
+      \NCSq.cd(NCSq.invert-h(cellss1));
+```);
+      \NCSq.cd(NCSq.invert-h(cellss1));
     }
   >
 >
