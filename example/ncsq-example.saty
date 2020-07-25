@@ -285,6 +285,9 @@ in
     }
     +p{
       \code(`transpose`); flips a diagram over its diagonal.
+      \d-code(```
+      \NCSq.cd(NCSq.transpose(cellss1));
+```);
       \NCSq.cd(NCSq.transpose(cellss1));
     }
     +p{
