@@ -1,276 +1,219 @@
 @require: stdjareport
 @import: ../ncsq
-@require: code
-@require: math
-@require: itemize
-
-let-inline \diagram cellssf = {\NCSq.diagram(cellssf);}
-let-block +diagram cellssf = '<+NCSq.diagram(cellssf);>
-let-math \diagram-m cellssf = ${\NCSq.diagram-m!(cellssf)}
-
-in
 
 document (|
   title = {NCSq Examples};
   author = {Taichi Uemura};
 |) '<
   +p{
-    To draw a diagram, pass \code(`\NCSq.diagram`); a function building a rectangular array of objects, horizontal arrows and vertical arrows. (Diagonal arrows are not supported.)
+    To draw a diagram, pass \code(`\NCSq.cd`); a rectangular array of cells.
     \d-code(```
-    \NCSq.diagram
-    (fun tb ->
-     (let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      [[obj {${A}}    ; harr {${f}} {}; obj {${B}}    ];
-       [varr {} {${g}}; emp           ; varr {${h}} {}];
-       [obj {${C}}    ; harr {} {${k}}; obj {${D}}    ]]));
-```);%
-    \diagram
-    (fun tb ->
-     (let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      [[obj {${A}}    ; harr {${f}} {}; obj {${B}}    ];
-       [varr {} {${g}}; emp           ; varr {${h}} {}];
-       [obj {${C}}    ; harr {} {${k}}; obj {${D}}    ]]));%
-    Arrows stretch automatically.
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}};
+       arrow right; object {${C}}];
+      [arrow down; empty; arrow down;
+       arrow-2 {${\alpha}}; arrow down];
+      [object {${D}}; arrow right; object {${E}};
+       arrow right; object {${F}}]
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}};
+       arrow right; object {${C}}];
+      [arrow down; empty; arrow down;
+       arrow-2 {${\alpha}}; arrow down];
+      [object {${D}}; arrow right; object {${E}};
+       arrow right; object {${F}}]
+    ]);
+    Here, \code(`empty`);, \code(`object`);, \code(`arrow`); and \code(`arrow-2`); are functions defined in \code(`NCSq`); module for building cells.
+    \code(`object inline-text`); will draw an object (0-cell) with label \code(`inline-text`);.
+    \code(`arrow direction`); will draw an arrow (1-cell) towards \code(`direction`);.
+    Currently, \code(`direction`); can be \code(`left`);, \code(`right`);, \code(`up`);, or \code(`down`);, which are constants provided by \code(`NCSq`); module, but diagonal arrows are not supported.
     \d-code(```
-    \NCSq.diagram
-    (fun tb ->
-     (let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      [[obj {${A}}; harr {} {}; obj {${B}};
-        harr {very very long label} {}; obj {${C}}];
-       [varr {} {}; emp; varr {} {}; emp; varr {} {}];
-       [obj {${\mathrm{Hom}\paren{D_{1}, D_{2}}}}; harr {} {};
-        obj {${E}}; harr {} {${f}}; obj {${F}}]]));
-```);%
-    \diagram
-    (fun tb ->
-     (let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      [[obj {${A}}; harr {} {}; obj {${B}};
-        harr {very very long label} {}; obj {${C}}];
-       [varr {} {}; emp; varr {} {}; emp; varr {} {}];
-       [obj {${\mathrm{Hom}\paren{D_{1}, D_{2}}}}; harr {} {};
-        obj {${E}}; harr {} {${f}}; obj {${F}}]]));%
-    The source and the target of an arrow are automatically detected: the source of a horizontal arrow is the nearest object on the left\; the target of a horizontal arrow is the nearest object on the right\; the source of a vertical arrow is the nearest object above\; the target of a vertical arrow is the nearest object below. (If the source or the target of an arrow is not found, then the arrow will not be drawn.)
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow left; object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow left; object {${B}}];
+    ]);
     \d-code(```
-    \NCSq.diagram(fun tb -> (
-      let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      [[obj {${A}}; harr {${a}} {}; obj {${B}}; harr {${b}} {};
-        emp; emp; obj {${C}}];
-       [varr {} {${c}}; emp; varr {} {${d}}; emp;
-        emp; emp; varr {${e}} {}];
-       [emp; emp; obj {${D}}; harr {${f}} {};
-        obj {${E}}; harr {${g}} {}; obj {${F}}];
-       [emp; emp; varr {} {${h}}; emp;
-        varr {${i}} {}; emp; varr {${j}} {}];
-       [obj {${G}}; harr {} {${k}}; obj {${H}}; harr {} {${l}};
-        obj {${I}}];
-       [varr {} {${m}}; emp; emp; emp;
-        varr {${n}} {}];
-       [obj {${J}}; harr {} {${o}}; emp; emp;
-        obj {${K}}; harr {} {${p}}; obj {${L}}]]));
-```);%
-    \diagram(fun tb -> (
-      let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      [[obj {${A}}; harr {${a}} {}; obj {${B}}; harr {${b}} {};
-        emp; emp; obj {${C}}];
-       [varr {} {${c}}; emp; varr {} {${d}}; emp;
-        emp; emp; varr {${e}} {}];
-       [emp; emp; obj {${D}}; harr {${f}} {};
-        obj {${E}}; harr {${g}} {}; obj {${F}}];
-       [emp; emp; varr {} {${h}}; emp;
-        varr {${i}} {}; emp; varr {${j}} {}];
-       [obj {${G}}; harr {} {${k}}; obj {${H}}; harr {} {${l}};
-        obj {${I}}];
-       [varr {} {${m}}; emp; emp; emp;
-        varr {${n}} {}];
-       [obj {${J}}; harr {} {${o}}; emp; emp;
-        obj {${K}}; harr {} {${p}}; obj {${L}}]]));%
-    \code(`heq`); and \code(`veq`); draw horizontal and vertical, respectively, equality signs, so we can now draw a commutative “triangle”.
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}}];
+    ]);
     \d-code(```
-    \NCSq.diagram(fun tb -> (
-      let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      let heq = tb#heq in
-      [[obj {${A}}; heq; obj {${A}}];
-       [varr {} {${f}}; emp; varr {${h}} {}];
-       [obj {${B}}; harr {} {${g}}; obj {${C}}]]));
-```);%
-    \diagram(fun tb -> (
-      let emp = tb#emp in
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      let heq = tb#heq in
-      [[obj {${A}}; heq; obj {${A}}];
-       [varr {} {${f}}; emp; varr {${h}} {}];
-       [obj {${B}}; harr {} {${g}}; obj {${C}}]]));%
-    One can also draw 2-arrows. (Internally, a 2-arrow is an object to which “${\Downarrow}” is appended.)
+    \NCSq.cd(open NCSq in [
+      [object {${A}}];
+      [arrow up];
+      [object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}];
+      [arrow up];
+      [object {${B}}];
+    ]);
     \d-code(```
-    \NCSq.diagram(fun tb -> (
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      let arr2 = tb#arr2 in
-      [[obj {${A}}; harr {${f}} {}; obj {${B}}];
-       [varr {} {${g}}; arr2 {${\alpha}}; varr {${h}} {}];
-       [obj {${C}}; harr {} {${k}}; obj {${D}}]]));
-```);%
-    \diagram(fun tb -> (
-      let obj = tb#obj in
-      let harr = tb#harr in
-      let varr = tb#varr in
-      let arr2 = tb#arr2 in
-      [[obj {${A}}; harr {${f}} {}; obj {${B}}];
-       [varr {} {${g}}; arr2 {${\alpha}}; varr {${h}} {}];
-       [obj {${C}}; harr {} {${k}}; obj {${D}}]]));%
+    \NCSq.cd(open NCSq in [
+      [object {${A}}];
+      [arrow down];
+      [object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}];
+      [arrow down];
+      [object {${B}}];
+    ]);
+    \code(`arrow`); accepts optional arguments to make labels and to change the style.
+    \d-code(`arrow ?:left-label ?:right-label ?:style direction`);
+    \code(`left-label`); and \code(`right-label`); are labels on the left side and on the right side, respectively, facing the direction of an arrow.
+    \code(`style`); can be \code(`solid`); (default), \code(`dashed`); or \code(`equal`);, which are constants provided by \code(`NCSq`); module.
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+    ]);
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+    ]);
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+    ]);
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+    ]);
+    \code(`arrow-2 inline-text`); will draw a 2-arrow (2-cell) with label \code(`inline-text`);.
+    Currently, only downward 2-arrows are supported.
   }
   +p{
-    \code(`\NCSq.diagram-m`); is suitable for drawing diagrams in math formulas.
+    Arrows stretch automatically to match long labels and large objects.
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}};
+       arrow ?:{the longest label I've ever seen} right; object {${C}}];
+      [arrow down; empty; arrow down;
+       empty; arrow down];
+      [object {LARGE OBJECT}; arrow right; object {${E}};
+       arrow right; object {${F}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}};
+       arrow ?:{the longest label I've ever seen} right; object {${C}}];
+      [arrow down; empty; arrow down;
+       empty; arrow down];
+      [object {LARGE OBJECT}; arrow right; object {${E}};
+       arrow right; object {${F}}];
+    ]);
+    The source and the target of an arrow are automatically detected:
+    the source of an arrow is the nearest object in the opposite direction of the arrow\;
+    the target of an arrow is the nearest object in the direction of the arrow.
+    If the source or the target of an arrow is not found, then the arrow will not be drawn.
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}};
+       arrow ?:{Of course, arrows sufficiently stretch} right;
+       empty; empty; object {${C}}];
+      [arrow down; empty; arrow down;
+       empty; empty; empty; arrow down];
+      [empty; empty; object {${D}};
+       arrow right; object {${E}}; arrow right; object {${F}}];
+      [empty; empty; arrow down;
+       empty; arrow down; empty; arrow down];
+      [object {${G}}; arrow right; object {${H}};
+       arrow ?*?:{${f}} right; object {${I}}; empty; empty];
+      [arrow down; empty; empty;
+       empty; arrow down; empty; empty];
+      [object {${J}};
+       arrow ?*?:{even when there's another long label} right;
+       empty; empty; object {${K}}; arrow right; object {${L}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow right; object {${B}};
+       arrow ?:{Of course, arrows sufficiently stretch} right;
+       empty; empty; object {${C}}];
+      [arrow down; empty; arrow down;
+       empty; empty; empty; arrow down];
+      [empty; empty; object {${D}};
+       arrow right; object {${E}}; arrow right; object {${F}}];
+      [empty; empty; arrow down;
+       empty; arrow down; empty; arrow down];
+      [object {${G}}; arrow right; object {${H}};
+       arrow ?*?:{${f}} right; object {${I}}; empty; empty];
+      [arrow down; empty; empty;
+       empty; arrow down; empty; empty];
+      [object {${J}};
+       arrow ?*?:{even when there's another long label} right;
+       empty; empty; object {${K}}; arrow right; object {${L}}];
+    ]);
+  }
+  +p{
+    \code(`NCSq.cd-m`); is suitable for drawing diagrams in math formulas.
     \d-code(```
     \eqn(${
       \paren{
-        \NCSq.diagram-m
-        !(fun tb -> (
-          let obj = tb#obj in
-          let harr = tb#harr in
-          let varr = tb#varr in
-          let heq = tb#heq in
-          let veq = tb#veq in
-          let arr2 = tb#arr2 in
-          [[obj {${A}}; harr {${f}} {}; obj {${B}}; heq; obj {${B}}];
-           [veq; arr2 {${\epsilon}};
-            varr {${g}} {}; arr2 {${\eta}}; veq];
-           [obj {${A}}; heq; obj {${A}}; harr {} {${f}}; obj {${B}}]]
-        ))
+        \NCSq.cd-m!(open NCSq in [
+          [object {${A}}; arrow ?:{${f}} right; object {${B}};
+           arrow ?*?*?:equal right; object {${B}}];
+          [arrow ?*?*?:equal down; arrow-2 {${\epsilon}};
+           arrow ?:{${g}} down; arrow-2 {${\eta}};
+           arrow ?*?*?:equal down];
+          [object {${A}}; arrow ?*?*?:equal right;
+           object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+        ])
       } =
       \paren{
-        \NCSq.diagram-m
-        !(fun tb -> (
-          let emp = tb#emp in
-          let obj = tb#obj in
-          let harr = tb#harr in
-          let veq = tb#veq in
-          [[obj {${A}}; harr {${f}} {}; obj {${B}}];
-           [veq; emp; veq];
-           [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
+        \NCSq.cd-m!(open NCSq in [
+          [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+          [arrow ?*?*?:equal down; empty; arrow ?*?*?:equal down];
+          [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+        ])
       }
     });
-```);%
+```);
     \eqn(${
       \paren{
-        \diagram-m
-        !(fun tb -> (
-          let obj = tb#obj in
-          let harr = tb#harr in
-          let varr = tb#varr in
-          let heq = tb#heq in
-          let veq = tb#veq in
-          let arr2 = tb#arr2 in
-          [[obj {${A}}; harr {${f}} {}; obj {${B}}; heq; obj {${B}}];
-           [veq; arr2 {${\epsilon}};
-            varr {${g}} {}; arr2 {${\eta}}; veq];
-           [obj {${A}}; heq; obj {${A}}; harr {} {${f}}; obj {${B}}]]
-        ))
+        \NCSq.cd-m!(open NCSq in [
+          [object {${A}}; arrow ?:{${f}} right; object {${B}};
+           arrow ?*?*?:equal right; object {${B}}];
+          [arrow ?*?*?:equal down; arrow-2 {${\epsilon}};
+           arrow ?:{${g}} down; arrow-2 {${\eta}};
+           arrow ?*?*?:equal down];
+          [object {${A}}; arrow ?*?*?:equal right;
+           object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+        ])
       } =
       \paren{
-        \diagram-m
-        !(fun tb -> (
-          let emp = tb#emp in
-          let obj = tb#obj in
-          let harr = tb#harr in
-          let veq = tb#veq in
-          [[obj {${A}}; harr {${f}} {}; obj {${B}}];
-           [veq; emp; veq];
-           [obj {${A}}; harr {} {${f}}; obj {${B}}]]))
+        \NCSq.cd-m!(open NCSq in [
+          [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+          [arrow ?*?*?:equal down; empty; arrow ?*?*?:equal down];
+          [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+        ])
       }
-    });%
-  }
-  +p{
-    Arrows can be backwards.
-    \d-code(```
-    \NCSq.diagram
-    (fun tb -> (
-      let obj = tb#obj in
-      let rarr = tb#rarr in
-      let uarr = tb#uarr in
-      let darr = tb#darr in
-      let arr2 = tb#arr2 in
-      [[obj {${C}}; rarr {よ} {};
-        obj {${\app{\mathbf{Fun}}{C^{\mathrm{op}}, \mathbf{Set}}}}];
-       [darr {} {${F}}; arr2 {}; uarr {} {${F^{*}}}];
-       [obj {${D}}; rarr {} {よ};
-        obj {${\app{\mathbf{Fun}}{D^{\mathrm{op}}, \mathbf{Set}}}}]]));
-```);%
-    \diagram
-    (fun tb -> (
-      let obj = tb#obj in
-      let rarr = tb#rarr in
-      let uarr = tb#uarr in
-      let darr = tb#darr in
-      let arr2 = tb#arr2 in
-      [[obj {${C}}; rarr {よ} {};
-        obj {${\app{\mathbf{Fun}}{C^{\mathrm{op}}, \mathbf{Set}}}}];
-       [darr {} {${F}}; arr2 {}; uarr {} {${F^{*}}}];
-       [obj {${D}}; rarr {} {よ};
-        obj {${\app{\mathbf{Fun}}{D^{\mathrm{op}}, \mathbf{Set}}}}]]));%
-    Here,
-    \listing{
-      * \code(`larr`); = left arrow
-      * \code(`rarr`); = right arrow
-      * \code(`uarr`); = up arrow
-      * \code(`darr`); = down arrow
-    }
-    In fact, \code(`harr`); and \code(`varr`); are aliases to \code(`rarr`); and \code(`darr`);, respectively.
-  }
-  +p{
-    Arrow functions such as \code(`rarr`); and \code(`darr`); accept an optional argument to change the style.
-    \d-code(```
-    \NCSq.diagram
-    (fun tb -> (
-      let emp = tb#emp in
-      let obj = tb#obj in
-      let larr = tb#larr in
-      let rarr = tb#rarr in
-      let darr = tb#darr in
-      let veq = tb#veq in
-      [[obj {${A}}; larr {} {${f}}; obj {${X}};
-        rarr {${g}} {}; obj {${B}}];
-       [veq; emp; darr ?:(Dashed) {${\paren{f, g}}} {}; emp; veq];
-       [obj {${A}}; larr {${p_{1}}} {}; obj {${A \times B}};
-        rarr {} {${p_{2}}}; obj {${B}}]]));
-```);%
-    \diagram
-    (fun tb -> (
-      let emp = tb#emp in
-      let obj = tb#obj in
-      let larr = tb#larr in
-      let rarr = tb#rarr in
-      let darr = tb#darr in
-      let veq = tb#veq in
-      [[obj {${A}}; larr {} {${f}}; obj {${X}};
-        rarr {${g}} {}; obj {${B}}];
-       [veq; emp; darr ?:(Dashed) {${\paren{f, g}}} {}; emp; veq];
-       [obj {${A}}; larr {${p_{1}}} {}; obj {${A \times B}};
-        rarr {} {${p_{2}}}; obj {${B}}]]));%
-    Currently, two styles \code(`Solid`); (default) and \code(`Dashed`); are supported.
+    });
   }
 >
