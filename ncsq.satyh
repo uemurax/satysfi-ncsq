@@ -42,6 +42,10 @@ val solid : arrow-style
 val dashed : arrow-style
 val equal : arrow-style
 
+% Utilities
+
+val invert-v : (cell list) list -> (cell list) list
+
 % The following are DEPRECATED.
 
 type cell-raw
@@ -599,6 +603,30 @@ inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cellss);>)
 
 let-math \cd-m cellss =
 text-in-math MathOrd (fun ctx -> cd ctx cellss)
+
+let invert-direction-vertically dir =
+match dir with
+| (Vertical, Backwards) -> (Vertical, Forwards)
+| (Vertical, Forwards) -> (Vertical, Backwards)
+| _ -> dir
+
+let invert-cell-vertically cell =
+match cell with
+| Arrow arr ->
+(Arrow (|
+  arr with
+  left-label = arr#right-label;
+  right-label = arr#left-label;
+  direction = invert-direction-vertically arr#direction;
+|))
+| Arrow-2 arr-2 ->
+(Arrow-2 (|
+  arr-2 with
+  direction = invert-direction-vertically arr-2#direction;
+|))
+| _ -> cell
+
+let invert-v cellss = List.map (List.map invert-cell-vertically) (List.reverse cellss)
 
 % The following are DEPRECATED
 
