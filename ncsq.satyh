@@ -26,7 +26,7 @@ val \cd-m : [(cell list) list] math-cmd
 val empty : cell
 val object : length * length * length * length ?-> inline-text -> cell
 val arrow : inline-text ?-> inline-text ?-> arrow-style ?-> arrow-direction -> cell
-val arrow-2 : length * length * length * length ?-> inline-text -> cell
+val arrow-2 : inline-text ?-> length * length * length * length ?-> arrow-direction -> cell
 val eqarrow : arrow-direction -> cell
 
 % Arrow directions
@@ -467,8 +467,9 @@ type arrow = (|
 |)
 
 type arrow-2 = (|
-  label : inline-text;
+  label : inline-text option;
   paddings : paddings;
+  direction : arrow-direction;
 |)
 
 type cell =
@@ -502,10 +503,11 @@ Arrow (|
   right-label = right-label;
 |)
 
-let arrow-2 ?:pds-opt label =
+let arrow-2 ?:label ?:pds-opt direction =
 Arrow-2 (|
   label = label;
   paddings = Option.from (let (pdx, pdy) = (6pt, 3pt) in (pdx, pdx, pdy, pdy)) pds-opt;
+  direction = direction;
 |)
 
 let eqarrow direction = arrow ?* ?* ?:(equal) direction
@@ -557,10 +559,23 @@ match cell with
     | ArrEqual -> draw-eq ctx);
  |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
 | Arrow-2 arr2 ->
-(let ib1 = embed-math ctx ${\Downarrow} in
- let label-ctx = label-context ctx in
- let ib2 = read-inline label-ctx arr2#label in
- let gr = draw-text (0pt, 0pt) (ib1 ++ ib2) in
+(let m1 =
+ (match arr2#direction with
+  | (Horizontal, Backwards) -> ${\Leftarrow}
+  | (Horizontal, Forwards) -> ${\Rightarrow}
+  | (Vertical, Backwards) -> ${\Uparrow}
+  | (Vertical, Forwards) -> ${\Downarrow})
+ in
+ let m =
+ (match arr2#label with
+  | None -> m1
+  | Some l ->
+  (let m2 = text-in-math MathOrd (fun ctx -> read-inline (label-context ctx) l) in
+   match arr2#direction with
+   | (Horizontal, _) -> math-upper m1 m2
+   | (Vertical, _) -> ${\mathord{#m1} #m2}))
+ in
+ let gr = draw-text (0pt, 0pt) (embed-math ctx m) in
  let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
  let pds = arr2#paddings in
  Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds))

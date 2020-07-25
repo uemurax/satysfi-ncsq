@@ -12,7 +12,7 @@ document (|
       [object {${A}}; arrow right; object {${B}};
        arrow right; object {${C}}];
       [arrow down; empty; arrow down;
-       arrow-2 {${\alpha}}; arrow down];
+       arrow-2 down; arrow down];
       [object {${D}}; arrow right; object {${E}};
        arrow right; object {${F}}]
     ]);
@@ -21,7 +21,7 @@ document (|
       [object {${A}}; arrow right; object {${B}};
        arrow right; object {${C}}];
       [arrow down; empty; arrow down;
-       arrow-2 {${\alpha}}; arrow down];
+       arrow-2 down; arrow down];
       [object {${D}}; arrow right; object {${E}};
        arrow right; object {${F}}]
     ]);%
@@ -117,8 +117,29 @@ arrow ?:left-label ?:right-label ?:style direction
     \NCSq.cd(open NCSq in [
       [object {${A}}; eqarrow right; object {${B}}];
     ]);%
-    \code(`arrow-2 inline-text`); will draw a 2-arrow (2-cell) with label \code(`inline-text`);.
-    Currently, only downward 2-arrows are supported.
+    \code(`arrow-2 direction`); will draw a 2-arrow (2-cell) towards \code(`direction`);.
+    It accepts an optional argument to make a label.
+    \d-code(```
+    arrow-2 ?:label direction
+```);
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${C}}; arrow ?:{${F}} right; object {${D}}];
+      [arrow ?*?:{よ} down; arrow-2 ?:{${F_{1}}} right;
+       arrow ?:{よ} down];
+      [object {${\app{\mathbf{Fun}}{C^{\mathrm{op}}, \mathbf{Set}}}};
+       arrow ?:{${F^{\ast}}} left;
+       object {${\app{\mathbf{Fun}}{D^{\mathrm{op}}, \mathbf{Set}}}}];
+    ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${C}}; arrow ?:{${F}} right; object {${D}}];
+      [arrow ?*?:{よ} down; arrow-2 ?:{${F_{1}}} right;
+       arrow ?:{よ} down];
+      [object {${\app{\mathbf{Fun}}{C^{\mathrm{op}}, \mathbf{Set}}}};
+       arrow ?:{${F^{\ast}}} left;
+       object {${\app{\mathbf{Fun}}{D^{\mathrm{op}}, \mathbf{Set}}}}];
+    ]);
   }
   +p{
     Arrows stretch automatically to match long labels and large objects.
@@ -191,8 +212,8 @@ arrow ?:left-label ?:right-label ?:style direction
         \NCSq.cd-m!(open NCSq in [
           [object {${A}}; arrow ?:{${f}} right; object {${B}};
            eqarrow right; object {${B}}];
-          [eqarrow down; arrow-2 {${\epsilon}};
-           arrow ?:{${g}} down; arrow-2 {${\eta}}; eqarrow down];
+          [eqarrow down; arrow-2 ?:{${\epsilon}} down;
+           arrow ?:{${g}} down; arrow-2 ?:{${\eta}} down; eqarrow down];
           [object {${A}}; eqarrow right; object {${A}};
            arrow ?*?:{${f}} right; object {${B}}];
         ])
@@ -211,8 +232,8 @@ arrow ?:left-label ?:right-label ?:style direction
         \NCSq.cd-m!(open NCSq in [
           [object {${A}}; arrow ?:{${f}} right; object {${B}};
            eqarrow right; object {${B}}];
-          [eqarrow down; arrow-2 {${\epsilon}};
-           arrow ?:{${g}} down; arrow-2 {${\eta}}; eqarrow down];
+          [eqarrow down; arrow-2 ?:{${\epsilon}} down;
+           arrow ?:{${g}} down; arrow-2 ?:{${\eta}} down; eqarrow down];
           [object {${A}}; eqarrow right; object {${A}};
            arrow ?*?:{${f}} right; object {${B}}];
         ])
