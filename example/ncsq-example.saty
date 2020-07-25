@@ -24,7 +24,7 @@ document (|
        arrow-2 {${\alpha}}; arrow down];
       [object {${D}}; arrow right; object {${E}};
        arrow right; object {${F}}]
-    ]);
+    ]);%
     Here, \code(`empty`);, \code(`object`);, \code(`arrow`); and \code(`arrow-2`); are functions defined in \code(`NCSq`); module for building cells.
     \code(`object inline-text`); will draw an object (0-cell) with label \code(`inline-text`);.
     \code(`arrow direction`); will draw an arrow (1-cell) towards \code(`direction`);.
@@ -68,9 +68,11 @@ document (|
       [object {${A}}];
       [arrow down];
       [object {${B}}];
-    ]);
+    ]);%
     \code(`arrow`); accepts optional arguments to make labels and to change the style.
-    \d-code(`arrow ?:left-label ?:right-label ?:style direction`);
+    \d-code(```
+arrow ?:left-label ?:right-label ?:style direction
+```);%
     \code(`left-label`); and \code(`right-label`); are labels on the left side and on the right side, respectively, facing the direction of an arrow.
     \code(`style`); can be \code(`solid`); (default), \code(`dashed`); or \code(`equal`);, which are constants provided by \code(`NCSq`); module.
     \d-code(```
@@ -104,7 +106,17 @@ document (|
 ```);
     \NCSq.cd(open NCSq in [
       [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+    ]);%
+    \code(`NCSq`); module also provides \code(`eqarrow`); function for building an equality arrow.
+    \code(`eqarrow direction`); is simply an alias to \code(`arrow ?*?*?:equal direction`);.
+    \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; eqarrow right; object {${B}}];
     ]);
+```);
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; eqarrow right; object {${B}}];
+    ]);%
     \code(`arrow-2 inline-text`); will draw a 2-arrow (2-cell) with label \code(`inline-text`);.
     Currently, only downward 2-arrows are supported.
   }
@@ -178,18 +190,17 @@ document (|
       \paren{
         \NCSq.cd-m!(open NCSq in [
           [object {${A}}; arrow ?:{${f}} right; object {${B}};
-           arrow ?*?*?:equal right; object {${B}}];
-          [arrow ?*?*?:equal down; arrow-2 {${\epsilon}};
-           arrow ?:{${g}} down; arrow-2 {${\eta}};
-           arrow ?*?*?:equal down];
-          [object {${A}}; arrow ?*?*?:equal right;
-           object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+           eqarrow right; object {${B}}];
+          [eqarrow down; arrow-2 {${\epsilon}};
+           arrow ?:{${g}} down; arrow-2 {${\eta}}; eqarrow down];
+          [object {${A}}; eqarrow right; object {${A}};
+           arrow ?*?:{${f}} right; object {${B}}];
         ])
       } =
       \paren{
         \NCSq.cd-m!(open NCSq in [
           [object {${A}}; arrow ?:{${f}} right; object {${B}}];
-          [arrow ?*?*?:equal down; empty; arrow ?*?*?:equal down];
+          [eqarrow down; empty; eqarrow down];
           [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
         ])
       }
@@ -199,18 +210,17 @@ document (|
       \paren{
         \NCSq.cd-m!(open NCSq in [
           [object {${A}}; arrow ?:{${f}} right; object {${B}};
-           arrow ?*?*?:equal right; object {${B}}];
-          [arrow ?*?*?:equal down; arrow-2 {${\epsilon}};
-           arrow ?:{${g}} down; arrow-2 {${\eta}};
-           arrow ?*?*?:equal down];
-          [object {${A}}; arrow ?*?*?:equal right;
-           object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
+           eqarrow right; object {${B}}];
+          [eqarrow down; arrow-2 {${\epsilon}};
+           arrow ?:{${g}} down; arrow-2 {${\eta}}; eqarrow down];
+          [object {${A}}; eqarrow right; object {${A}};
+           arrow ?*?:{${f}} right; object {${B}}];
         ])
       } =
       \paren{
         \NCSq.cd-m!(open NCSq in [
           [object {${A}}; arrow ?:{${f}} right; object {${B}}];
-          [arrow ?*?*?:equal down; empty; arrow ?*?*?:equal down];
+          [eqarrow down; empty; eqarrow down];
           [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
         ])
       }

@@ -24,6 +24,7 @@ val empty : cell
 val object : length * length * length * length ?-> inline-text -> cell
 val arrow : inline-text ?-> inline-text ?-> arrow-style ?-> arrow-direction -> cell
 val arrow-2 : length * length * length * length ?-> inline-text -> cell
+val eqarrow : arrow-direction -> cell
 
 val left : arrow-direction
 val right : arrow-direction
@@ -610,6 +611,8 @@ let down = Down
 let solid = Solid
 let dashed = Dashed
 let equal = Equal
+
+let eqarrow direction = arrow ?* ?* ?:(equal) direction
 
 let label-context ctx = set-font-size (get-font-size ctx *' 0.75) ctx
 
