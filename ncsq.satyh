@@ -6,7 +6,7 @@
 @require: gr
 @require: math
 
-% This type is DEPRECATED
+% This type is DEPRECATED. Will be removed in v1
 type ncsq-arrow-style =
 | Solid
 | Dashed
@@ -48,7 +48,7 @@ val transpose : (cell list) list -> (cell list) list
 val invert-v : (cell list) list -> (cell list) list
 val invert-h : (cell list) list -> (cell list) list
 
-% The following are DEPRECATED.
+% The following are DEPRECATED. Will be removed in v1
 
 type cell-raw
 
@@ -235,6 +235,9 @@ let find-varrow cxs0 obx cxs = find-arrow Vertical cxs0 obx cxs
 let find-harrow cxs0 obx cxs = find-arrow Horizontal cxs0 obx cxs
 
 % Adjust boundaries of cells
+% TODO The algorithm ensures that arrows sufficiently stretch to match long labels,
+% but sometimes arrows stretch too long.
+% Think about it.
 
 let d-sum zs =
 List.fold-right
@@ -659,7 +662,7 @@ let transpose cellss = List.map (List.map transpose-cell) (Matrix.transpose empt
 
 let invert-h cellss = transpose (invert-v (transpose cellss))
 
-% The following are DEPRECATED
+% The following are DEPRECATED. Will be removed in v1
 
 let emp ctx = Empty-raw
 
