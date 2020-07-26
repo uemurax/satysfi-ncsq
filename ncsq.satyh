@@ -2,10 +2,11 @@
 @require: list
 @require: base/tuple
 @require: base/length
-@require: option
+@require: base/option-ext
 @require: gr
 @require: math
 
+% This type is DEPRECATED
 type ncsq-arrow-style =
 | Solid
 | Dashed
@@ -13,48 +14,85 @@ type ncsq-arrow-style =
 module NCSq : sig
 
 type cell
+type arrow-style
+type arrow-direction
+
+val \cd : [(cell list) list] inline-cmd
+val +cd : [(cell list) list] block-cmd
+val \cd-m : [(cell list) list] math-cmd
+
+% Building cells
+
+val empty : cell
+val object : length * length * length * length ?-> inline-text -> cell
+val arrow : inline-text ?-> inline-text ?-> arrow-style ?-> arrow-direction -> cell
+val arrow-2 : inline-text ?-> length * length * length * length ?-> arrow-direction -> cell
+val eqarrow : arrow-direction -> cell
+
+% Arrow directions
+
+val left : arrow-direction
+val right : arrow-direction
+val up : arrow-direction
+val down : arrow-direction
+
+% Arrow styles
+
+val solid : arrow-style
+val dashed : arrow-style
+val equal : arrow-style
+
+% Utilities
+
+val transpose : (cell list) list -> (cell list) list
+val invert-v : (cell list) list -> (cell list) list
+val invert-h : (cell list) list -> (cell list) list
+
+% The following are DEPRECATED.
+
+type cell-raw
 
 val \diagram : [(|
-  emp : cell;
-  obj : inline-text -> cell;
-  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  heq : cell;
-  veq : cell;
-  arr2 : inline-text -> cell;
-  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-|) -> (cell list) list] inline-cmd
+  emp : cell-raw;
+  obj : inline-text -> cell-raw;
+  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  heq : cell-raw;
+  veq : cell-raw;
+  arr2 : inline-text -> cell-raw;
+  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+|) -> (cell-raw list) list] inline-cmd
 
 val +diagram : [(|
-  emp : cell;
-  obj : inline-text -> cell;
-  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  heq : cell;
-  veq : cell;
-  arr2 : inline-text -> cell;
-  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-|) -> (cell list) list] block-cmd
+  emp : cell-raw;
+  obj : inline-text -> cell-raw;
+  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  heq : cell-raw;
+  veq : cell-raw;
+  arr2 : inline-text -> cell-raw;
+  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+|) -> (cell-raw list) list] block-cmd
 
 val \diagram-m : [(|
-  emp : cell;
-  obj : inline-text -> cell;
-  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  heq : cell;
-  veq : cell;
-  arr2 : inline-text -> cell;
-  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell;
-|) -> (cell list) list] math-cmd
+  emp : cell-raw;
+  obj : inline-text -> cell-raw;
+  larr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  rarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  uarr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  darr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  heq : cell-raw;
+  veq : cell-raw;
+  arr2 : inline-text -> cell-raw;
+  harr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+  varr : ncsq-arrow-style ?-> inline-text -> inline-text -> cell-raw;
+|) -> (cell-raw list) list] math-cmd
 
 end = struct
 
@@ -66,7 +104,7 @@ type direction2 =
 | Forwards
 | Backwards
 
-type direction = direction1 * direction2
+type arrow-direction = direction1 * direction2
 
 type arrow-config = (|
   head-len : length;
@@ -76,10 +114,10 @@ type arrow-config = (|
 
 type paddings = length * length * length * length
 
-type cell =
-| Empty
-| Object of graphics * paddings
-| Arrow of arrow-config * direction * graphics list
+type cell-raw =
+| Empty-raw
+| Object-raw of graphics * paddings
+| Arrow-raw of arrow-config * arrow-direction * graphics list
 
 % Utilities
 
@@ -89,6 +127,8 @@ match (xs, ys) with
 | (_, []) -> List.map (fun x -> (f (Some x) None)) xs
 | (x :: xs, y :: ys) -> f (Some x) (Some y) :: zip-with f xs ys
 
+module Matrix = struct
+
 let transpose fill xss =
 List.fold-right
 (zip-with
@@ -96,6 +136,8 @@ List.fold-right
   Option.from fill y :: Option.from [] ys))
 []
 xss
+
+end
 
 let zip x0 y0 =
 zip-with
@@ -124,12 +166,12 @@ match (dir1, pds) with
 
 let get-obj-bd dir1 cell =
 match cell with
-| Empty -> (0pt, 0pt)
-| Object (gr, pds) ->
+| Empty-raw -> (0pt, 0pt)
+| Object-raw (gr, pds) ->
 (let (z0, z1) = rc-face dir1 (get-graphics-bbox gr) in
  let (p0, p1) = pds-face dir1 pds in
  (z0 -' p0, z1 +' p1))
-| Arrow (cfg, dir, grs) ->
+| Arrow-raw (cfg, dir, grs) ->
 (match (dir1, dir) with
  | (Horizontal, (Vertical, _)) -> rc-face Horizontal (get-grs-bbox grs)
  | (Vertical, (Horizontal, _)) -> rc-face Vertical (get-grs-bbox grs)
@@ -155,7 +197,7 @@ let get-objss-bts cellss = List.map get-objs-bt cellss
 
 let get-objs-lr = get-objs-boundary Horizontal
 
-let get-objss-lrs cellss = List.map get-objs-lr (transpose Empty cellss)
+let get-objss-lrs cellss = List.map get-objs-lr (Matrix.transpose Empty-raw cellss)
 
 % Determine source and target of an arrow
 
@@ -166,7 +208,7 @@ match ys with
 | [] -> (xs, None, [])
 | y :: ys ->
 (match y with
- | (Object _, _) -> (xs, Some y, ys)
+ | (Object-raw _, _) -> (xs, Some y, ys)
  | _ -> aux (y :: xs) ys)
 in
 aux [] cxs
@@ -178,8 +220,8 @@ match zs with
 | [] -> (xs, src, ys, None, [])
 | z :: zs ->
 (match z with
- | (Object _, _) -> aux (List.append ys (src :: xs)) z [] zs
- | (Arrow (_, dir, _), _) ->
+ | (Object-raw _, _) -> aux (List.append ys (src :: xs)) z [] zs
+ | (Arrow-raw (_, dir, _), _) ->
  (match (dir1, dir) with
   | (Horizontal, (Horizontal, _)) -> (xs, src, ys, Some z, zs)
   | (Vertical, (Vertical, _)) -> (xs, src, ys, Some z, zs)
@@ -212,7 +254,7 @@ match (dir1, bd) with
 
 let update-boundaries src xs arr ys tgt =
 match arr with
-| (Arrow (cfg, (dir1, _), grs), bd) ->
+| (Arrow-raw (cfg, (dir1, _), grs), bd) ->
 let (z0, z1) = rc-face dir1 (get-grs-bbox grs) in
 let head = cfg#head-len in
 let tail = cfg#tail-len in
@@ -236,7 +278,7 @@ else
 | _ -> (xs, arr, ys)
 
 let adjust-cells-boundaries dir1 cells pqs =
-let cpqs = zip Empty (0pt, 0pt) cells pqs in
+let cpqs = zip Empty-raw (0pt, 0pt) cells pqs in
 let (xs, src, ys) = find-object cpqs in
 match src with
 | None -> pqs
@@ -259,7 +301,7 @@ match src with
 let adjust-cells-bts = adjust-cells-boundaries Vertical
 
 let adjust-cellss-bts cellss bts =
-List.fold-right adjust-cells-bts bts (transpose Empty cellss)
+List.fold-right adjust-cells-bts bts (Matrix.transpose Empty-raw cellss)
 
 let adjust-cells-lrs = adjust-cells-boundaries Horizontal
 
@@ -302,9 +344,9 @@ zip-with
   zip-with
   (fun x cell ->
    (let x = Option.from 0pt x in
-    let cell = Option.from Empty cell in
+    let cell = Option.from Empty-raw cell in
     match cell with
-    | Object (gr, _) -> [shift-graphics (x, y) gr]
+    | Object-raw (gr, _) -> [shift-graphics (x, y) gr]
     | _ -> []))
   hgrid cells))
 vgrid cellss in
@@ -322,7 +364,7 @@ match dir1 with
 
 let draw-arrow dir1 z src arr tgt =
 match arr with
-| (Arrow (cfg, dir, grs), _) ->
+| (Arrow-raw (cfg, dir, grs), _) ->
 (match (dir1, dir) with
  | (Horizontal, (Vertical, _)) -> []
  | (Vertical, (Horizontal, _)) -> []
@@ -345,7 +387,7 @@ zip-with
 (fun x cells ->
  (let x = Option.from 0pt x in
   let cells = Option.from [] cells in
-  let cxs = zip Empty 0pt cells vgrid in
+  let cxs = zip Empty-raw 0pt cells vgrid in
   let (_, src, ys) = find-object cxs in
   match src with
   | None -> []
@@ -366,7 +408,7 @@ zip-with
 hgrid cellss in
 List.concat grss
 
-let draw-varrows vgrid hgrid cellss = draw-arrows Vertical vgrid hgrid (transpose Empty cellss)
+let draw-varrows vgrid hgrid cellss = draw-arrows Vertical vgrid hgrid (Matrix.transpose Empty-raw cellss)
 
 let draw-harrows vgrid hgrid cellss = draw-arrows Horizontal hgrid vgrid cellss
 
@@ -381,15 +423,6 @@ let objs = draw-objects vgrid hgrid cellss in
 let varrs = draw-varrows vgrid hgrid cellss in
 let harrs = draw-harrows vgrid hgrid cellss in
 List.concat [objs; varrs; harrs]
-
-let emp ctx = Empty
-
-let obj ctx it =
-let gr = draw-text (0pt, 0pt) (read-inline ctx it) in
-let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
-let pd = 3pt in
-let pds = (pd, pd, pd, pd) in
-Object (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
 
 let draw-arrow ctx =
 let color = get-text-color ctx in
@@ -424,6 +457,219 @@ let arrow-config-default ctx = (|
   draw = draw-arrow ctx;
 |)
 
+% Commands
+
+type arrow-style =
+| ArrSolid
+| ArrDashed
+| ArrEqual
+
+type object = (|
+  label : inline-text;
+  paddings : paddings;
+|)
+
+type arrow = (|
+  direction : arrow-direction;
+  style : arrow-style;
+  left-label : inline-text option;
+  right-label : inline-text option;
+|)
+
+type arrow-2 = (|
+  label : inline-text option;
+  paddings : paddings;
+  direction : arrow-direction;
+|)
+
+type cell =
+| Empty
+| Object of object
+| Arrow of arrow
+| Arrow-2 of arrow-2
+
+let left = (Horizontal, Backwards)
+let right = (Horizontal, Forwards)
+let up = (Vertical, Backwards)
+let down = (Vertical, Forwards)
+
+let solid = ArrSolid
+let dashed = ArrDashed
+let equal = ArrEqual
+
+let empty = Empty
+
+let object ?:pds-opt label =
+Object (|
+  label = label;
+  paddings = Option.from (let pd = 3pt in (pd, pd, pd, pd)) pds-opt;
+|)
+
+let arrow ?:left-label ?: right-label ?:style-opt direction =
+Arrow (|
+  direction = direction;
+  style = Option.from solid style-opt;
+  left-label = left-label;
+  right-label = right-label;
+|)
+
+let arrow-2 ?:label ?:pds-opt direction =
+Arrow-2 (|
+  label = label;
+  paddings = Option.from (let (pdx, pdy) = (6pt, 3pt) in (pdx, pdx, pdy, pdy)) pds-opt;
+  direction = direction;
+|)
+
+let eqarrow direction = arrow ?* ?* ?:(equal) direction
+
+let label-context ctx = set-font-size (get-font-size ctx *' 0.75) ctx
+
+let make-cell-raw ctx cell =
+match cell with
+| Empty -> Empty-raw
+| Object obj ->
+(let gr = draw-text (0pt, 0pt) (read-inline ctx obj#label) in
+ let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
+ let pds = obj#paddings in
+ Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds))
+| Arrow arr ->
+(let style = arr#style in
+ let label-ctx = label-context ctx in
+ let draw-label l = draw-text (0pt, 0pt) (read-inline label-ctx l) in
+ let grl = Option.map draw-label arr#left-label in
+ let grr = Option.map draw-label arr#right-label in
+ let pd = 4pt in
+ let shift-gr f gr =
+ (let rc = get-graphics-bbox gr in
+  shift-graphics (f rc) gr)
+ in
+ let dir = arr#direction in
+ let (gr0, gr1) =
+ (match dir with
+  | (Horizontal, Forwards) ->
+  (Option.map (shift-gr (fun ((x0, _), (x1, _)) -> ((0pt -' (x0 +' x1) *' 0.5), pd))) grl,
+   Option.map (shift-gr (fun ((x0, _), (x1, y1)) -> ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1))) grr)
+  | (Horizontal, Backwards) ->
+  (Option.map (shift-gr (fun ((x0, _), (x1, y1)) -> ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1))) grl,
+   Option.map (shift-gr (fun ((x0, _), (x1, _)) -> ((0pt -' (x0 +' x1) *' 0.5), pd))) grr)
+  | (Vertical, Forwards) ->
+  (Option.map (shift-gr (fun ((x0, y0), (_, y1)) -> (pd -' x0, 0pt -' (y0 +' y1) *' 0.5))) grl,
+   Option.map (shift-gr (fun ((_, y0), (x1, y1)) -> ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5))) grr)
+  | (Vertical, Backwards) ->
+  (Option.map (shift-gr (fun ((_, y0), (x1, y1)) -> ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5))) grl,
+   Option.map (shift-gr (fun ((x0, y0), (_, y1)) -> (pd -' x0, 0pt -' (y0 +' y1) *' 0.5))) grr))
+ in
+ Arrow-raw ((|
+   (arrow-config-default ctx)
+   with
+   draw =
+   (match style with
+    | ArrSolid -> draw-arrow ctx
+    | ArrDashed -> draw-dashed-arrow ctx
+    | ArrEqual -> draw-eq ctx);
+ |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
+| Arrow-2 arr2 ->
+(let m1 =
+ (match arr2#direction with
+  | (Horizontal, Backwards) -> ${\Leftarrow}
+  | (Horizontal, Forwards) -> ${\Rightarrow}
+  | (Vertical, Backwards) -> ${\Uparrow}
+  | (Vertical, Forwards) -> ${\Downarrow})
+ in
+ let m =
+ (match arr2#label with
+  | None -> m1
+  | Some l ->
+  (let m2 = text-in-math MathOrd (fun ctx -> read-inline (label-context ctx) l) in
+   match arr2#direction with
+   | (Horizontal, _) -> math-upper m1 m2
+   | (Vertical, _) -> ${\mathord{#m1} #m2}))
+ in
+ let gr = draw-text (0pt, 0pt) (embed-math ctx m) in
+ let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
+ let pds = arr2#paddings in
+ Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds))
+
+let cd ctx cellss =
+let grs = draw-diagram (List.map (List.map (make-cell-raw ctx)) cellss) in
+let ((x0, y0), (x1, y1)) = get-grs-bbox grs in
+let ym = (y0 +' y1) *' 0.5 -' 4pt in
+let w = x1 -' x0 in
+let h = y1 -' ym in
+let d = ym -' y0 in
+inline-graphics w h d
+(fun (px, py) ->
+ (List.map (shift-graphics (px -' x0, py -' ym)) grs))
+
+let-block ctx +cd cellss =
+line-break true true ctx (inline-fil ++ cd ctx cellss ++ inline-fil)
+
+let-inline ctx \cd cellss =
+inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cellss);>)
+
+let-math \cd-m cellss =
+text-in-math MathOrd (fun ctx -> cd ctx cellss)
+
+let invert-direction-vertically dir =
+match dir with
+| (Vertical, Backwards) -> (Vertical, Forwards)
+| (Vertical, Forwards) -> (Vertical, Backwards)
+| _ -> dir
+
+let invert-cell-vertically cell =
+match cell with
+| Arrow arr ->
+(Arrow (|
+  arr with
+  left-label = arr#right-label;
+  right-label = arr#left-label;
+  direction = invert-direction-vertically arr#direction;
+|))
+| Arrow-2 arr-2 ->
+(Arrow-2 (|
+  arr-2 with
+  direction = invert-direction-vertically arr-2#direction;
+|))
+| _ -> cell
+
+let invert-v cellss = List.map (List.map invert-cell-vertically) (List.reverse cellss)
+
+let transpose-direction dir =
+match dir with
+| (Horizontal, dir2) -> (Vertical, dir2)
+| (Vertical, dir1) -> (Horizontal, dir1)
+
+let transpose-cell cell =
+match cell with
+| Arrow arr ->
+(Arrow (|
+  arr with
+  left-label = arr#right-label;
+  right-label = arr#left-label;
+  direction = transpose-direction arr#direction;
+|))
+| Arrow-2 arr-2 ->
+(Arrow-2 (|
+  arr-2 with
+  direction = transpose-direction arr-2#direction;
+|))
+| _ -> cell
+
+let transpose cellss = List.map (List.map transpose-cell) (Matrix.transpose empty cellss)
+
+let invert-h cellss = transpose (invert-v (transpose cellss))
+
+% The following are DEPRECATED
+
+let emp ctx = Empty-raw
+
+let obj ctx it =
+let gr = draw-text (0pt, 0pt) (read-inline ctx it) in
+let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
+let pd = 3pt in
+let pds = (pd, pd, pd, pd) in
+Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
+
 let arr ctx dir ?:style-opt l r =
 let style = Option.from Solid style-opt in
 let label-ctx = set-font-size (get-font-size ctx *' 0.75) ctx in
@@ -447,7 +693,7 @@ let (gr0, gr1) =
  (shift-graphics ((0pt -' pd) -' lx1, 0pt -' (ly0 +' ly1) *' 0.5) grl,
   shift-graphics (pd -' rx0, 0pt -' (ry0 +' ry1) *' 0.5) grr))
 in
-Arrow ((|
+Arrow-raw ((|
   (arrow-config-default ctx)
   with
   draw = match style with
@@ -468,7 +714,7 @@ let harr = rarr
 let varr = darr
 
 let eqarr ctx dir =
-Arrow ((|
+Arrow-raw ((|
   (arrow-config-default ctx)
   with
   draw = draw-eq ctx;
@@ -486,7 +732,7 @@ let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
 let pdx = 6pt in
 let pdy = 3pt in
 let pds = (pdx, pdx, pdy, pdy) in
-Object (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
+Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
 
 let diagram ctx cellssf =
 let r = (|
