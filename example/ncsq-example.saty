@@ -298,4 +298,47 @@ in
       \NCSq.cd(NCSq.invert-h(cellss1));
     }
   >
+  +chapter{More examples}<
+    +p{
+      Incomplete diagrams (diagrams that contain arrows missing source or target) may be useful for building diagrams programmatically.
+      \d-code(```
+      \NCSq.cd(
+        % Incomplete square (one face is missing)
+        let square-from flip a f b g k = open NCSq in [
+          [object {${#a}};
+           if flip then arrow ?*?:{${#f}} right
+           else arrow ?:{${#f}} right;
+           object {${#b}}];
+          [arrow ?*?:{${#g}} down; empty; arrow ?:{${#k}} down];
+        ]
+        in
+        [1; 2; 3; 4; 5]
+        |> List.map (fun i -> (
+          let mi = math-char MathOrd (arabic i) in
+          square-from (i > 3)
+          ${A_{#mi}} ${f_{#mi}} ${B_{#mi}} ${g_{#mi}} ${h_{#mi}}))
+        |> List.concat
+        |> NCSq.transpose
+      );
+```);
+      \NCSq.cd(
+        % Incomplete square (one face is missing)
+        let square-from flip a f b g k = open NCSq in [
+          [object {${#a}};
+           if flip then arrow ?*?:{${#f}} right
+           else arrow ?:{${#f}} right;
+           object {${#b}}];
+          [arrow ?*?:{${#g}} down; empty; arrow ?:{${#k}} down];
+        ]
+        in
+        [1; 2; 3; 4; 5]
+        |> List.map (fun i -> (
+          let mi = math-char MathOrd (arabic i) in
+          square-from (i > 3)
+          ${A_{#mi}} ${f_{#mi}} ${B_{#mi}} ${g_{#mi}} ${h_{#mi}}))
+        |> List.concat
+        |> NCSq.transpose
+      );
+    }
+  >
 >
