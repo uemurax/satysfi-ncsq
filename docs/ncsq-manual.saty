@@ -1,5 +1,6 @@
 @require: stdjareport
 @require: itemize
+@require: easytable/easytable
 
 let-math \cell = ${c}
 let-math \idx = ${i}
@@ -75,8 +76,23 @@ document (|
           \diff_{\idx\idx1} = \app{\height}{\cell_{\idx\idx1}} - \paren{\paren{\app{\bottom}{\cell_{\source\idx1}} - \bottom_{\source}^{\paren{1}}} + \paren{\top_{\target}^{\paren{1}} - \app{\top}{\cell_{\target\idx1}}} + \sum_{\source < \idx' < \target}\height_{\idx'\idx1}^{\paren{1}}}
         });%
         is a constant.
-        Therefore, the goal becomes to find ${\var_{1}, \var1_{1}, \cdots, \var_{\nat}, \var1_{\nat}} satisfying ${\cstr{\idx\idx1}} for every vertical arrow ${\cell_{\idx\idx1}} with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}}.
+        Therefore, the goal becomes to find ${\var_{1}, \var1_{1}, \cdots, \var_{\nat}, \var1_{\nat} \geq 0} satisfying ${\cstr{\idx\idx1}} for every vertical arrow ${\cell_{\idx\idx1}} with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}}.
         Note that ${\var_{1}} and ${\var1_{\nat}} never appear in any ${\cstr{\idx\idx1}}, so we can drop them by setting ${\var_{1} = \var1_{\nat} = 0}.
+        We can also drop constraints ${\cstr{\idx\idx1}} if ${\diff_{\idx\idx1} \leq 0}.
+      }
+      +p{
+        Clearly, sufficiently large ${\paren{\var_{\idx}, \var1_{\idx}}}'s satisfy inequations ${\cstr{\idx\idx1}}'s, but it will be better if we choose ${\paren{\var_{\idx}, \var1_{\idx}}}'s as small as possible.
+        It will be much better if ${\paren{\var_{\idx}, \var1_{\idx}}}'s are balanced.
+        This will be achieved by minimizing the sum of squares
+        \eqn(${
+          \var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var_{\nat - 1}^{2} + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}
+        });%
+        Thus, vertical arrow stretching is reduced to the following constrained least-squares problem:
+        \easytable?:[](EasyTableAlias.([l;l])){
+        | minimize | ${\var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}}
+        | subject to | ${\diff_{\idx\idx1} \leq \var1_{\source} + \var_{\target} + \sum_{\source < \idx' < \target}\var_{\idx'} + \var1_{\idx'}} for each vertical arrow ${\cell_{\idx\idx1}} from ${\cell_{\source\idx1}} to ${\cell_{\target\idx1}}
+        | | ${\var_{\idx}, \var1_{\idx} \geq 0} for each ${\idx}
+        |}
       }
     >
   >
