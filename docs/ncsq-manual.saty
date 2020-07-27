@@ -27,7 +27,16 @@ document (|
   author = {Taichi Uemura};
 |) '<
   +chapter{Implementation}<
+    +section{Notation}<
+      +p{
+        For a cell ${\cell}, we write ${\paren{\paren{\app{\left}{\cell}, \app{\bottom}{\cell}}, \paren{\app{\right}{\cell}, \app{\top}{\cell}}}} for the bounding rectangle of ${\cell}.
+        Let ${\width = \right - \left} be the width and ${\height = \top - \bottom} the height.
+      }
+    >
     +section{Automatic stretching}<
+      +p{
+        WARNING: The following are NOT implemented yet.
+      }
       +p{
         Given a matrix of cells ${\paren{\cell_{\idx\idx1}}_{1 \leq \idx \leq \nat, 1 \leq \idx1 \leq \nat1}}, we want to arrange them satisfying the following:
         \enumerate{
