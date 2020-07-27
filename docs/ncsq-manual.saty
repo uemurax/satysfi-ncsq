@@ -1,0 +1,83 @@
+@require: stdjareport
+@require: itemize
+
+let-math \cell = ${c}
+let-math \idx = ${i}
+let-math \idx1 = ${j}
+let-math \nat = ${m}
+let-math \nat1 = ${n}
+let-math \top = ${t}
+let-math \bottom = ${b}
+let-math \left = ${l}
+let-math \right = ${r}
+let-math \width = ${w}
+let-math \height = ${h}
+let-math \source = ${\sigma}
+let-math \target = ${\tau}
+let-math \var = ${x}
+let-math \var1 = ${y}
+let-math \diff = ${d}
+let-math \cstr idxs = ${\(\mathrm{A}_{#idxs}\)}
+
+in
+
+document (|
+  title = {NCSq Manual};
+  author = {Taichi Uemura};
+|) '<
+  +chapter{Implementation}<
+    +section{Automatic stretching}<
+      +p{
+        Given a matrix of cells ${\paren{\cell_{\idx\idx1}}_{1 \leq \idx \leq \nat, 1 \leq \idx1 \leq \nat1}}, we want to arrange them satisfying the following:
+        \enumerate{
+          * cells do not overlap each other\;
+          * arrows are sufficiently long to match their labels.
+        }
+        To achieve this, we have to determine the boundary ${\paren{\bottom_{\idx}, \top_{\idx}}} of ${\idx}-th row and the boundary ${\paren{\left_{\idx1}, \right_{\idx1}}} of ${\idx1}-th column.
+        These boundaries must satisfies the following:
+        \enumerate{
+          * if ${\cell_{\idx\idx1}} is an object, then ${\bottom_{\idx} \leq \app{\bottom}{\cell_{\idx\idx1}}}, ${\app{\top}{\cell_{\idx\idx1}} \leq \top_{\idx}}, ${\left_{\idx1} \leq \app{\left}{\cell_{\idx\idx1}}}, and ${\app{\right}{\cell_{\idx\idx1}} \leq \right_{\idx1}}\;
+          * if ${\cell_{\idx\idx1}} is a horizontal arrow, then ${\bottom_{\idx} \leq \app{\bottom}{\cell_{\idx\idx1}}} and ${\app{\top}{\cell_{\idx\idx1}} \leq \top_{\idx}}\;
+          * if ${\cell_{\idx\idx1}} is a vertical arrow, then ${\left_{\idx1} \leq \app{\left}{\cell_{\idx\idx1}}} and ${\app{\right}{\cell_{\idx\idx1}} \leq \right_{\idx1}}\;
+          * if ${\cell_{\idx\idx1}} is a horizontal arrow with source ${\cell_{\idx\source}} and target ${\cell_{\idx\target}} (${1 \leq \source < \idx1 < \target \leq \nat1}), then
+          \eqn(${
+            \app{\width}{\cell_{\idx\idx1}} \leq \paren{\right_{\source} - \app{\right}{\cell_{\idx\source}}} + \paren{\app{\left}{\cell_{\idx\target}} - \left_{\target}} + \sum_{\source < \idx1' < \target}\width_{\idx\idx1'}
+          });%
+          * if ${\cell_{\idx\idx1}} is a vertical arrow with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}} (${1 \leq \source < \idx < \target \leq \nat}), then
+          \eqn(${
+            \app{\height}{\cell_{\idx\idx1}} \leq \paren{\app{\bottom}{\cell_{\source\idx1}} - \bottom_{\source}} + \paren{\top_{\target} - \app{\top}{\cell_{\target\idx1}}} + \sum_{\source < \idx' < \target}\height_{\idx'\idx1}
+          });%
+        }
+        Observe that horizontal adjustment and vertical adjustment are independent of each other, so we may first determine the boundary ${\paren{\bottom_{\idx}, \top_{\idx}}} of ${\idx}-th row satisfying the following:
+        \enumerate{
+          * if ${\cell_{\idx\idx1}} is either an object or a horizontal arrow, then ${\bottom_{\idx} \leq \app{\bottom}{\cell_{\idx\idx1}}} and ${\app{\top}{\cell_{\idx\idx1}} \leq \top_{\idx}}\;
+          * if ${\cell_{\idx\idx1}} is a vertical arrow with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}}, then
+          \eqn(${
+            \app{\height}{\cell_{\idx\idx1}} \leq \paren{\app{\bottom}{\cell_{\source\idx1}} - \bottom_{\source}} + \paren{\top_{\target} - \app{\top}{\cell_{\target\idx1}}} + \sum_{\source < \idx' < \target}\height_{\idx'\idx1}
+          });%
+        }
+        and then determine the boundary ${\paren{\left_{\idx1}, \right_{\idx1}}} of ${\idx1}-th column satisfying the dual conditions.
+        The first condition is immediately solved:
+        \eqn(${
+          \bottom_{\idx} \leq \min\setsep{\app{\bottom}{\cell_{\idx\idx1}}}{\text!{${\cell_{\idx\idx1}} is either an object or a horizontal arrow}}
+        });%
+        \eqn(${
+          \top_{\idx} \geq \max\setsep{\app{\top}{\cell_{\idx\idx1}}}{\text!{${\cell_{\idx\idx1}} is either an object or a horizontal arrow}}
+        });%
+        Let ${\bottom_{\idx}^{\paren{1}}} and ${\top_{\idx}^{\paren{1}}} be the right sides of these inequalities respectively.
+        Put ${\var1_{\idx} = \bottom_{\idx}^{\paren{1}} - \bottom_{\idx}} and ${\var_{\idx} = \top_{\idx} - \top_{\idx}^{\paren{1}}}.
+        Then the second condition is equivalent to that, if ${\cell_{\idx\idx1}} is a vertical arrow with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}}, then
+        \eqn?:({${\cstr{\idx\idx1}}})(${
+          \diff_{\idx\idx1} \leq \var1_{\source} + \var_{\target} + \sum_{\source < \idx' < \target}\var_{\idx'} + \var1_{\idx'}
+        });%
+        where
+        \eqn(${
+          \diff_{\idx\idx1} = \app{\height}{\cell_{\idx\idx1}} - \paren{\paren{\app{\bottom}{\cell_{\source\idx1}} - \bottom_{\source}^{\paren{1}}} + \paren{\top_{\target}^{\paren{1}} - \app{\top}{\cell_{\target\idx1}}} + \sum_{\source < \idx' < \target}\height_{\idx'\idx1}^{\paren{1}}}
+        });%
+        is a constant.
+        Therefore, the goal becomes to find ${\var_{1}, \var1_{1}, \cdots, \var_{\nat}, \var1_{\nat}} satisfying ${\cstr{\idx\idx1}} for every vertical arrow ${\cell_{\idx\idx1}} with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}}.
+        Note that ${\var_{1}} and ${\var1_{\nat}} never appear in any ${\cstr{\idx\idx1}}, so we can drop them by setting ${\var_{1} = \var1_{\nat} = 0}.
+      }
+    >
+  >
+>
