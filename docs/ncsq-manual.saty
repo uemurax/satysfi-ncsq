@@ -1,12 +1,18 @@
 @require: stdjareport
 @require: itemize
 @require: easytable/easytable
+@require: matrix/matrix
+@require: bibyfi/bibyfi
+@require: bibyfi/bibyfi-IEEETran
+@import: bibliography
 
 let-math \cell = ${c}
 let-math \idx = ${i}
 let-math \idx1 = ${j}
+let-math \idx2 = ${k}
 let-math \nat = ${m}
 let-math \nat1 = ${n}
+let-math \nat2 = ${p}
 let-math \top = ${t}
 let-math \bottom = ${b}
 let-math \left = ${l}
@@ -17,8 +23,35 @@ let-math \source = ${\sigma}
 let-math \target = ${\tau}
 let-math \var = ${x}
 let-math \var1 = ${y}
+let-math \var2 = ${z}
 let-math \diff = ${d}
 let-math \cstr idxs = ${\(\mathrm{A}_{#idxs}\)}
+let-math \mtrx = ${A}
+let-math \mtrx1 = ${B}
+let-math \Id = ${I}
+let-math \el = ${a}
+let-math \el1 = ${b}
+let-math \trans = ${T}
+let-math \matrix mss = ${\sqbracket{\matrix-body!(mss)}}
+let-math \active = ${\mathcal{A}}
+let-math \working = ${\mathcal{W}}
+let-math \dir = ${\zeta}
+let-math \lgr = ${\lambda}
+let-math \step-len = ${\alpha}
+let-math \clitvl b e = ${\sqbracket{#b, #e}}
+let-math \bind = ${\leftarrow}
+
+let bibyfi-theme = BiByFiIEEETran.theme (|
+  name-shrink = false;
+  et-al = false;
+  journal-abbr = [];
+|)
+
+let-block ctx +centering it =
+line-break true true ctx (inline-fil ++ read-inline ctx it ++ inline-fil)
+
+let-inline ctx \centering it =
+inline-fil ++ embed-block-breakable ctx (read-block ctx '<+centering{#it;}>)
 
 in
 
@@ -97,12 +130,97 @@ document (|
           \var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var_{\nat - 1}^{2} + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}
         });%
         Thus, vertical arrow stretching is reduced to the following constrained least-squares problem:
-        \easytable?:[](EasyTableAlias.([l;l])){
-        | minimize | ${\var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}}
-        | subject to | ${\diff_{\idx\idx1} \leq \var1_{\source} + \var_{\target} + \sum_{\source < \idx' < \target}\var_{\idx'} + \var1_{\idx'}} for each vertical arrow ${\cell_{\idx\idx1}} from ${\cell_{\source\idx1}} to ${\cell_{\target\idx1}}
-        | | ${\var_{\idx}, \var1_{\idx} \geq 0} for each ${\idx}
-        |}
+        \centering{
+          \easytable?:[](EasyTableAlias.([l;l])){
+          | minimize | ${\var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}}
+          | subject to | ${\diff_{\idx_{\idx2}\idx1_{\idx2}} \leq \var1_{\source_{\idx2}} + \var_{\target_{\idx2}} + \sum_{\source_{\idx2} < \idx' < \target_{\idx2}}\var_{\idx'} + \var1_{\idx'}} for each ${\idx2 = 1, \cdots, \nat2}
+          | | ${\var_{\idx}, \var1_{\idx} \geq 0} for each ${\idx = 1, \cdots, \nat}
+          |}
+        }%
+        where ${\cell_{\idx_{1}\idx1_{1}}, \cdots, \cell_{\idx_{\nat2}\idx1_{\nat2}}} is the list of vertical arrows and ${\cell_{\source_{\idx_{\idx2}}\idx1_{\idx2}}} and ${\cell_{\target_{\idx_{\idx2}}}\idx1_{\idx2}} are the source and the target, respectively, of ${\cell_{\idx_{\idx2}\idx1_{\idx2}}}.
       }
+      +subsection{Active-set methods}<
+        +p{
+          Since the number of variables will not be so large (${2\paren{\nat - 1}} where ${\nat} is the number of rows of the given diagram), active-set methods will be preferable to solve this least-squares problem.
+          We refer the reader to \cite[`nocedal2006numerical`]; for details of active-set methods.
+        }
+        +p{
+          We first write the problem in a standard form.
+          Let ${\nat' = 2\paren{\nat - 2}}, ${\var2_{\idx} = \var1_{\idx'}} if ${\idx = 2\idx' - 1}, and ${\var2_{\idx} = \var_{\idx' + 1}} if ${\idx = 2\idx'}.
+          Let ${\mtrx' = \paren{\el_{\idx2\idx}}_{\idx2, \idx}} be the ${\nat2 \times \nat'} matrix defined by ${\el_{\idx2\idx} = 1} if ${2\source_{\idx2} - 1 \leq \idx \leq 2\paren{\target_{\idx2} - 1}} and ${\el_{\idx2\idx} = 0} otherwise.
+          We set ${\diff = \paren{\diff_{\idx_{\idx2}\idx1_{\idx2}}}_{1 \leq \idx2 \leq \nat2}} and ${\nat2' = \nat2 + \nat}.
+          Let ${\mtrx} be the ${\nat2' \times \nat'}-matrix ${\matrix![
+            ${| \mtrx' |};
+            ${| \Id |};
+          ]}, and ${\el1} be the ${\nat2'}-vector ${\matrix![
+            ${| \diff |};
+            ${| 0 |};
+          ]}.
+          Then the problem is formulated as follows:
+          \centering{
+            \easytable?:[](EasyTableAlias.([l;l])){
+            | minimize | ${\frac{1}{2}\var2^{\trans}\var2}
+            | subject to | ${\mtrx \var2 \geq \el1}
+            |}
+          }
+        }
+        +p{
+          An \emph{active-set method} is an iterative method for solving minimization problems by guessing what the \emph{active set}
+          \eqn(${
+            \app{\active}{\var2^{\ast}} = \setsep{\idx \in \set{1, \cdots, \nat2'}}{\el_{\idx}\var2^{\ast} = \el1_{\idx}}
+          });%
+          at the optimal point is.
+          At each step, we are given a current point ${\var2} and a subset ${\working \subset \app{\active}{\var2}} called a \emph{working set} are given.
+          The current point ${\var2} is required to be a feasible point, that is, to satisfy ${\mtrx\var2 \geq \el1}.
+          The working set ${\working} is required to satisfy that the row vectors ${\setsep{\el_{\idx}}{\idx \in \working}} are linearly independent.
+        }
+        +p{
+          We first find a direction ${\dir} to which the objective function ${\frac{1}{2}\var2^{\trans}\var2} is decreasing.
+          Such a ${\dir} is found by solving the equality-constrained problem in ${\dir}
+          \centering{
+            \easytable?:[](EasyTableAlias.([l;l])){
+            | minimize | ${\frac{1}{2}\dir^{\trans}\dir + \var2^{\trans}\dir}
+            | subject to | ${\mtrx_{\working} \dir = 0}
+            |}
+          }%
+          where ${\mtrx_{\working}} denotes the submatrix of ${\mtrx} consisting of the ${\idx}-th rows for ${\idx \in \working}.
+          It is known that one can find the optimizer for such an equality-constrained problem by solving the \emph{KKT condition}
+          \eqn(${
+            \matrix![
+              ${| \Id | \mathprefix{-}\mtrx_{\working}^{\trans} |};
+              ${| \mtrx_{\working} | 0 |};
+            ]
+            \matrix![
+              ${| \dir |};
+              ${| \lgr |};
+            ] = \matrix![
+              ${| \mathprefix{-}\var2 |};
+              ${| 0 |};
+            ]
+          });%
+          in ${\dir} and new variables ${\lgr = \paren{\lgr_{\idx}}_{\idx \in \working}}.
+          This is equivalent to solving ${\paren{\mtrx_{\working}\mtrx_{\working}^{\trans}}\lgr = \mtrx_{\working}\var2} first (${\mtrx_{\working}\mtrx_{\working}^{\trans}} is positive definite since ${\el_{\idx}}'s for ${\idx \in \working} are linearly independent) and then obtaining ${\dir = \mtrx_{\working}^{\trans}\lgr - \var2}.
+        }
+        +p{
+          Suppose that ${\dir} is ${0}.
+          Then we check if ${\lgr_{\idx} \geq 0} for all ${\idx \in \working}.
+          If so, then we are done, and ${\var2} is the optimal solution.
+          If not, choose ${\idx \in \working} minimizing ${\lgr_{\idx}}, and proceed the next step with ${\var2 \bind \var2} and ${\working \bind \working \setminus \set{\idx}}.
+          Of course, the new working set ${\working \setminus \set{\idx}} satisfies the linear-independence condition.
+        }
+        +p{
+          Suppose that ${\dir} is not ${0}.
+          In this case, we want to choose a step-length ${\step-len \in \clitvl{0}{1}} as large as possible keeping ${\var2 + \step-len \dir} feasible.
+          We set
+          \eqn(${
+            \step-len = \min\paren{1, \min_{\idx \nin \working, \el_{\idx}\dir < 0}\frac{\el1_{\idx} - \el_{\idx}\var2}{\el_{\idx}\dir}}
+          });%
+          The indices ${\idx} minimizing ${\alpha}, if exist, are called the \emph{blocking constraints}.
+          We then proceed the next step with ${\var2 \bind \var2 + \step-len \dir} and ${\working \bind \working \cup \set{\idx}} if ${\idx} is the first blocking constraint and ${\working \bind \working} if there are no blocking constraints.
+          For a blocking constraint ${\idx}, the new working set ${\working \cup \set{\idx}} satisfies the linear-independence condition because ${\el_{\idx}\dir < 0} while ${\el_{\idx'}\dir = 0} for ${\idx' \in \working}.
+        }
+      >
     >
   >
+  +makebibliography(bibyfi-theme)(bibs);
 >

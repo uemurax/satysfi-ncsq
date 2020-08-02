@@ -1,0 +1,26 @@
+@require: bibyfi/bibyfi
+
+let book-def = (|
+  author = [];
+  title = ` `;
+  publisher = ` `;
+  year = ` `;
+  volume = None;
+  series = None;
+  address = None;
+  edition = None;
+  month = None;
+  note = None;
+  key = None;
+|)
+
+let bibs = [
+  (`nocedal2006numerical`, Book (|
+    book-def with
+    series = Some `Springer Series in Operations Research and Financial Engineering`;
+    year = `2006`;
+    publisher = `Springer, New York, NY`;
+    title = `Numerical Optimization`;
+    author = [`Jorge Nocedal`; `Stephen J. Wright`];
+  |));
+]
