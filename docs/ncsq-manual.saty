@@ -40,6 +40,14 @@ let-math \lgr = ${\lambda}
 let-math \step-len = ${\alpha}
 let-math \clitvl b e = ${\sqbracket{#b, #e}}
 let-math \bind = ${\leftarrow}
+let-math \orth = ${Q}
+let-math \ut = ${R}
+let-math \hsh = ${H}
+let-math \hshr = ${\rho}
+let-math \unit = ${\mathbf{e}}
+let-math \diag = ${\mathrm{diag}}
+let-math \perm = ${\Pi}
+let-math \vec = ${u}
 
 let bibyfi-theme = BiByFiIEEETran.theme (|
   name-shrink = false;
@@ -218,6 +226,67 @@ document (|
           The indices ${\idx2} minimizing ${\alpha}, if exist, are called the \emph{blocking constraints}.
           We then proceed the next step with ${\var2 \bind \var2 + \step-len \dir} and ${\working \bind \working \cup \set{\idx2}} if ${\idx2} is the first blocking constraint and ${\working \bind \working} if there are no blocking constraints.
           For a blocking constraint ${\idx2}, the new working set ${\working \cup \set{\idx2}} satisfies the linear-independence condition because ${\el_{\idx2}\dir < 0} while ${\el_{\idx2'}\dir = 0} for ${\idx2' \in \working}.
+        }
+      >
+      +subsection{Updating decomposition}<
+        +p{
+          The most expensive part in the active-set method is to solve the equation
+          \eqn(${
+            \paren{\mtrx_{\working}\mtrx_{\working}^{\trans}} \lgr = \mtrx_{\working}\var2
+          });
+          This equation can be solved using a \emph{QR decomposition} of ${\mtrx_{\working}^{\trans}}
+          \eqn(${
+            \mtrx_{\working}^{\trans} = \orth_{\working}\matrix![
+              ${| \ut_{\working} |};
+              ${| 0 |};
+            ]
+          });
+          where ${\orth_{\working}} is an orthogonal matrix and ${\ut_{\working}} is an upper triangular matrix.
+          Indeed, we have
+          \eqn(${
+            \mtrx_{\working}\mtrx_{\working}^{\trans} = \matrix![
+              ${| \ut_{\working}^{\trans} | 0 |}
+            ]\orth_{\working}^{\trans}\orth_{\working}\matrix![
+              ${| \ut_{\working} |};
+              ${| 0 |};
+            ] = \ut_{\working}^{\trans}\ut_{\working}
+          });%
+          and then
+          \eqn(${
+            \paren{\ut_{\working}^{\trans}\ut_{\working}}\lgr = \mtrx_{\working}\var2
+          });%
+          is easily solved because ${\ut_{\working}} is an upper triangular matrix.
+        }
+        +p{
+          To calculate a QR decomposition ${\paren{\orth_{\working}, \ut_{\working}}} efficiently, we note that the matrix ${\mtrx_{\working}} at a step only differs in one row from the previous step: one row is inserted or deleted.
+          In either case, updating a QR decomposition is more efficient than recalculating.
+          We refer the reader to \cite[`stewart1998matrix`]; for details.
+        }
+        +p{
+          Let ${\working'} be the working set in the previous step and suppose that the current working set is ${\working = \working' \setminus \set{\idx2}}.
+          If ${\el_{\idx2}^{\trans}} is the right most column in ${\mtrx_{\working'}^{\trans}}, then ${\ut_{\working}} is obtained from ${\ut_{\working'}} by droppoing the right most column and ${\orth_{\working} = \orth_{\working'}}.
+          If not, we first perform moving the column ${\el_{\idx2}^{\trans}} to the right most and then calculate the QR decomposition in the previous way.
+          Let ${\perm_{\idx, \idx + 1}} the permutation of ${\idx}-th and ${\paren{\idx + 1}}-th columns.
+          If ${\paren{\orth, \ut}} is a QR decomposition of ${\mtrx}, then a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}} is calculated as follows.
+          Let ${\paren{\orth', \ut'}} be a QR decomposition of ${\ut\perm_{\idx, \idx + 1}}, which is calculated by a plane rotation.
+          Then ${\paren{\orth\app{\diag}{\orth', \Id}, \ut'}} is a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}}.
+          Iterating this calculation, we have a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}\perm_{\idx + 1, \idx + 2}\cdots\perm_{\idx + \paren{\idx1 - 1}, \idx + \idx1}}.
+        }
+        +p{
+          Suppose that the current working set is ${\working = \working' \cup \set{\idx2}}.
+          We set ${\mtrx_{\working}^{\trans} = \matrix![
+            ${| \mtrx_{\working'}^{\trans} | \el_{\idx2}^{\trans} |};
+          ]}.
+          Split ${\orth_{\working'} = \matrix![
+            ${| \orth_{1} | \orth_{2} |};
+          ]} with ${\orth_{1}} the first ${\working'} columns.
+          Find a Householder transformation ${\hsh} and a scalar ${\hshr} such that ${\app{\hsh}{\orth_{2}^{\trans}\el_{\idx2}^{\trans}} = \hshr\unit_{1}}.
+          Then ${\ut_{\working} = \matrix![
+            ${| \ut_{\working'} | \orth_{1}^{\trans}\el_{\idx2}^{\trans} |};
+            ${| 0 | \hshr |};
+          ]} and ${\orth_{\working}^\trans = \app{\diag}{\Id, \hsh}\orth_{\working'}^{\trans}}.
+          A \emph{Householder transformation} is a matrix of the form ${\hsh = \Id - \vec\vec^{\trans}} such that ${\norm{\vec}_{2} = \sqrt{2}}.
+          For a given vector ${\var}, one can find a Householder transformation ${\hsh} such that ${\hsh\var = \norm{\var}_{2}\unit_{1}} or ${\hsh\var = \mathprefix{-}\norm{\var}_{2}\unit_{1}}.
         }
       >
     >

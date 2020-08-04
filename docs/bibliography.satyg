@@ -23,4 +23,12 @@ let bibs = [
     title = `Numerical Optimization`;
     author = [`Jorge Nocedal`; `Stephen J. Wright`];
   |));
+  (`stewart1998matrix`, Book (|
+    book-def with
+    address = Some `Philadelphia, PA`;
+    year = `1998`;
+    publisher = `Society for Industrial and Applied Mathematics (SIAM)`;
+    title = `Matrix Algorithms: Volume 1: Basic Decompositions`;
+    author = [`G. W. Stewart`];
+  |));
 ]
