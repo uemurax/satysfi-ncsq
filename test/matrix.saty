@@ -1,0 +1,41 @@
+@require: pervasives
+@require: zrbase/zmtdoc0
+@require: zrbase/zlog0
+@require: assert-eq/assert-eq
+@require: debug-show-value/debug-show-value
+@require: base/list-ext
+@import: ../src/matrix
+
+open DebugShowValue
+open AssertEq
+open ZLog0
+
+% Upper triangular matrix
+% | 1 2 4 |
+% |   3 5 |
+% |     6 |
+let ut0 = List.fold-left (
+  fun ut (vs, v) ->  UpperTriangle.append-column ut (RealVector.of-list vs) v
+) UpperTriangle.nil [
+  ([], 1.0);
+  ([2.0], 3.0);
+  ([4.0; 5.0], 6.0);
+]
+
+% Lower triangular matrix
+% | 1     |
+% | 2 3   |
+% | 4 5 6 |
+let lt0 = List.fold-right (
+  fun (v, vs) lt -> LowerTriangle.prepend-column v (RealVector.of-list vs) lt
+) LowerTriangle.nil [
+  (1.0, [2.0; 4.0]);
+  (3.0, [5.0]);
+  (6.0, []);
+]
+
+let _ = assert-eq ?:(`transpose`) LowerTriangle.show (UpperTriangle.transpose ut0) lt0
+
+in
+
+document()

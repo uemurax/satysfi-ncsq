@@ -1,0 +1,95 @@
+@require: pervasives
+@require: base/list-ext
+@require: base/option-ext
+@require: base/stream
+@require: debug-show-value/debug-show-value
+
+module RealVector : sig
+
+type t
+
+val of-list : float list -> t
+val to-list : t -> float list
+val nil : t
+val cons : float -> t -> t
+val reverse : t -> t
+val show : t -> string
+
+end = struct
+
+type t = float list
+
+let of-list ls = ls
+let to-list xs = xs
+let nil = []
+let cons v vs = v :: vs
+let reverse = List.reverse
+let show = DebugShowValue.(show-list show-float)
+
+end
+
+module LowerTriangle : sig
+
+type t
+
+val of-list : RealVector.t list -> t
+val show : t -> string
+val nil : t
+% `prepend-column v vs lt` constructs the matrix
+% | v  0  |
+% | vs lt |
+val prepend-column : float -> RealVector.t -> t -> t
+
+end = struct
+
+type vector = RealVector.t
+
+% [v1; v2; ...; vn] represents the lower triangular matrix [v1; v2; ...; vn]
+type t = vector list
+
+let of-list ls = ls
+let show = DebugShowValue.show-list RealVector.show
+let nil = []
+let prepend-column v vs lt = RealVector.cons v vs :: lt
+
+end
+
+module UpperTriangle : sig
+
+type t
+
+val nil : t
+% `append-column ut vs v` constructs the matrix
+% | ut vs |
+% | 0  v  |
+val append-column : t -> RealVector.t -> float -> t
+val transpose : t -> LowerTriangle.t
+val show : t -> string
+
+end = struct
+
+type vector = RealVector.t
+
+%  [v1; v2; ...; vn] represents the upper triangular matrix [vn^R; ...; v2^R; v1^R]
+type t = vector list
+
+let show = DebugShowValue.show-list RealVector.show
+let nil = []
+let append-column ut vs v = RealVector.(cons v (reverse vs)) :: ut
+
+let transpose ut =
+let-rec aux (acc1, acc2) ut =
+match ut with
+| [] -> acc1
+| v :: vs -> (
+  let s = Stream.(map (fun (x, xs) -> RealVector.cons x xs) (zip (of-list (RealVector.to-list v)) acc2)) in
+  match Stream.uncons s with
+  | None -> acc1
+  | Some (h, t) -> (
+    aux (h :: acc1, t) vs
+  )
+)
+in
+LowerTriangle.of-list (aux ([], Stream.const RealVector.nil) ut)
+
+end
