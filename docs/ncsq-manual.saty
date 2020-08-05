@@ -155,10 +155,10 @@ document (|
         +p{
           We first write the problem in a standard form.
           Let ${\nat' = 2\paren{\nat - 2}}, ${\var2_{\idx} = \var1_{\idx'}} if ${\idx = 2\idx' - 1}, and ${\var2_{\idx} = \var_{\idx' + 1}} if ${\idx = 2\idx'}.
-          Let ${\mtrx' = \paren{\el_{\idx2\idx}}_{\idx2, \idx}} be the ${\nat2 \times \nat'} matrix defined by ${\el_{\idx2\idx} = 1} if ${2\source_{\idx2} - 1 \leq \idx \leq 2\paren{\target_{\idx2} - 1}} and ${\el_{\idx2\idx} = 0} otherwise.
+          Let ${\paren{\mtrx'}^{\trans} = \paren{\el_{\idx2\idx}}_{\idx2, \idx}} be the ${\nat2 \times \nat'} matrix defined by ${\el_{\idx2\idx} = 1} if ${2\source_{\idx2} - 1 \leq \idx \leq 2\paren{\target_{\idx2} - 1}} and ${\el_{\idx2\idx} = 0} otherwise.
           We set ${\diff = \paren{\diff_{\idx_{\idx2}\idx1_{\idx2}}}_{1 \leq \idx2 \leq \nat2}} and ${\nat2' = \nat2 + \nat}.
-          Let ${\mtrx} be the ${\nat2' \times \nat'}-matrix ${\matrix![
-            ${| \mtrx' |};
+          Let ${\mtrx^{\trans}} be the ${\nat2' \times \nat'}-matrix ${\matrix![
+            ${| \paren{\mtrx'}^{\trans} |};
             ${| \Id |};
           ]}, and ${\el1} be the ${\nat2'}-vector ${\matrix![
             ${| \diff |};
@@ -168,7 +168,7 @@ document (|
           \centering{
             \easytable?:[](EasyTableAlias.([l;l])){
             | minimize | ${\frac{1}{2}\var2^{\trans}\var2}
-            | subject to | ${\mtrx \var2 \geq \el1}
+            | subject to | ${\mtrx^{\trans} \var2 \geq \el1}
             |}
           }
         }
@@ -179,8 +179,8 @@ document (|
           });%
           at the optimal point is.
           At each step, we are given a current point ${\var2} and a subset ${\working \subset \app{\active}{\var2}} called a \emph{working set} are given.
-          The current point ${\var2} is required to be a feasible point, that is, to satisfy ${\mtrx\var2 \geq \el1}.
-          The working set ${\working} is required to satisfy that the row vectors ${\setsep{\el_{\idx2}}{\idx2 \in \working}} are linearly independent.
+          The current point ${\var2} is required to be a feasible point, that is, to satisfy ${\mtrx^{\trans}\var2 \geq \el1}.
+          The working set ${\working} is required to satisfy that the vectors ${\setsep{\el_{\idx2}}{\idx2 \in \working}} are linearly independent.
         }
         +p{
           We first find a direction ${\dir} to which the objective function ${\frac{1}{2}\var2^{\trans}\var2} is decreasing.
@@ -188,15 +188,15 @@ document (|
           \centering{
             \easytable?:[](EasyTableAlias.([l;l])){
             | minimize | ${\frac{1}{2}\dir^{\trans}\dir + \var2^{\trans}\dir}
-            | subject to | ${\mtrx_{\working} \dir = 0}
+            | subject to | ${\mtrx_{\working}^{\trans} \dir = 0}
             |}
           }%
-          where ${\mtrx_{\working}} denotes the submatrix of ${\mtrx} consisting of the ${\idx2}-th rows for ${\idx2 \in \working}.
+          where ${\mtrx_{\working}^{\trans}} denotes the submatrix of ${\mtrx^{\trans}} consisting of the ${\idx2}-th rows for ${\idx2 \in \working}.
           It is known that one can find the optimizer for such an equality-constrained problem by solving the \emph{KKT condition}
           \eqn(${
             \matrix![
-              ${| \Id | \mathprefix{-}\mtrx_{\working}^{\trans} |};
-              ${| \mtrx_{\working} | 0 |};
+              ${| \Id | \mathprefix{-}\mtrx_{\working} |};
+              ${| \mtrx_{\working}^{\trans} | 0 |};
             ]
             \matrix![
               ${| \dir |};
@@ -207,7 +207,7 @@ document (|
             ]
           });%
           in ${\dir} and new variables ${\lgr = \paren{\lgr_{\idx2}}_{\idx2 \in \working}}.
-          This is equivalent to solving ${\paren{\mtrx_{\working}\mtrx_{\working}^{\trans}}\lgr = \mtrx_{\working}\var2} first (${\mtrx_{\working}\mtrx_{\working}^{\trans}} is positive definite since ${\el_{\idx2}}'s for ${\idx2 \in \working} are linearly independent) and then obtaining ${\dir = \mtrx_{\working}^{\trans}\lgr - \var2}.
+          This is equivalent to solving ${\paren{\mtrx_{\working}^{\trans}\mtrx_{\working}}\lgr = \mtrx_{\working}^{\trans}\var2} first (${\mtrx_{\working}^{\trans}\mtrx_{\working}} is positive definite since ${\el_{\idx2}}'s for ${\idx2 \in \working} are linearly independent) and then obtaining ${\dir = \mtrx_{\working}\lgr - \var2}.
         }
         +p{
           Suppose that ${\dir} is ${0}.
@@ -221,22 +221,22 @@ document (|
           In this case, we want to choose a step-length ${\step-len \in \clitvl{0}{1}} as large as possible keeping ${\var2 + \step-len \dir} feasible.
           We set
           \eqn(${
-            \step-len = \min\paren{1, \min_{\idx2 \nin \working, \el_{\idx2}\dir < 0}\frac{\el1_{\idx2} - \el_{\idx2}\var2}{\el_{\idx2}\dir}}
+            \step-len = \min\paren{1, \min_{\idx2 \nin \working, \el_{\idx2}^{\trans}\dir < 0}\frac{\el1_{\idx2} - \el_{\idx2}^{\trans}\var2}{\el_{\idx2}^{\trans}\dir}}
           });%
           The indices ${\idx2} minimizing ${\alpha}, if exist, are called the \emph{blocking constraints}.
           We then proceed the next step with ${\var2 \bind \var2 + \step-len \dir} and ${\working \bind \working \cup \set{\idx2}} if ${\idx2} is the first blocking constraint and ${\working \bind \working} if there are no blocking constraints.
-          For a blocking constraint ${\idx2}, the new working set ${\working \cup \set{\idx2}} satisfies the linear-independence condition because ${\el_{\idx2}\dir < 0} while ${\el_{\idx2'}\dir = 0} for ${\idx2' \in \working}.
+          For a blocking constraint ${\idx2}, the new working set ${\working \cup \set{\idx2}} satisfies the linear-independence condition because ${\el_{\idx2}^{\trans}\dir < 0} while ${\el_{\idx2'}^{\trans}\dir = 0} for ${\idx2' \in \working}.
         }
       >
       +subsection{Updating decomposition}<
         +p{
           The most expensive part in the active-set method is to solve the equation
           \eqn(${
-            \paren{\mtrx_{\working}\mtrx_{\working}^{\trans}} \lgr = \mtrx_{\working}\var2
+            \paren{\mtrx_{\working}^{\trans}\mtrx_{\working}} \lgr = \mtrx_{\working}^{\trans}\var2
           });
-          This equation can be solved using a \emph{QR decomposition} of ${\mtrx_{\working}^{\trans}}
+          This equation can be solved using a \emph{QR decomposition} of ${\mtrx_{\working}}
           \eqn(${
-            \mtrx_{\working}^{\trans} = \orth_{\working}\matrix![
+            \mtrx_{\working} = \orth_{\working}\matrix![
               ${| \ut_{\working} |};
               ${| 0 |};
             ]
@@ -244,7 +244,7 @@ document (|
           where ${\orth_{\working}} is an orthogonal matrix and ${\ut_{\working}} is an upper triangular matrix.
           Indeed, we have
           \eqn(${
-            \mtrx_{\working}\mtrx_{\working}^{\trans} = \matrix![
+            \mtrx_{\working}^{\trans}\mtrx_{\working} = \matrix![
               ${| \ut_{\working}^{\trans} | 0 |}
             ]\orth_{\working}^{\trans}\orth_{\working}\matrix![
               ${| \ut_{\working} |};
@@ -253,19 +253,19 @@ document (|
           });%
           and then
           \eqn(${
-            \paren{\ut_{\working}^{\trans}\ut_{\working}}\lgr = \mtrx_{\working}\var2
+            \paren{\ut_{\working}^{\trans}\ut_{\working}}\lgr = \mtrx_{\working}^{\trans}\var2
           });%
           is easily solved because ${\ut_{\working}} is an upper triangular matrix.
         }
         +p{
-          To calculate a QR decomposition ${\paren{\orth_{\working}, \ut_{\working}}} efficiently, we note that the matrix ${\mtrx_{\working}} at a step only differs in one row from the previous step: one row is inserted or deleted.
+          To calculate a QR decomposition ${\paren{\orth_{\working}, \ut_{\working}}} efficiently, we note that the matrix ${\mtrx_{\working}} at a step only differs in one column from the previous step: one column is inserted or deleted.
           In either case, updating a QR decomposition is more efficient than recalculating.
           We refer the reader to \cite[`stewart1998matrix`]; for details.
         }
         +p{
           Let ${\working'} be the working set in the previous step and suppose that the current working set is ${\working = \working' \setminus \set{\idx2}}.
-          If ${\el_{\idx2}^{\trans}} is the right most column in ${\mtrx_{\working'}^{\trans}}, then ${\ut_{\working}} is obtained from ${\ut_{\working'}} by droppoing the right most column and ${\orth_{\working} = \orth_{\working'}}.
-          If not, we first perform moving the column ${\el_{\idx2}^{\trans}} to the right most and then calculate the QR decomposition in the previous way.
+          If ${\el_{\idx2}} is the right most column in ${\mtrx_{\working'}}, then ${\ut_{\working}} is obtained from ${\ut_{\working'}} by droppoing the right most column and ${\orth_{\working} = \orth_{\working'}}.
+          If not, we first perform moving the column ${\el_{\idx2}} to the right most and then calculate the QR decomposition in the previous way.
           Let ${\perm_{\idx, \idx + 1}} the permutation of ${\idx}-th and ${\paren{\idx + 1}}-th columns.
           If ${\paren{\orth, \ut}} is a QR decomposition of ${\mtrx}, then a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}} is calculated as follows.
           Let ${\paren{\orth', \ut'}} be a QR decomposition of ${\ut\perm_{\idx, \idx + 1}}, which is calculated by a plane rotation.
@@ -274,15 +274,15 @@ document (|
         }
         +p{
           Suppose that the current working set is ${\working = \working' \cup \set{\idx2}}.
-          We set ${\mtrx_{\working}^{\trans} = \matrix![
-            ${| \mtrx_{\working'}^{\trans} | \el_{\idx2}^{\trans} |};
+          We set ${\mtrx_{\working} = \matrix![
+            ${| \mtrx_{\working'} | \el_{\idx2} |};
           ]}.
           Split ${\orth_{\working'} = \matrix![
             ${| \orth_{1} | \orth_{2} |};
           ]} with ${\orth_{1}} the first ${\working'} columns.
-          Find a Householder transformation ${\hsh} and a scalar ${\hshr} such that ${\app{\hsh}{\orth_{2}^{\trans}\el_{\idx2}^{\trans}} = \hshr\unit_{1}}.
+          Find a Householder transformation ${\hsh} and a scalar ${\hshr} such that ${\app{\hsh}{\orth_{2}^{\trans}\el_{\idx2}} = \hshr\unit_{1}}.
           Then ${\ut_{\working} = \matrix![
-            ${| \ut_{\working'} | \orth_{1}^{\trans}\el_{\idx2}^{\trans} |};
+            ${| \ut_{\working'} | \orth_{1}^{\trans}\el_{\idx2} |};
             ${| 0 | \hshr |};
           ]} and ${\orth_{\working}^\trans = \app{\diag}{\Id, \hsh}\orth_{\working'}^{\trans}}.
           A \emph{Householder transformation} is a matrix of the form ${\hsh = \Id - \vec\vec^{\trans}} such that ${\norm{\vec}_{2} = \sqrt{2}}.
