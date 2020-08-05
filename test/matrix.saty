@@ -4,6 +4,7 @@
 @require: assert-eq/assert-eq
 @require: debug-show-value/debug-show-value
 @require: base/list-ext
+@require: base/float
 @import: ../src/matrix
 
 open DebugShowValue
@@ -48,6 +49,20 @@ let _ = assert-eq ?:(`uuper-inv-app`) RealVector.show UpperTriangle.(app-inv ut0
 let _ = assert-eq ?:(`lower-app`) RealVector.show (LowerTriangle.app lt0 v0) lt0v0
 let _ = assert-eq ?:(`lower-app-inv`) RealVector.show LowerTriangle.(app lt0 (app-inv lt0 v0)) v0
 let _ = assert-eq ?:(`lower-inv-app`) RealVector.show LowerTriangle.(app-inv lt0 (app lt0 v0)) v0
+
+let nv0 = Float.sqrt 14.0
+
+let _ = assert-eq ?:(`norm`) show-float (RealVector.norm v0) nv0
+
+let (h0, r) = Householder.generate v0
+
+let _ = assert-eq ?:(`householder-norm`) show-float (RealVector.norm (Householder.to-vector h0)) (Float.sqrt 2.0)
+
+% let _ = assert-eq ?:(`householder-app`) RealVector.show (Householder.app h0 v0) (RealVector.of-list [r; 0.0; 0.0])
+%% ! [Error during Evaluation]
+%% test householder-app ...
+%%  left: [-3.74165738677; -4.4408920985e-16; -8.881784197e-16]
+%% right: [-3.74165738677; 0.; 0.]
 
 in
 

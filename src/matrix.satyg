@@ -2,6 +2,7 @@
 @require: base/list-ext
 @require: base/option-ext
 @require: base/stream
+@require: base/float
 @require: debug-show-value/debug-show-value
 
 module RealVector : sig
@@ -19,6 +20,9 @@ val show : t -> string
 val (+) : t -> t -> t
 val (-) : t -> t -> t
 val (*) : float -> t -> t
+
+val norm : t -> float
+val inner-product : t -> t -> float
 
 end = struct
 
@@ -40,6 +44,19 @@ let binop f xs ys = List.(map (fun (x, y) -> f x y) (zip xs ys))
 let (+) = binop (+.)
 let (-) = binop (-.)
 let (*) x = List.map (fun y -> x *. y)
+
+let norm xs =
+let s = List.fold-right (fun x u -> Float.abs x +. u) 0.0 xs in
+if Float.is-zero s then 0.0
+else (
+  let n1 = List.fold-right (fun x u -> (
+    let y = x /. s in
+    y *. y +. u
+  )) 0.0 xs in
+  s *. Float.sqrt n1
+)
+
+let inner-product xs ys = List.(fold-right (fun (x, y) v -> v +. x *. y) 0.0 (zip xs ys))
 
 end
 
@@ -162,5 +179,47 @@ match ut with
 )
 in
 aux RealVector.nil ut (RealVector.reverse vs)
+
+end
+
+module Householder : sig
+
+type t
+
+% Calculate a pair (h, r) where h is a Householder transformation such that h x = r e1.
+val generate : RealVector.t -> t * float
+
+val to-vector : t -> RealVector.t
+val app : t -> RealVector.t -> RealVector.t
+
+end = struct
+
+type vector = RealVector.t
+type t = vector
+
+let to-vector u = u
+
+let sqrt2 = Float.sqrt 2.0
+
+let generate xs =
+let n = RealVector.norm xs in
+if Float.is-zero n then (
+  let (_, ys) = RealVector.uncons xs in
+  (RealVector.cons sqrt2 ys, 0.0)
+) else (
+  let u1 = RealVector.((1.0 /. n) * xs) in
+  let (y, ys) = RealVector.uncons u1 in
+  let (z, r) = if Float.(y >= 0.0) then (y +. 1.0, Float.neg n)
+  else (y -. 1.0, n)
+  in
+  let w = Float.(sqrt (abs z)) in
+  let u = RealVector.cons z ys in
+  (RealVector.((1.0 /. w) * u), r)
+)
+
+let app h vs =
+let s = RealVector.inner-product h vs in
+let u = RealVector.(s * h) in
+RealVector.(vs - u)
 
 end
