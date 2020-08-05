@@ -36,6 +36,19 @@ let lt0 = List.fold-right (
 
 let _ = assert-eq ?:(`transpose`) LowerTriangle.show (UpperTriangle.transpose ut0) lt0
 
+let v0 = RealVector.of-list [1.0; 2.0; 3.0]
+% ut0 v0
+let ut0v0 = RealVector.of-list [17.0; 21.0; 18.0]
+% lt0 v0
+let lt0v0 = RealVector.of-list [1.0; 8.0; 32.0]
+
+let _ = assert-eq ?:(`upper-app`) RealVector.show (UpperTriangle.app ut0 v0) ut0v0
+let _ = assert-eq ?:(`upper-app-inv`) RealVector.show UpperTriangle.(app ut0 (app-inv ut0 v0)) v0
+let _ = assert-eq ?:(`uuper-inv-app`) RealVector.show UpperTriangle.(app-inv ut0 (app ut0 v0)) v0
+let _ = assert-eq ?:(`lower-app`) RealVector.show (LowerTriangle.app lt0 v0) lt0v0
+let _ = assert-eq ?:(`lower-app-inv`) RealVector.show LowerTriangle.(app lt0 (app-inv lt0 v0)) v0
+let _ = assert-eq ?:(`lower-inv-app`) RealVector.show LowerTriangle.(app-inv lt0 (app lt0 v0)) v0
+
 in
 
 document()

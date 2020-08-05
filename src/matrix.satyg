@@ -12,8 +12,13 @@ val of-list : float list -> t
 val to-list : t -> float list
 val nil : t
 val cons : float -> t -> t
+val uncons : t -> float * t
 val reverse : t -> t
 val show : t -> string
+
+val (+) : t -> t -> t
+val (-) : t -> t -> t
+val (*) : float -> t -> t
 
 end = struct
 
@@ -25,6 +30,16 @@ let nil = []
 let cons v vs = v :: vs
 let reverse = List.reverse
 let show = DebugShowValue.(show-list show-float)
+
+let uncons vs =
+match vs with
+| [] -> (0.0, [])
+| x :: xs -> (x, xs)
+
+let binop f xs ys = List.(map (fun (x, y) -> f x y) (zip xs ys))
+let (+) = binop (+.)
+let (-) = binop (-.)
+let (*) x = List.map (fun y -> x *. y)
 
 end
 
@@ -39,6 +54,9 @@ val nil : t
 % | v  0  |
 % | vs lt |
 val prepend-column : float -> RealVector.t -> t -> t
+val app : t -> RealVector.t -> RealVector.t
+% lt^-1 vs
+val app-inv : t -> RealVector.t -> RealVector.t
 
 end = struct
 
@@ -51,6 +69,26 @@ let of-list ls = ls
 let show = DebugShowValue.show-list RealVector.show
 let nil = []
 let prepend-column v vs lt = RealVector.cons v vs :: lt
+
+let-rec app lt vs =
+match lt with
+| [] -> RealVector.nil
+| xs :: xss -> (
+  let (y, ys) = RealVector.uncons xs in
+  let (u, us) = RealVector.uncons vs in
+  RealVector.(cons (u *. y) (u * ys + app xss us))
+)
+
+let-rec app-inv lt vs =
+match lt with
+| [] -> RealVector.nil
+| xs :: xss -> (
+  let (y, ys) = RealVector.uncons xs in
+  let (u, us) = RealVector.uncons vs in
+  let b = u /. y in
+  let bs = RealVector.(us - b * ys) in
+  RealVector.cons b (app-inv xss bs)
+)
 
 end
 
@@ -65,6 +103,9 @@ val nil : t
 val append-column : t -> RealVector.t -> float -> t
 val transpose : t -> LowerTriangle.t
 val show : t -> string
+val app : t -> RealVector.t -> RealVector.t
+% ut^-1 vs
+val app-inv : t -> RealVector.t -> RealVector.t
 
 end = struct
 
@@ -91,5 +132,35 @@ match ut with
 )
 in
 LowerTriangle.of-list (aux ([], Stream.const RealVector.nil) ut)
+
+let app ut vs =
+let-rec aux (acc1, acc2) ut vs =
+match ut with
+| [] -> acc1
+| xs :: xss -> (
+  let (u, us) = RealVector.uncons vs in
+  let s = Stream.(map (fun (x, y) -> y +. u *. x) (zip (of-list (RealVector.to-list xs)) acc2)) in
+  match Stream.uncons s with
+  | None -> acc1
+  | Some (h, t) -> (
+    aux (RealVector.cons h acc1, t) xss us
+  )
+)
+in
+aux (RealVector.nil, Stream.const 0.0) ut (RealVector.reverse vs)
+
+let app-inv ut vs =
+let-rec aux acc ut vs =
+match ut with
+| [] -> acc
+| xs :: xss -> (
+  let (y, ys) = RealVector.uncons xs in
+  let (u, us) = RealVector.uncons vs in
+  let b = u /. y in
+  let bs = RealVector.(us - b * ys) in
+  aux (RealVector.cons b acc) xss bs
+)
+in
+aux RealVector.nil ut (RealVector.reverse vs)
 
 end
