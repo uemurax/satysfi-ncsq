@@ -16,6 +16,7 @@ val cons : float -> t -> t
 val uncons : t -> float * t
 val reverse : t -> t
 val show : t -> string
+val length : t -> int
 
 val (+) : t -> t -> t
 val (-) : t -> t -> t
@@ -23,6 +24,11 @@ val (*) : float -> t -> t
 
 val norm : t -> float
 val inner-product : t -> t -> float
+
+% The standard basis in R^n
+val basis : int -> t list
+% zero vector of dimension n
+val zero : int -> t
 
 end = struct
 
@@ -34,6 +40,19 @@ let nil = []
 let cons v vs = v :: vs
 let reverse = List.reverse
 let show = DebugShowValue.(show-list show-float)
+let length = List.length
+let zero n = List.repeat n 0.0
+
+let-rec basis n =
+if n <= 0 then []
+else (
+  let m = n - 1 in
+  let bs = basis m in
+  let zs = List.repeat m 0.0 in
+  let e = 1.0 :: zs in
+  let cs = List.(map (cons 0.0) bs) in
+  e :: cs
+)
 
 let uncons vs =
 match vs with
@@ -57,6 +76,81 @@ else (
 )
 
 let inner-product xs ys = List.(fold-right (fun (x, y) v -> v +. x *. y) 0.0 (zip xs ys))
+
+end
+
+module RealMatrix : sig
+
+type t
+
+val of-list : RealVector.t list -> t
+val of-list-list : (float list) list -> t
+val to-list : t -> RealVector.t list
+val show : t -> string
+val app : t -> RealVector.t -> RealVector.t
+% a^T b
+val app-t : t -> RealVector.t -> RealVector.t
+% xs ys^T
+val outer-product : RealVector.t -> RealVector.t -> t
+val (-) : t -> t -> t
+val nil : t
+val cons : RealVector.t -> t -> t
+val uncons : t -> RealVector.t * t
+val id : int -> t
+val comp : t -> t -> t
+val transpose : t -> t
+
+end = struct
+
+type vector = RealVector.t
+type t = vector list
+
+let of-list ls = ls
+let to-list mx = mx
+let of-list-list lss = of-list (List.map RealVector.of-list lss)
+let show = DebugShowValue.show-list RealVector.show
+let id = RealVector.basis
+let nil = List.nil
+let cons = List.cons
+
+let uncons mx =
+match mx with
+| [] -> (RealVector.nil, [])
+| xs :: xss -> (xs, xss)
+
+let app mx xs =
+match mx with
+| [] -> RealVector.nil
+| (v :: _) -> (
+  let n = RealVector.length v in
+  List.(fold-right (fun (v, x) u -> RealVector.(u + x * v))
+    (RealVector.zero n) (zip mx (RealVector.to-list xs))))
+
+let app-t mx xs = RealVector.of-list List.(map (fun v -> RealVector.inner-product v xs) mx)
+
+let comp xss yss = List.map (app xss) yss
+
+let-rec zip-with f xs ys =
+match (xs, ys) with
+| ([], ys) -> List.map (fun y -> f None (Some y)) ys
+| (xs, []) -> List.map (fun x -> f (Some x) None) xs
+| (x :: xs, y :: ys) -> f (Some x) (Some y) :: zip-with f xs ys
+
+let-rec transpose xss =
+match xss with
+| [] -> []
+| xs :: xss -> (
+  let yss = transpose xss in
+  zip-with (fun xo yso -> (
+    let x = Option.from 0.0 xo in
+    let ys = Option.from RealVector.nil yso in
+    RealVector.cons x ys
+  )) (RealVector.to-list xs) yss)
+
+let outer-product xs ys = of-list (List.map (fun y -> RealVector.(y * xs)) (RealVector.to-list ys))
+
+let binop f xss yss = List.(map (fun (xs, ys) -> f xs ys) (zip xss yss))
+let (-) = binop (fun xs ys -> RealVector.(xs - ys))
 
 end
 
@@ -114,15 +208,17 @@ module UpperTriangle : sig
 type t
 
 val nil : t
-% `append-column ut vs v` constructs the matrix
+% `append-column vs v ut` constructs the matrix
 % | ut vs |
 % | 0  v  |
-val append-column : t -> RealVector.t -> float -> t
+val append-column : RealVector.t -> float -> t -> t
 val transpose : t -> LowerTriangle.t
 val show : t -> string
 val app : t -> RealVector.t -> RealVector.t
 % ut^-1 vs
 val app-inv : t -> RealVector.t -> RealVector.t
+% mx^R ut
+val comp-rev-right : RealMatrix.t -> t -> RealMatrix.t
 
 end = struct
 
@@ -133,7 +229,7 @@ type t = vector list
 
 let show = DebugShowValue.show-list RealVector.show
 let nil = []
-let append-column ut vs v = RealVector.(cons v (reverse vs)) :: ut
+let append-column vs v ut = RealVector.(cons v (reverse vs)) :: ut
 
 let transpose ut =
 let-rec aux (acc1, acc2) ut =
@@ -180,6 +276,18 @@ match ut with
 in
 aux RealVector.nil ut (RealVector.reverse vs)
 
+let comp-rev-right mx ut =
+let-rec aux acc mx ut =
+match ut with
+| [] -> acc
+| xs :: xss -> (
+  let zs = RealMatrix.app mx xs in
+  let (_, yss) = RealMatrix.uncons mx in
+  aux (RealMatrix.cons zs acc) yss xss
+)
+in
+aux RealMatrix.nil mx ut
+
 end
 
 module Householder : sig
@@ -189,14 +297,17 @@ type t
 % Calculate a pair (h, r) where h is a Householder transformation such that h x = r e1.
 val generate : RealVector.t -> t * float
 
+val show : t -> string
 val to-vector : t -> RealVector.t
 val app : t -> RealVector.t -> RealVector.t
+val comp-right : RealMatrix.t -> t -> RealMatrix.t
 
 end = struct
 
 type vector = RealVector.t
 type t = vector
 
+let show = RealVector.show
 let to-vector u = u
 
 let sqrt2 = Float.sqrt 2.0
@@ -221,5 +332,59 @@ let app h vs =
 let s = RealVector.inner-product h vs in
 let u = RealVector.(s * h) in
 RealVector.(vs - u)
+
+let comp-right mx h =
+let u1 = RealMatrix.app mx h in
+let u2 = RealMatrix.outer-product u1 h in
+RealMatrix.(mx - u2)
+
+end
+
+module QR : sig
+
+type t
+
+% QR decomposition of n x 0 matrix
+val nil : int -> t
+
+% If qr is a QR factorization of mx, `append-column qr v` constructs a QR factorization of [mx v].
+val append-column : RealVector.t -> t -> t
+
+% Q and R factors
+val r : t -> UpperTriangle.t
+val q : t -> RealMatrix.t
+
+val compose : t -> RealMatrix.t
+
+end = struct
+
+type vector = RealVector.t
+type matrix = RealMatrix.t
+type upper-tri = UpperTriangle.t
+% ((Q1, Q2), R), but Q1 is stored in the reverse direction
+type t = (vector list * vector list) * upper-tri
+
+let r (_, ut) = ut
+let q ((q1, q2), _) =
+let-rec aux xs ys =
+match xs with
+| [] -> ys
+| x :: xs -> aux xs (x :: ys)
+in
+RealMatrix.of-list (aux q1 q2)
+
+let nil n = (([], RealVector.basis n), UpperTriangle.nil)
+
+let append-column xs ((q1, q2), r) =
+let m1 = (RealMatrix.of-list (List.reverse q1)) in
+let ys = RealMatrix.app-t m1 xs in
+let m2 = (RealMatrix.of-list q2) in
+let zs = RealMatrix.app-t m2 xs in
+let (h, rho) = Householder.generate zs in
+let m3 = Householder.comp-right m2 h in
+let (u, m) = RealMatrix.uncons m3 in
+((u :: q1, RealMatrix.to-list m), UpperTriangle.append-column ys rho r)
+
+let compose ((q1, _), r) = UpperTriangle.comp-rev-right (RealMatrix.of-list q1) r
 
 end

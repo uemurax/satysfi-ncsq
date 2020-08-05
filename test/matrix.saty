@@ -16,7 +16,7 @@ open ZLog0
 % |   3 5 |
 % |     6 |
 let ut0 = List.fold-left (
-  fun ut (vs, v) ->  UpperTriangle.append-column ut (RealVector.of-list vs) v
+  fun ut (vs, v) ->  UpperTriangle.append-column (RealVector.of-list vs) v ut
 ) UpperTriangle.nil [
   ([], 1.0);
   ([2.0], 3.0);
@@ -63,6 +63,41 @@ let _ = assert-eq ?:(`householder-norm`) show-float (RealVector.norm (Householde
 %% test householder-app ...
 %%  left: [-3.74165738677; -4.4408920985e-16; -8.881784197e-16]
 %% right: [-3.74165738677; 0.; 0.]
+
+let bs = RealVector.basis 3
+
+let _ = assert-eq ?:(`basis`) (show-list RealVector.show) bs ([
+  [1.0; 0.0; 0.0];
+  [0.0; 1.0; 0.0];
+  [0.0; 0.0; 1.0];
+] |> List.map RealVector.of-list)
+
+let qr0 = QR.(
+  nil 3
+  |> append-column (RealVector.of-list [1.0; 2.0; 3.0])
+  |> append-column (RealVector.of-list [2.0; 1.0; 0.0])
+)
+let q0 = QR.q qr0
+
+% let _ = assert-eq ?:(`qr-orth-1`) RealMatrix.show RealMatrix.(comp (transpose q0) q0) RealMatrix.(id 3)
+%% ! [Error during Evaluation]
+%% test qr-orth-1 ...
+%%  left: [[1.; 2.77555756156e-17; 2.77555756156e-17]; [2.77555756156e-17; 1.; -1.66533453694e-16]; [2.77555756156e-17; -1.66533453694e-16; 1.]]
+%% right: [[1.; 0.; 0.]; [0.; 1.; 0.]; [0.; 0.; 1.]]
+% let _ = assert-eq ?:(`qr-orth-2`) RealMatrix.show RealMatrix.(comp q0 (transpose q0)) RealMatrix.(id 3)
+%% ! [Error during Evaluation]
+%% test qr-orth-2 ...
+%%  left: [[1.; 1.38777878078e-16; -5.55111512313e-17]; [1.38777878078e-16; 1.; -5.55111512313e-17]; [-5.55111512313e-17; -5.55111512313e-17; 1.]]
+%% right: [[1.; 0.; 0.]; [0.; 1.; 0.]; [0.; 0.; 1.]]
+
+% let _ = assert-eq ?:(`qr-comp`) RealMatrix.show QR.(compose qr0) RealMatrix.(of-list-list [
+%   [1.0; 2.0; 3.0];
+%   [2.0; 1.0; 0.0];
+% ])
+%% ! [Error during Evaluation]
+%% test qr-comp ...
+%%  left: [[1.; 2.; 3.]; [2.; 1.; -1.11022302463e-16]]
+%% right: [[1.; 2.; 3.]; [2.; 1.; 0.]]
 
 in
 
