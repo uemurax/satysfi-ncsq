@@ -99,6 +99,23 @@ let q0 = QR.q qr0
 %%  left: [[1.; 2.; 3.]; [2.; 1.; -1.11022302463e-16]]
 %% right: [[1.; 2.; 3.]; [2.; 1.; 0.]]
 
+let qr1 = QR.remove-column 0 qr0
+let q1 = QR.q qr1
+
+% let _ = assert-eq ?:(`qr-orth-3`) RealMatrix.show RealMatrix.(comp (transpose q1) q1) RealMatrix.(id 3)
+%% ! [Error during Evaluation]
+%% test qr-orth-3 ...
+%%  left: [[1.; 0.; 9.71445146547e-17]; [0.; 1.; -2.22044604925e-16]; [9.71445146547e-17; -2.22044604925e-16; 1.]]
+%% right: [[1.; 0.; 0.]; [0.; 1.; 0.]; [0.; 0.; 1.]]
+
+% let _ = assert-eq ?:(`qr-comp-1`) RealMatrix.show QR.(compose qr1) RealMatrix.(of-list-list [
+%   [2.0; 1.0; 0.0];
+% ])
+%% ! [Error during Evaluation]
+%% test qr-comp-1 ...
+%%  left: [[2.; 1.; -1.24126707662e-16]]
+%% right: [[2.; 1.; 0.]]
+
 in
 
 document()
