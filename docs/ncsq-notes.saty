@@ -64,7 +64,7 @@ inline-fil ++ embed-block-breakable ctx (read-block ctx '<+centering{#it;}>)
 in
 
 document (|
-  title = {NCSq Manual};
+  title = {Notes on NCSq};
   author = {Taichi Uemura};
 |) '<
   +chapter{Implementation}<
@@ -173,7 +173,7 @@ document (|
             \app{\active}{\var2^{\ast}} = \setsep{\idx2 \in \set{1, \cdots, \nat2'}}{\el_{\idx2}\var2^{\ast} = \el1_{\idx2}}
           });%
           at the optimal point is.
-          At each step, we are given a current point ${\var2} and a subset ${\working \subset \app{\active}{\var2}} called a \emph{working set} are given.
+          At each step, we are given a current point ${\var2} and a subset ${\working \subset \app{\active}{\var2}} called a \emph{working set}.
           The current point ${\var2} is required to be a feasible point, that is, to satisfy ${\mtrx^{\trans}\var2 \geq \el1}.
           The working set ${\working} is required to satisfy that the vectors ${\setsep{\el_{\idx2}}{\idx2 \in \working}} are linearly independent.
         }
