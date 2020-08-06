@@ -76,9 +76,6 @@ document (|
     >
     +section{Automatic stretching}<
       +p{
-        WARNING: The following are NOT implemented yet.
-      }
-      +p{
         Given a matrix of cells ${\paren{\cell_{\idx\idx1}}_{1 \leq \idx \leq \nat, 1 \leq \idx1 \leq \nat1}}, we want to arrange them satisfying the following:
         \enumerate{
           * cells do not overlap each other\;
@@ -127,20 +124,18 @@ document (|
         });%
         is a constant.
         Therefore, the goal becomes to find ${\var_{1}, \var1_{1}, \cdots, \var_{\nat}, \var1_{\nat} \geq 0} satisfying ${\cstr{\idx\idx1}} for every vertical arrow ${\cell_{\idx\idx1}} with source ${\cell_{\source\idx1}} and target ${\cell_{\target\idx1}}.
-        Note that ${\var_{1}} and ${\var1_{\nat}} never appear in any ${\cstr{\idx\idx1}}, so we can drop them by setting ${\var_{1} = \var1_{\nat} = 0}.
-        We can also drop constraints ${\cstr{\idx\idx1}} if ${\diff_{\idx\idx1} \leq 0}.
       }
       +p{
         Clearly, sufficiently large ${\paren{\var_{\idx}, \var1_{\idx}}}'s satisfy inequations ${\cstr{\idx\idx1}}'s, but it will be better if we choose ${\paren{\var_{\idx}, \var1_{\idx}}}'s as small as possible.
         It will be much better if ${\paren{\var_{\idx}, \var1_{\idx}}}'s are balanced.
         This will be achieved by minimizing the sum of squares
         \eqn(${
-          \var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var_{\nat - 1}^{2} + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}
+          \var_{1}^{2} + \var1_{1}^{2} + \cdots + \var_{\nat}^{2} + \var1_{\nat}^{2}
         });%
         Thus, vertical arrow stretching is reduced to the following constrained least-squares problem:
         \centering{
           \easytable?:[](EasyTableAlias.([l;l])){
-          | minimize | ${\var1_{1}^{2} + \var_{2}^{2} + \var1_{2}^{2} + \cdots + \var1_{\nat - 1}^{2} + \var_{\nat}^{2}}
+          | minimize | ${\var_{1}^{2} + \var1_{1}^{2} + \cdots + \var_{\nat}^{2} + \var1_{\nat}^{2}}
           | subject to | ${\diff_{\idx_{\idx2}\idx1_{\idx2}} \leq \var1_{\source_{\idx2}} + \var_{\target_{\idx2}} + \sum_{\source_{\idx2} < \idx' < \target_{\idx2}}\var_{\idx'} + \var1_{\idx'}} for each ${\idx2 = 1, \cdots, \nat2}
           | | ${\var_{\idx}, \var1_{\idx} \geq 0} for each ${\idx = 1, \cdots, \nat}
           |}
@@ -149,13 +144,13 @@ document (|
       }
       +subsection{Active-set methods}<
         +p{
-          Since the number of variables will not be so large (${2\paren{\nat - 1}} where ${\nat} is the number of rows of the given diagram), active-set methods will be preferable to solve this least-squares problem.
+          Since the number of variables will not be so large (${2\nat} where ${\nat} is the number of rows of the given diagram), active-set methods will be preferable to solve this least-squares problem.
           We refer the reader to \cite[`nocedal2006numerical`]; for details of active-set methods.
         }
         +p{
           We first write the problem in a standard form.
-          Let ${\nat' = 2\paren{\nat - 2}}, ${\var2_{\idx} = \var1_{\idx'}} if ${\idx = 2\idx' - 1}, and ${\var2_{\idx} = \var_{\idx' + 1}} if ${\idx = 2\idx'}.
-          Let ${\paren{\mtrx'}^{\trans} = \paren{\el_{\idx2\idx}}_{\idx2, \idx}} be the ${\nat2 \times \nat'} matrix defined by ${\el_{\idx2\idx} = 1} if ${2\source_{\idx2} - 1 \leq \idx \leq 2\paren{\target_{\idx2} - 1}} and ${\el_{\idx2\idx} = 0} otherwise.
+          Let ${\nat' = 2\nat}, ${\var2_{\idx} = \var_{\idx'}} if ${\idx = 2\idx'} and ${\var2_{\idx} = \var1_{\idx'}} if ${\idx = 2\idx' + 1}.
+          Let ${\paren{\mtrx'}^{\trans} = \paren{\el_{\idx2\idx}}_{\idx2, \idx}} be the ${\nat2 \times \nat'} matrix defined by ${\el_{\idx2\idx} = 1} if ${2\source_{\idx2} + 1 \leq \idx \leq 2\target_{\idx2}} and ${\el_{\idx2\idx} = 0} otherwise.
           We set ${\diff = \paren{\diff_{\idx_{\idx2}\idx1_{\idx2}}}_{1 \leq \idx2 \leq \nat2}} and ${\nat2' = \nat2 + \nat}.
           Let ${\mtrx^{\trans}} be the ${\nat2' \times \nat'}-matrix ${\matrix![
             ${| \paren{\mtrx'}^{\trans} |};
