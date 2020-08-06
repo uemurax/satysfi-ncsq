@@ -259,13 +259,26 @@ document (|
         }
         +p{
           Let ${\working'} be the working set in the previous step and suppose that the current working set is ${\working = \working' \setminus \set{\idx2}}.
-          If ${\el_{\idx2}} is the right most column in ${\mtrx_{\working'}}, then ${\ut_{\working}} is obtained from ${\ut_{\working'}} by droppoing the right most column and ${\orth_{\working} = \orth_{\working'}}.
-          If not, we first perform moving the column ${\el_{\idx2}} to the right most and then calculate the QR decomposition in the previous way.
-          Let ${\perm_{\idx, \idx + 1}} the permutation of ${\idx}-th and ${\paren{\idx + 1}}-th columns.
-          If ${\paren{\orth, \ut}} is a QR decomposition of ${\mtrx}, then a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}} is calculated as follows.
-          Let ${\paren{\orth', \ut'}} be a QR decomposition of ${\ut\perm_{\idx, \idx + 1}}, which is calculated by a plane rotation.
-          Then ${\paren{\orth\app{\diag}{\orth', \Id}, \ut'}} is a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}}.
-          Iterating this calculation, we have a QR decomposition of ${\mtrx\perm_{\idx, \idx + 1}\perm_{\idx + 1, \idx + 2}\cdots\perm_{\idx + \paren{\idx1 - 1}, \idx + \idx1}}.
+          Let ${\ut} be the matrix obtained from ${\ut_{\working'}} by removing the ${\idx2}-th column.
+          We have ${\mtrx_{\working} = \orth_{\working'}\matrix![
+            ${| \ut |};
+            ${| 0 |};
+          ]}, but ${\ut} need not be upper triangular.
+          Let ${\paren{\orth, \ut_{\working}}} be a QR decomposition of ${\ut} and let ${\orth_{\working} = \orth_{\working'}\app{\diag}{\orth, \Id}}.
+          Then ${\paren{\orth_{\working}, \ut_{\working}}} is a QR decomposition of ${\mtrx_{\working}}.
+          For a QR decomposition of ${\ut}, we note that ${\ut} is almost upper triangular: it is of the form
+          \eqn(${
+            \matrix![
+              ${| \ast | \cdots | \ast | \cdots | \ast | \cdots |};
+              ${| \vdots | \ddots | \vdots | | \vdots  |};
+              ${| 0 | \cdots | \ast | \ast | \ast |};
+              ${| 0 | \cdots | 0 | \ast | \ast |};
+              ${| 0 | \cdots | 0 | \ast | \ast |};
+              ${| 0 | \cdots | 0 | 0 | \ast | \cdots |};
+              ${| \vdots | | | | \vdots | \ddots|};
+            ]
+          });%
+          Then we obtain a QR decomposition by repeated plain rotation.
         }
         +p{
           Suppose that the current working set is ${\working = \working' \cup \set{\idx2}}.
@@ -279,7 +292,7 @@ document (|
           Then ${\ut_{\working} = \matrix![
             ${| \ut_{\working'} | \orth_{1}^{\trans}\el_{\idx2} |};
             ${| 0 | \hshr |};
-          ]} and ${\orth_{\working}^\trans = \app{\diag}{\Id, \hsh}\orth_{\working'}^{\trans}}.
+          ]} and ${\orth_{\working} = \orth_{\working'}\app{\diag}{\Id, \hsh}}.
           A \emph{Householder transformation} is a matrix of the form ${\hsh = \Id - \vec\vec^{\trans}} such that ${\norm{\vec}_{2} = \sqrt{2}}.
           For a given vector ${\var}, one can find a Householder transformation ${\hsh} such that ${\hsh\var = \norm{\var}_{2}\unit_{1}} or ${\hsh\var = \mathprefix{-}\norm{\var}_{2}\unit_{1}}.
         }
