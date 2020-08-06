@@ -416,15 +416,15 @@ zip-with
 vgrid cellss in
 List.concat (List.concat grsss)
 
-let arrow-from-to dir1 dir2 z s-front t-back =
-let (from, to) =
+let arrow-from-to-c dir1 dir2 z s-front t-back head tail =
+let (from, to, t, h) =
 (match dir2 with
- | Forwards -> (s-front, t-back)
- | Backwards -> (t-back, s-front))
+ | Forwards -> (s-front, t-back, tail, 0pt -' head)
+ | Backwards -> (t-back, s-front, 0pt -' tail, head))
 in
 match dir1 with
-| Horizontal -> ((from, z), (to, z))
-| Vertical -> ((z, from), (z, to))
+| Horizontal -> ((from, z), (to, z), (((from +' t) +' (to +' h)) *' 0.5, z))
+| Vertical -> ((z, from), (z, to), (z, ((from -' t) +' (to -' h)) *' 0.5))
 
 let draw-arrow dir1 z src arr tgt =
 match arr with
@@ -437,12 +437,9 @@ match arr with
   let (t, tc) = tgt in
   let s-front = sc +' bd-front dir1 (get-obj-bd dir1 s) in
   let t-back = tc +' bd-back dir1 (get-obj-bd dir1 t) in
-  let (from, to) = arrow-from-to dir1 dir2 z s-front t-back in
+  let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-len cfg#tail-len in
   let ga = cfg#draw from to in
-  let ((ax0, ay0), (ax1, ay1)) = (from, to) in
-  let ax = (ax0 +' ax1) *' 0.5 in
-  let ay = (ay0 +' ay1) *' 0.5 in
-  List.append ga (List.map (shift-graphics (ax, ay)) grs)))
+  List.append ga (List.map (shift-graphics c) grs)))
 | _ -> []
 
 let draw-arrows dir1 vgrid hgrid cellss =
@@ -488,7 +485,7 @@ let varrs = draw-varrows vgrid hgrid cellss in
 let harrs = draw-harrows vgrid hgrid cellss in
 List.concat [objs; varrs; harrs]
 
-let draw-arrow ctx =
+let draw-solid-arrow ctx =
 let color = get-text-color ctx in
 Gr.arrow 0.5pt color 6pt 5pt 1.5pt
 
@@ -516,9 +513,9 @@ fun from to ->
  List.map (stroke 0.5pt color) [l1; l2])
 
 let arrow-config-default ctx = (|
-  head-len = 8pt;
-  tail-len = 8pt;
-  draw = draw-arrow ctx;
+  head-len = 10pt;
+  tail-len = 6pt;
+  draw = draw-solid-arrow ctx;
 |)
 
 % Commands
@@ -628,7 +625,7 @@ match cell with
    with
    draw =
    (match style with
-    | ArrSolid -> draw-arrow ctx
+    | ArrSolid -> draw-solid-arrow ctx
     | ArrDashed -> draw-dashed-arrow ctx
     | ArrEqual -> draw-eq ctx);
  |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
@@ -761,7 +758,7 @@ Arrow-raw ((|
   (arrow-config-default ctx)
   with
   draw = match style with
-  | Solid -> draw-arrow ctx
+  | Solid -> draw-solid-arrow ctx
   | Dashed -> draw-dashed-arrow ctx;
 |), dir, [gr0; gr1])
 
