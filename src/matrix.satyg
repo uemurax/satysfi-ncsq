@@ -282,7 +282,9 @@ type t = vector list
 
 let show = DebugShowValue.show-list RealVector.show
 let nil = []
+
 let append-column vs v ut = RealVector.(cons v (reverse vs)) :: ut
+
 let remove-right-column vs =
 match vs with
 | [] -> []
@@ -496,25 +498,30 @@ aux [] i ls
 
 let remove-column k ((q1, q2), r) =
 let n = List.length q1 in
-let i = n - (k + 1) in
+let l = k + 1 in
+let i = n - l in
 let (q11, q12) = ls-split-at i q1 in
-let (r1, mx, lt) = UpperTriangle.split-at (k + 1) r in
+let (r1, mx, lt) = UpperTriangle.split-at l r in
 let ut = UpperTriangle.remove-right-column r1 in
-let-rec aux (qs1, qs2) (ut, mx, lt) = (
-  match (qs1, qs2) with
-  | (q1 :: qs1, q2 :: qs2) -> (
+let-rec aux (qs2, qs1) (ut, mx, lt) = (
+  match (qs2, qs1) with
+  | (q2 :: qs2, q1 :: qs1) -> (
     let (xs, xss) = RealMatrix.uncons-column mx in
     let (ys, yss) = LowerTriangle.uncons-column lt in
     let ((c, s), (zs, ws)) = RealVector.make-rotation (xs, ys) in
     let (v, m1) = RealMatrix.uncons-row xss in
     let (u, us) = RealVector.uncons zs in
-    let m2 = RealMatrix.cons-column us m1 in
-    let ut1 = UpperTriangle.append-column v u ut in
+    let m2 = RealMatrix.(cons-column ws (cons-column us m1)) in
+    let ut1 = UpperTriangle.append-column (RealVector.reverse v) u ut in
     let (qq2, qq1) = RealVector.rotate (c, s) (q2, q1) in
-    aux (qs1, qq2 :: qq1 :: qs2) (ut1, m2, yss))
+    aux (qq1 :: qq2 :: qs2, qs1) (ut1, m2, yss))
   | _ -> (qs2, ut)
 ) in
-let (q1, r) = aux (q11, q12) (ut, mx, lt) in
-((q1, q2), r)
+let (q1, r) = aux (q12, q11) (ut, mx, lt) in
+let q =
+match q1 with
+| [] -> ([], q2)
+| qq :: qqs -> (qqs, qq :: q2)
+in (q, r)
 
 end % QR

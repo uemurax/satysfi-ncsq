@@ -1,10 +1,13 @@
 @require: pervasives
-@require: list
+@require: base/list-ext
 @require: base/tuple
 @require: base/length
 @require: base/option-ext
 @require: gr
 @require: math
+@require: assert-eq/assert-eq
+@require: debug-show-value/debug-show-value
+@import: ./qp
 
 % This type is DEPRECATED. Will be removed in v1
 type ncsq-arrow-style =
@@ -235,13 +238,10 @@ let find-varrow cxs0 obx cxs = find-arrow Vertical cxs0 obx cxs
 let find-harrow cxs0 obx cxs = find-arrow Horizontal cxs0 obx cxs
 
 % Adjust boundaries of cells
-% TODO The algorithm ensures that arrows sufficiently stretch to match long labels,
-% but sometimes arrows stretch too long.
-% Think about it.
 
 let d-sum zs =
 List.fold-right
-(fun (_, (x, y)) l ->
+(fun (_, ((x, y), _)) l ->
  l +' (y -' x))
 0pt zs
 
@@ -255,81 +255,142 @@ match (dir1, bd) with
 | (Horizontal, (l, _)) -> l
 | (Vertical, (_, t)) -> t
 
-let update-boundaries src xs arr ys tgt =
-match arr with
-| (Arrow-raw (cfg, (dir1, _), grs), bd) ->
-let (z0, z1) = rc-face dir1 (get-grs-bbox grs) in
-let head = cfg#head-len in
-let tail = cfg#tail-len in
-let al = head +' tail +' (z1 -' z0) in
-let (b0, b1) = bd in
-let cl = b1 -' b0 in
-let xl = d-sum xs in
-let yl = d-sum ys in
-let (s, sbd) = src in
-let (t, tbd) = tgt in
-let sl = Length.abs (bd-front dir1 (get-obj-bd dir1 s) -' bd-front dir1 sbd) in
-let tl = Length.abs (bd-back dir1 (get-obj-bd dir1 t) -' bd-back dir1 tbd) in
-let l = al -' (xl +' cl +' yl +' sl +' tl) in
-if 0pt <' l then
-(let n = List.length xs + 1 + List.length ys in
- let dl = l *' (0.5 /. (float n)) in
- let f (z, (p, q)) = (z, (p -' dl, q +' dl)) in
- (List.map f xs, f arr, List.map f ys))
-else
-(xs, arr, ys)
-| _ -> (xs, arr, ys)
+let make-qp-1-1 xs src ys arr zs tgt ws =
+let (ar, (bd, fs)) = arr in
+match ar with
+| Arrow-raw (cfg, (dir1, _), grs) -> (
+  let (z0, z1) = rc-face dir1 (get-grs-bbox grs) in
+  let head = cfg#head-len in
+  let tail = cfg#tail-len in
+  let al = head +' tail +' (z1 -' z0) in
+  let (b0, b1) = bd in
+  let cl = b1 -' b0 in
+  let yl = d-sum ys in
+  let zl = d-sum zs in
+  let (s, (sbd, _)) = src in
+  let (t, (tbd, _)) = tgt in
+  let sl = Length.abs (bd-front dir1 (get-obj-bd dir1 s) -' bd-front dir1 sbd) in
+  let tl = Length.abs (bd-back dir1 (get-obj-bd dir1 t) -' bd-back dir1 tbd) in
+  let d = al -' yl -' cl -' zl -' sl -' tl in
+  if 0pt <' d then (
+    let (tc, sc) =
+    match dir1 with
+    | Horizontal -> ((1.0, 0.0), (0.0, 1.0))
+    | Vertical -> ((0.0, 1.0), (1.0, 0.0))
+    in
+    let f0 _ = (0.0, 0.0) in
+    let f1 _ = (1.0, 1.0) in
+    let cstr = List.(
+      map f0 ws
+      |> cons tc        % tgt
+      |> reverse-append (map f1 zs)
+      |> cons (1.0, 1.0)          % arr
+      |> reverse-append (map f1 ys)
+      |> cons sc        % src
+      |> reverse-append (map f0 xs)
+    ) in
+    let (fsp, fsq) = fs in
+    let dd = d *' 0.55 in
+    (Some (cstr, d), (ar, (bd, (fsp +' dd, fsq +' dd))))
+  ) else (None, arr)
+)
+| _ -> (None, arr)
 
-let adjust-cells-boundaries dir1 cells pqs =
-let cpqs = zip Empty-raw (0pt, 0pt) cells pqs in
+let make-qp-1 dir1 cells (cstrs, pqs) =
+let cpqs = zip Empty-raw ((0pt, 0pt), (0pt, 0pt)) cells pqs in
 let (xs, src, ys) = find-object cpqs in
 match src with
-| None -> pqs
-| Some src ->
-(let-rec aux xs src ys =
- let (xs, src, ys, arr, zs) = find-arrow dir1 xs src ys in
- match arr with
- | None -> List.reverse (List.append ys (src :: xs)) % zs must be []
- | Some arr ->
- (let (zs, tgt, ws) = find-object zs in
-  match tgt with
-  | None -> List.reverse (List.append zs (arr :: List.append ys (src :: xs))) % ws must be []
-  | Some tgt ->
-  (let (ys1, arr1, zs1) = update-boundaries src ys arr zs tgt in
-   aux (List.append zs1 (arr1 :: List.append ys1 (src :: xs))) tgt ws))
- in
- let cpqs1 = aux xs src ys in
- List.map Pair.snd cpqs1)
+| None -> (cstrs, pqs)
+| Some src -> (
+  let-rec aux cstrs xs src ys = (
+    let (xs, src, ys, arr, zs) = find-arrow dir1 xs src ys in
+    match arr with
+    | None -> (cstrs, List.(
+      zs
+      |> reverse-append ys
+      |> cons src
+      |> reverse-append xs
+    ))
+    | Some arr -> (
+      let (zs, tgt, ws) = find-object zs in
+      match tgt with
+      | None -> (cstrs, List.(
+        ws
+        |> reverse-append zs
+        |> cons arr
+        |> reverse-append ys
+        |> cons src
+        |> reverse-append xs
+      ))
+      | Some tgt -> (
+        let (cstro, arr) = make-qp-1-1 xs src ys arr zs tgt ws in
+        let cstrs =
+        match cstro with
+        | None -> cstrs
+        | Some cstr -> cstr :: cstrs
+        in
+        aux cstrs List.(append zs (arr :: append ys (src :: xs))) tgt ws
+      )
+    )
+  ) in
+  let (cstrs, cpqs) = aux cstrs xs src ys in
+  (cstrs, List.map Pair.snd cpqs)
+)
 
-let adjust-cells-bts = adjust-cells-boundaries Vertical
+let make-qp dir1 cellss pqs =
+let pqs1 = zip (0pt, 0pt) (0pt, 0pt) pqs [] in
+let (cstrs, pqs2) = List.fold-right (make-qp-1 dir1) ([], pqs1) cellss in
+(cstrs, List.map Pair.snd pqs2)
 
-let adjust-cellss-bts cellss bts =
-List.fold-right adjust-cells-bts bts (Matrix.transpose Empty-raw cellss)
+let-rec part-2 ls =
+match ls with
+| x :: y :: ls -> (x, y) :: part-2 ls
+| _ -> []
 
-let adjust-cells-lrs = adjust-cells-boundaries Horizontal
+let len-to-f x = x /' 1pt
+let f-to-len x = 1pt *' x
 
-let adjust-cellss-lrs cellss lrs =
-List.fold-right adjust-cells-lrs lrs cellss
+let solve-qp (cstrs, pqs) =
+let f ps = List.(concat (map (fun (x, y) -> [x; y]) ps)) in
+let ls = f pqs in
+let n = List.length ls in
+let x = RealVector.of-list (List.map len-to-f ls) in
+let (a1, b1) = List.unzip cstrs in
+let a2 = List.map (fun ps -> RealVector.of-list (f ps)) a1 in
+let b2 = List.map len-to-f b1 in
+let v = RealVector.of-list (List.append (List.repeat n 0.0) b2) in
+let bs = RealVector.basis n in
+let mx = RealMatrix.of-list n (List.append bs a2) in
+let y = QP.solve mx v x in
+part-2 (List.map f-to-len (RealVector.to-list y))
+
+let bd-enlarge (p, q) (dp, dq) = (p -' dp, q +' dq)
+
+let adjust-cellss-boundaries dir1 cellss pqs =
+let problem = make-qp dir1 cellss pqs in
+match problem with
+| ([], _) -> pqs
+| _ -> (
+  let pqs1 = solve-qp problem in
+  zip-with (fun pqo1 pqo2 -> (
+    let pq1 = Option.from (0pt, 0pt) pqo1 in
+    let pq2 = Option.from (0pt, 0pt) pqo2 in
+    bd-enlarge pq1 pq2
+  )) pqs pqs1
+)
+
+let adjust-cellss-bts cellss bts = adjust-cellss-boundaries Vertical (Matrix.transpose Empty-raw cellss) bts
+
+let adjust-cellss-lrs cellss lrs = adjust-cellss-boundaries Horizontal cellss lrs
 
 % Draw cells
 
 let make-grid dir1 bds =
-let (bd-front, bd-back) =
-match dir1 with
-| Horizontal ->
-(let bd-front (_, r) = r in
- let bd-back (l, _) = l in
- (bd-front, bd-back))
-| Vertical ->
-(let bd-front (b, _) = b in
- let bd-back (_, t) = t in
- (bd-front, bd-back))
-in
 let (ls, _) =
 List.fold-right
 (fun bd (ls, l) ->
- (let l1 = l -' bd-front bd in
-  (l1 :: ls, l1 +' bd-back bd)))
+ (let l1 = l -' bd-front dir1 bd in
+  (l1 :: ls, l1 +' bd-back dir1 bd)))
 ([], 0pt)
 bds in
 ls

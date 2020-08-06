@@ -12,7 +12,11 @@ module EQQP : sig
 % Retruns (x, l) where l is Lagrange multipliers.
 val solve : RealVector.t -> RealMatrix.t -> UpperTriangle.t -> RealVector.t * RealVector.t
 
+val feasible : RealMatrix.t -> RealVector.t -> bool
+
 end = struct
+
+let feasible a x = RealVector.(RealMatrix.app-t a x == zero (RealMatrix.n-rows a))
 
 let solve c a r =
 let m = RealMatrix.app-t a c in
@@ -31,6 +35,7 @@ module QP : sig
 % from an initial feasible point x0
 val solve : RealMatrix.t -> RealVector.t -> RealVector.t -> RealVector.t
 
+% `feasible a b x` returns true if a^Tx >= b
 val feasible : RealMatrix.t -> RealVector.t -> RealVector.t -> bool
 
 end = struct
@@ -52,22 +57,20 @@ match ys with
 in
 aux [] k ls
 
-% Remove an element of xs satisfying cond and minimizing fs < t.
+% Remove an element of xs minimizing fs < t.
 % Return ((z, xo), ys) where xo is the minimizing fs, z is its value, and ys is xs from which xo is removed. Order is not preserved.
-let remove-min t cond f xs =
+let remove-min t f xs =
 let-rec aux (z, xo) xs ys =
 match ys with
 | y :: ys -> (
-  if cond y then (
-    let w = f y in
-    if Float.(w < z) then (
-      let xs1 =
-      match xo with
-      | None -> xs
-      | Some x -> x :: xs
-      in
-      aux (w, Some y) xs1 ys
-    ) else aux (z, xo) (y :: xs) ys
+  let w = f y in
+  if Float.(w < z) then (
+    let xs1 =
+    match xo with
+    | None -> xs
+    | Some x -> x :: xs
+    in
+    aux (w, Some y) xs1 ys
   ) else aux (z, xo) (y :: xs) ys
 )
 | _ -> ((z, xo), List.(reverse-append ys xs))
@@ -82,6 +85,8 @@ type state = (|
   dim : int;
 |)
 
+let epsilon = 0.0000000001
+
 let-rec solve-1 state =
 let wk0 = state#working-set in
 let cwk0 = state#coworking-set in
@@ -91,15 +96,15 @@ let r0 = QR.r qr0 in
 let dim = state#dim in
 let aw0 = RealMatrix.of-list dim (List.reverse-map Pair.fst wk0) in
 let (p, lgr) = EQQP.solve x0 aw0 r0 in
-if RealVector.(x0 + p == x0)
-then (
+if Float.(RealVector.norm p < epsilon) then (
   let ko = RealVector.min lgr in
   match ko with
   | None -> x0
-  | Some (i, l) -> (
+  | Some (k, l) -> (
     if Float.(l >= 0.0) then x0
     else (
-      let k = RealVector.length lgr - i in
+      let n = RealVector.length lgr in
+      let i = n - (k + 1) in
       let qr1 = QR.remove-column k qr0 in
       let (ao, wk1) = remove i wk0 in
       let cwk1 =
@@ -117,13 +122,14 @@ then (
   )
 )
 else (
-  let cond (xs, _) = Float.(RealVector.inner-product xs p < 0.0) in
   let f (xs, b) = (
     let s = RealVector.inner-product xs p in
-    let t = RealVector.inner-product xs x0 in
-    (1.0 /. s) *. (b -. t))
-  in
-  let ((alpha, ko), cwk1) = remove-min 1.0 cond f cwk0 in
+    if Float.(s < 0.0 -. epsilon) then (
+      let t = RealVector.inner-product xs x0 in
+      (1.0 /. s) *. (b -. t)
+    ) else 2.0
+  ) in
+  let ((alpha, ko), cwk1) = remove-min 1.0 f cwk0 in
   let x1 = RealVector.(x0 + alpha * p) in
   let (wk1, qr1) =
   match ko with
@@ -154,10 +160,10 @@ solve-1 (|
 
 end % ActiveSetMethod
 
-let solve = ActiveSetMethod.solve
-
 let feasible a b x =
 let y = RealMatrix.(app-t a x) in
 RealVector.(y >= b)
+
+let solve = ActiveSetMethod.solve
 
 end % QP
