@@ -5,8 +5,6 @@
 @require: base/option-ext
 @require: gr
 @require: math
-@require: assert-eq/assert-eq
-@require: debug-show-value/debug-show-value
 @import: ./qp
 
 % This type is DEPRECATED. Will be removed in v1
