@@ -3,6 +3,7 @@
 @require: base/option-ext
 @require: base/stream
 @require: base/float
+@require: base/int
 @require: debug-show-value/debug-show-value
 
 module RealVector : sig
@@ -22,6 +23,9 @@ val (+) : t -> t -> t
 val (-) : t -> t -> t
 val (*) : float -> t -> t
 val neg : t -> t
+val (==) : t -> t -> bool
+val (>=) : t -> t -> bool
+val min : t -> (int * float) option
 
 val norm : t -> float
 val inner-product : t -> t -> float
@@ -64,10 +68,27 @@ match vs with
 | x :: xs -> (x, xs)
 
 let binop f xs ys = List.(map (fun (x, y) -> f x y) (zip xs ys))
+let binrel r xs ys = List.(all (fun (x, y) -> r x y) (zip xs ys))
 let (+) = binop (+.)
 let (-) = binop (-.)
 let (*) x = List.map (fun y -> x *. y)
 let neg = List.map Float.neg
+let (==) = binrel (fun x y -> Float.(x == y))
+let (>=) = binrel (fun x y -> Float.(x >= y))
+
+let min xs =
+let-rec aux xo i xs =
+match xs with
+| [] -> xo
+| x :: xs -> (
+  let yo =match xo with
+  | None -> Some (i, x)
+  | Some (k, y) -> if Float.(x < y) then Some (i, x) else Some (k, y)
+  in
+  aux yo (Int.add i 1) xs
+)
+in
+aux None 0 xs
 
 let norm xs =
 let s = List.fold-right (fun x u -> Float.abs x +. u) 0.0 xs in
@@ -93,14 +114,14 @@ let s = w /. n in
 let (u, v) = rotate (c, s) (zs, ws) in
 ((c, s), (n :: u, v))
 
-end
+end % RealVector
 
 module RealMatrix : sig
 
 type t
 
-val of-list : RealVector.t list -> t
-val of-list-list : (float list) list -> t
+val of-list : int -> RealVector.t list -> t
+val of-list-list : int -> (float list) list -> t
 val to-list : t -> RealVector.t list
 val show : t -> string
 val app : t -> RealVector.t -> RealVector.t
@@ -109,7 +130,7 @@ val app-t : t -> RealVector.t -> RealVector.t
 % xs ys^T
 val outer-product : RealVector.t -> RealVector.t -> t
 val (-) : t -> t -> t
-val nil : t
+val nil : int -> t
 val cons-column : RealVector.t -> t -> t
 val uncons-column : t -> RealVector.t * t
 val cons-row : RealVector.t -> t -> t
@@ -117,36 +138,34 @@ val uncons-row : t -> (RealVector.t * t)
 val id : int -> t
 val comp : t -> t -> t
 val transpose : t -> t
+val n-rows : t -> int
 
 end = struct
 
 type vector = RealVector.t
-type t = vector list
+type t = int * vector list
 
-let of-list ls = ls
-let to-list mx = mx
-let of-list-list lss = of-list (List.map RealVector.of-list lss)
-let show = DebugShowValue.show-list RealVector.show
-let id = RealVector.basis
-let nil = List.nil
-let cons-column = List.cons
+let of-list n ls = (n, ls)
+let to-list (_, mx) = mx
+let of-list-list n lss = of-list n (List.map RealVector.of-list lss)
+let show (_, mx) = DebugShowValue.show-list RealVector.show mx
+let id n = (n, RealVector.basis n)
+let nil n = (n, List.nil)
+let cons-column xs (n, mx) = (n, List.cons xs mx)
+let n-rows (n, _) = n
 
-let uncons-column mx =
+let uncons-column (n, mx) =
 match mx with
-| [] -> (RealVector.nil, [])
-| xs :: xss -> (xs, xss)
+| [] -> (RealVector.zero n, (n, []))
+| xs :: xss -> (xs, (n, xss))
 
-let app mx xs =
-match mx with
-| [] -> RealVector.nil
-| (v :: _) -> (
-  let n = RealVector.length v in
-  List.(fold-right (fun (v, x) u -> RealVector.(u + x * v))
-    (RealVector.zero n) (zip mx (RealVector.to-list xs))))
+let app (n, mx) xs =
+List.(fold-right (fun (v, x) u -> RealVector.(u + x * v))
+      (RealVector.zero n) (zip mx (RealVector.to-list xs)))
 
-let app-t mx xs = RealVector.of-list List.(map (fun v -> RealVector.inner-product v xs) mx)
+let app-t (_, mx) xs = RealVector.of-list List.(map (fun v -> RealVector.inner-product v xs) mx)
 
-let comp xss yss = List.map (app xss) yss
+let comp mx (n, yss) = (n, List.map (app mx) yss)
 
 let-rec zip-with f xs ys =
 match (xs, ys) with
@@ -154,27 +173,27 @@ match (xs, ys) with
 | (xs, []) -> List.map (fun x -> f (Some x) None) xs
 | (x :: xs, y :: ys) -> f (Some x) (Some y) :: zip-with f xs ys
 
-let cons-row xs xss = zip-with (fun xo yso -> (
+let cons-row xs (n, xss) = (n + 1, zip-with (fun xo yso -> (
   let x = Option.from 0.0 xo in
   let ys = Option.from RealVector.nil yso in
   RealVector.cons x ys
-)) (RealVector.to-list xs) xss
+)) (RealVector.to-list xs) xss)
 
-let uncons-row xss =
+let uncons-row (n, xss) =
 let (ls, lss) = List.(unzip (map RealVector.uncons xss)) in
-(RealVector.of-list ls, lss)
+(RealVector.of-list ls, (n - 1, lss))
 
-let-rec transpose xss =
+let-rec transpose (n, xss) =
 match xss with
-| [] -> []
-| xs :: xss -> cons-row xs (transpose xss)
+| [] -> (0, [])
+| xs :: xss -> cons-row xs (transpose (n, xss))
 
-let outer-product xs ys = of-list (List.map (fun y -> RealVector.(y * xs)) (RealVector.to-list ys))
+let outer-product xs ys = of-list (RealVector.length ys) (List.map (fun y -> RealVector.(y * xs)) (RealVector.to-list ys))
 
-let binop f xss yss = List.(map (fun (xs, ys) -> f xs ys) (zip xss yss))
+let binop f (n, xss) (_, yss) = (n, List.(map (fun (xs, ys) -> f xs ys) (zip xss yss)))
 let (-) = binop (fun xs ys -> RealVector.(xs - ys))
 
-end
+end % RealMatrix
 
 module LowerTriangle : sig
 
@@ -228,7 +247,7 @@ match lt with
   RealVector.cons b (app-inv xss bs)
 )
 
-end
+end % LowerTriangle
 
 module UpperTriangle : sig
 
@@ -324,7 +343,7 @@ match ut with
   aux (RealMatrix.cons-column zs acc) yss xss
 )
 in
-aux RealMatrix.nil mx ut
+aux (RealMatrix.(nil (n-rows mx))) mx ut
 
 let split-1 ut =
 match ut with
@@ -344,9 +363,9 @@ else (
 ) in
 let n = List.length ut in
 let i = n - k in
-aux (RealMatrix.nil, LowerTriangle.nil) i ut
+aux (RealMatrix.of-list 0 List.(repeat (length ut) RealVector.nil), LowerTriangle.nil) i ut
 
-end
+end % UpperTriangle
 
 module Householder : sig
 
@@ -396,7 +415,7 @@ let u1 = RealMatrix.app mx h in
 let u2 = RealMatrix.outer-product u1 h in
 RealMatrix.(mx - u2)
 
-end
+end % Householder
 
 module QR : sig
 
@@ -404,6 +423,9 @@ type t
 
 % QR decomposition of n x 0 matrix
 val nil : int -> t
+
+% size of Q factor
+val size : t -> int
 
 % If qr is a QR factorization of mx, `append-column qr v` constructs a QR factorization of [mx v].
 val append-column : RealVector.t -> t -> t
@@ -425,21 +447,29 @@ type upper-tri = UpperTriangle.t
 % ((Q1, Q2), R), but Q1 is stored in the reverse direction
 type t = (vector list * vector list) * upper-tri
 
+let size ((q1, q2), _) = List.length q1 + List.length q2
+
 let r (_, ut) = ut
-let q ((q1, q2), _) =
+
+let q qr =
 let-rec aux xs ys =
 match xs with
 | [] -> ys
 | x :: xs -> aux xs (x :: ys)
 in
-RealMatrix.of-list (aux q1 q2)
+let ((q1, q2), _) = qr in
+let ls = aux q1 q2 in
+let n = size qr in
+RealMatrix.of-list n ls
 
 let nil n = (([], RealVector.basis n), UpperTriangle.nil)
 
-let append-column xs ((q1, q2), r) =
-let m1 = (RealMatrix.of-list (List.reverse q1)) in
+let append-column xs qr =
+let ((q1, q2), r) = qr in
+let n = size qr in
+let m1 = (RealMatrix.of-list n (List.reverse q1)) in
 let ys = RealMatrix.app-t m1 xs in
-let m2 = (RealMatrix.of-list q2) in
+let m2 = (RealMatrix.of-list n q2) in
 let zs = RealMatrix.app-t m2 xs in
 let (h, rho) = Householder.generate zs in
 let m3 = Householder.comp-right m2 h in
@@ -450,7 +480,9 @@ let decompose n mx =
 let xss = RealMatrix.to-list mx in
 List.fold-left (fun qr xs -> append-column xs qr) (nil n) xss
 
-let compose ((q1, _), r) = UpperTriangle.comp-rev-right (RealMatrix.of-list q1) r
+let compose qr =
+let ((q1, _), r) = qr in
+UpperTriangle.comp-rev-right (RealMatrix.of-list (size qr) q1) r
 
 let ls-split-at i ls =
 let-rec aux acc i ls =
@@ -485,4 +517,4 @@ let-rec aux (qs1, qs2) (ut, mx, lt) = (
 let (q1, r) = aux (q11, q12) (ut, mx, lt) in
 ((q1, q2), r)
 
-end
+end % QR

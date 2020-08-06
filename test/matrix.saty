@@ -90,7 +90,7 @@ let q0 = QR.q qr0
 %%  left: [[1.; 1.38777878078e-16; -5.55111512313e-17]; [1.38777878078e-16; 1.; -5.55111512313e-17]; [-5.55111512313e-17; -5.55111512313e-17; 1.]]
 %% right: [[1.; 0.; 0.]; [0.; 1.; 0.]; [0.; 0.; 1.]]
 
-% let _ = assert-eq ?:(`qr-comp`) RealMatrix.show QR.(compose qr0) RealMatrix.(of-list-list [
+% let _ = assert-eq ?:(`qr-comp`) RealMatrix.show QR.(compose qr0) RealMatrix.(of-list-list 3 [
 %   [1.0; 2.0; 3.0];
 %   [2.0; 1.0; 0.0];
 % ])
@@ -108,7 +108,7 @@ let q1 = QR.q qr1
 %%  left: [[1.; 0.; 9.71445146547e-17]; [0.; 1.; -2.22044604925e-16]; [9.71445146547e-17; -2.22044604925e-16; 1.]]
 %% right: [[1.; 0.; 0.]; [0.; 1.; 0.]; [0.; 0.; 1.]]
 
-% let _ = assert-eq ?:(`qr-comp-1`) RealMatrix.show QR.(compose qr1) RealMatrix.(of-list-list [
+% let _ = assert-eq ?:(`qr-comp-1`) RealMatrix.show QR.(compose qr1) RealMatrix.(of-list-list 3 [
 %   [2.0; 1.0; 0.0];
 % ])
 %% ! [Error during Evaluation]
