@@ -4,7 +4,7 @@
  (name "ncsq")
  (version "0.1.0")
  (sources
-  ((package "ncsq.satyh" "./ncsq.satyh")))
+  ((package "ncsq.satyh" "./src/ncsq.satyh")))
  (opam "satysfi-ncsq.opam")
  (dependencies
   ((base ())

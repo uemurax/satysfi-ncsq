@@ -1,5 +1,5 @@
 @require: stdjareport
-@import: ../ncsq
+@import: ../src/ncsq
 
 let cellss1 = open NCSq in [
   [object {${A}}; arrow ?:{${f}} right; object {${B}}];
