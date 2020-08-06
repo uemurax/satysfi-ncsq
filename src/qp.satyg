@@ -1,0 +1,21 @@
+@import: ./matrix
+
+module EQQP : sig
+
+% `solve c a r` solves the equality-constrained quadratic programming
+%     minimize (1/2)x^Tx + c^Tx
+%     subject to a^Tx = 0
+% using the R factor `r` of the matrix `a`.
+% Retruns (x, l) where l is Lagrange multipliers.
+val solve : RealVector.t -> RealMatrix.t -> UpperTriangle.t -> RealVector.t * RealVector.t
+
+end = struct
+
+let solve c a r =
+let m = RealMatrix.app-t a c in
+let l1 = LowerTriangle.app-inv (UpperTriangle.transpose r) m in
+let lgr = UpperTriangle.app-inv r l1 in
+let x = RealVector.(RealMatrix.app a lgr - c) in
+(x, lgr)
+
+end

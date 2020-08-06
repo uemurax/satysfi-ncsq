@@ -21,6 +21,7 @@ val length : t -> int
 val (+) : t -> t -> t
 val (-) : t -> t -> t
 val (*) : float -> t -> t
+val neg : t -> t
 
 val norm : t -> float
 val inner-product : t -> t -> float
@@ -66,6 +67,7 @@ let binop f xs ys = List.(map (fun (x, y) -> f x y) (zip xs ys))
 let (+) = binop (+.)
 let (-) = binop (-.)
 let (*) x = List.map (fun y -> x *. y)
+let neg = List.map Float.neg
 
 let norm xs =
 let s = List.fold-right (fun x u -> Float.abs x +. u) 0.0 xs in
@@ -413,6 +415,7 @@ val r : t -> UpperTriangle.t
 val q : t -> RealMatrix.t
 
 val compose : t -> RealMatrix.t
+val decompose : int -> RealMatrix.t -> t
 
 end = struct
 
@@ -442,6 +445,10 @@ let (h, rho) = Householder.generate zs in
 let m3 = Householder.comp-right m2 h in
 let (u, m) = RealMatrix.uncons-column m3 in
 ((u :: q1, RealMatrix.to-list m), UpperTriangle.append-column ys rho r)
+
+let decompose n mx =
+let xss = RealMatrix.to-list mx in
+List.fold-left (fun qr xs -> append-column xs qr) (nil n) xss
 
 let compose ((q1, _), r) = UpperTriangle.comp-rev-right (RealMatrix.of-list q1) r
 

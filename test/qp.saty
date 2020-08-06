@@ -1,0 +1,29 @@
+@require: pervasives
+@require: zrbase/zmtdoc0
+@require: assert-eq/assert-eq
+@require: debug-show-value/debug-show-value
+@import: ../src/qp
+
+open DebugShowValue
+open AssertEq
+
+let c0 = RealVector.of-list [2.0; 1.0; 3.0]
+let a0 = RealMatrix.of-list-list [
+  [1.0; 2.0; 1.0];
+  [3.0; 0.0; 1.0];
+]
+let qr0 = QR.decompose 3 a0
+let r0 = QR.r qr0
+
+let (x0, lgr0) = EQQP.solve c0 a0 r0
+
+let _ = assert-eq ?:(`eqqp KTT`) RealVector.show RealVector.(x0 - RealMatrix.app a0 lgr0) RealVector.(neg c0)
+% let _ = assert-eq ?:(`eqqp constraint`) RealVector.show RealMatrix.(app-t a0 x0) RealVector.(zero 2)
+%% ! [Error during Evaluation]
+%% test eqqp constraint ...
+%%  left: [1.33226762955e-15; -1.33226762955e-15]
+%% right: [0.; 0.]
+
+in
+
+document ()
