@@ -12,7 +12,7 @@ let a0 = RealMatrix.of-list-list 3 [
   [1.0; 2.0; 1.0];
   [3.0; 0.0; 1.0];
 ]
-let qr0 = QR.decompose 3 a0
+let qr0 = QR.decompose a0
 let r0 = QR.r qr0
 
 let (x0, lgr0) = EQQP.solve c0 a0 r0

@@ -20,6 +20,8 @@ let ut0 = List.fold-left (
   ([4.0; 5.0], 6.0);
 ]
 
+let _ = info (`ut0 = ` ^ UpperTriangle.show ut0)
+
 % Lower triangular matrix
 % | 1     |
 % | 2 3   |
@@ -31,6 +33,8 @@ let lt0 = List.fold-right (
   (3.0, [5.0]);
   (6.0, []);
 ]
+
+let _ = info (`lt0 = ` ^ LowerTriangle.show lt0)
 
 let _ = assert-eq ?:(`transpose`) LowerTriangle.show (UpperTriangle.transpose ut0) lt0
 
