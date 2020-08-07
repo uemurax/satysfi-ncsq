@@ -1,13 +1,10 @@
-@require: pervasives
 @require: zrbase/zmtdoc0
 @require: zrbase/zlog0
 @require: assert-eq/assert-eq
-@require: debug-show-value/debug-show-value
 @require: base/list-ext
 @require: base/float
 @import: ../src/matrix
 
-open DebugShowValue
 open AssertEq
 open ZLog0
 
@@ -66,11 +63,12 @@ let _ = assert-eq ?:(`householder-norm`) show-float (RealVector.norm (Householde
 
 let bs = RealVector.basis 3
 
-let _ = assert-eq ?:(`basis`) (show-list RealVector.show) bs ([
-  [1.0; 0.0; 0.0];
-  [0.0; 1.0; 0.0];
-  [0.0; 0.0; 1.0];
-] |> List.map RealVector.of-list)
+let _ = assert-eq ?:(`basis`) RealMatrix.show (RealMatrix.of-list 3 bs) (
+  RealMatrix.of-list-list 3 [
+    [1.0; 0.0; 0.0];
+    [0.0; 1.0; 0.0];
+    [0.0; 0.0; 1.0];
+  ])
 
 let qr0 = QR.(
   nil 3

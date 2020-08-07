@@ -1,11 +1,9 @@
-@require: pervasives
 @require: zrbase/zmtdoc0
 @require: zrbase/zlog0
 @require: assert-eq/assert-eq
-@require: debug-show-value/debug-show-value
+@require: base/string
 @import: ../src/qp
 
-open DebugShowValue
 open AssertEq
 open ZLog0
 
@@ -40,18 +38,18 @@ let b0 = RealVector.of-list [
 ]
 let x0 = RealVector.of-list [3.0; 3.0; 3.0]
 
-let _ = assert-eq ?:(`x0 feasible`) show-bool QP.(feasible a0 b0 x0) true
+let _ = assert-eq ?:(`x0 feasible`) String.of-bool QP.(feasible a0 b0 x0) true
 
 let _ = info (`Solving QP with a = ` ^ RealMatrix.show a0 ^ ` and b = ` ^ RealVector.show b0 ^ ` from x0 = ` ^ RealVector.show x0)
 let xx0 = QP.solve a0 b0 x0
-let _ = assert-eq ?:(`xx0 feasible`) show-bool QP.(feasible a0 b0 xx0) true
+let _ = assert-eq ?:(`xx0 feasible`) String.of-bool QP.(feasible a0 b0 xx0) true
 let _ = info (`Solved: x = ` ^ RealVector.show xx0)
 
 let x1 = RealVector.of-list [0.0 -. 1.0; 0.0; 6.0]
-let _ = assert-eq ?:(`x1 feasible`) show-bool QP.(feasible a0 b0 x1) true
+let _ = assert-eq ?:(`x1 feasible`) String.of-bool QP.(feasible a0 b0 x1) true
 let _ = info (`Solving QP with a = ` ^ RealMatrix.show a0 ^ ` and b = ` ^ RealVector.show b0 ^ ` from x1 = ` ^ RealVector.show x1)
 let xx1 = QP.solve a0 b0 x1
-let _ = assert-eq ?:(`xx1 feasible`) show-bool QP.(feasible a0 b0 xx1) true
+let _ = assert-eq ?:(`xx1 feasible`) String.of-bool QP.(feasible a0 b0 xx1) true
 let _ = info (`Solved: x = ` ^ RealVector.show xx1)
 let _ = assert-eq ?:(`xx0 == xx1`) RealVector.show xx0 xx1
 
