@@ -392,5 +392,36 @@ in
         |> NCSq.transpose
       );
     }
+    +p{
+      Arrows nicely stretch vertically too, though one might rarely write such tall labels on arrows.
+      \d-code(```
+      \NCSq.cd(open NCSq in [
+        [object {${A}}; arrow right; object {${B}}];
+        [arrow ?*?:{${\frac{\frac{\frac{a}{b}}{\frac{c}{d}}}
+                      {\frac{\frac{e}{f}}{\frac{g}{h}}}}} down;
+         empty; arrow down];
+        [empty; empty; object {${C}}];
+        [empty; empty;
+         arrow ?:{${\frac{\frac{\frac{i}{j}}{\frac{k}{l}}}
+                    {\frac{\frac{m}{n}}{\frac{o}{p}}}}} down];
+        [object {${D}}; arrow right; empty];
+        [arrow down; empty; empty];
+        [object {${E}}; arrow right; object {${F}}];
+      ]);
+```);%
+      \NCSq.cd(open NCSq in [
+        [object {${A}}; arrow right; object {${B}}];
+        [arrow ?*?:{${\frac{\frac{\frac{a}{b}}{\frac{c}{d}}}
+                      {\frac{\frac{e}{f}}{\frac{g}{h}}}}} down;
+         empty; arrow down];
+        [empty; empty; object {${C}}];
+        [empty; empty;
+         arrow ?:{${\frac{\frac{\frac{i}{j}}{\frac{k}{l}}}
+                    {\frac{\frac{m}{n}}{\frac{o}{p}}}}} down];
+        [object {${D}}; arrow right; empty];
+        [arrow down; empty; empty];
+        [object {${E}}; arrow right; object {${F}}];
+      ]);
+    }
   >
 >
