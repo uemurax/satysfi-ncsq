@@ -79,12 +79,11 @@ document (|
       [arrow down];
       [object {${B}}];
       ]);%
-      \code(`arrow`); accepts optional arguments to make labels and to change the style.
+      \code(`arrow`); accepts optional arguments to make labels.
       \d-code(```
-arrow ?:left-label ?:right-label ?:style direction
+arrow ?:left-label ?:right-label direction
 ```);%
       \code(`left-label`); and \code(`right-label`); are labels on the left side and on the right side, respectively, facing the direction of an arrow.
-      \code(`style`); can be \code(`solid`); (default), \code(`dashed`); or \code(`equal`);, which are constants provided by \code(`NCSq`); module.
       \d-code(```
     \NCSq.cd(open NCSq in [
       [object {${A}}; arrow ?:{${f}} right; object {${B}}];
@@ -101,32 +100,6 @@ arrow ?:left-label ?:right-label ?:style direction
       \NCSq.cd(open NCSq in [
       [object {${A}}; arrow ?*?:{${f}} right; object {${B}}];
       ]);
-      \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
-    ]);
-```);
-      \NCSq.cd(open NCSq in [
-      [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
-      ]);
-      \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
-    ]);
-```);
-      \NCSq.cd(open NCSq in [
-      [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
-      ]);%
-      \code(`NCSq`); module also provides \code(`eqarrow`); function for building an equality arrow.
-      \code(`eqarrow direction`); is simply an alias to \code(`arrow ?*?*?:equal direction`);.
-      \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object {${A}}; eqarrow right; object {${B}}];
-    ]);
-```);
-      \NCSq.cd(open NCSq in [
-      [object {${A}}; eqarrow right; object {${B}}];
-      ]);%
       \code(`arrow-2 direction`); will draw a 2-arrow (2-cell) towards \code(`direction`);.
       It accepts an optional argument to make a label.
       \d-code(```
@@ -256,6 +229,85 @@ arrow ?:left-label ?:right-label ?:style direction
           ])
         }
       });
+    }
+  >
+  +chapter{Changing styles}<
+    +p{
+      \code(`object`); accepts an optional argument to change paddings.
+      \d-code(```
+object ?:(pd-left, pd-right, pd-top, pd-bottom) label
+```);%
+      The default value is \code(`(pd-left, pd-right, pd-top, pd-bottom) = (3pt, 3pt, 3pt, 3pt)`);.
+      \d-code(```
+      \NCSq.cd(open NCSq in [
+        [object ?:(3pt, 10pt, 3pt, 20pt) {${A}};
+         arrow right; object {${B}}];
+        [arrow down; empty; arrow down];
+        [object {${C}}; arrow right;
+         object ?:(20pt, 3pt, 10pt, 3pt) {${D}}];
+      ]);
+```);%
+      \NCSq.cd(open NCSq in [
+        [object ?:(3pt, 10pt, 3pt, 20pt) {${A}};
+         arrow right; object {${B}}];
+        [arrow down; empty; arrow down];
+        [object {${C}}; arrow right;
+         object ?:(20pt, 3pt, 10pt, 3pt) {${D}}];
+      ]);
+    }
+    +p{
+      \code(`arrow`); accepts the third optional argument to change the style.
+      \d-code(```
+arrow ?:left-label ?:right-label ?:style direction
+```);%
+      \code(`style`); can be \code(`solid`); (default), \code(`dashed`); or \code(`equal`);, which are constants provided by \code(`NCSq`); module.
+      \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+    ]);
+```);
+      \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+      ]);
+      \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+    ]);
+```);
+      \NCSq.cd(open NCSq in [
+      [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+      ]);%
+      \code(`NCSq`); module also provides \code(`eqarrow`); function for building an equality arrow.
+      \code(`eqarrow direction`); is simply an alias to \code(`arrow ?*?*?:equal direction`);.
+      \d-code(```
+    \NCSq.cd(open NCSq in [
+      [object {${A}}; eqarrow right; object {${B}}];
+    ]);
+```);
+      \NCSq.cd(open NCSq in [
+      [object {${A}}; eqarrow right; object {${B}}];
+      ]);%
+    }
+    +p{
+      \code(`arrow-2`); accepts the second optional argument to change paddings.
+      \d-code(```
+arrow-2 ?:label ?:(pd-left, pd-right, pd-top, pd-bottom) direction
+```);%
+      The default value is \code(`(pd-left, pd-right, pd-top, pd-bottom) = (6pt, 6pt, 3pt, 3pt)`);.
+      \d-code(```
+      \NCSq.cd(open NCSq in [
+        [object {${A}}; arrow right; object {${B}}];
+        [arrow down; arrow-2 ?*?:(3pt, 20pt, 30pt, 3pt) down;
+         arrow down];
+        [object {${C}}; arrow right; object {${D}}];
+      ]);
+```);%
+      \NCSq.cd(open NCSq in [
+        [object {${A}}; arrow right; object {${B}}];
+        [arrow down; arrow-2 ?*?:(3pt, 20pt, 30pt, 3pt) down;
+         arrow down];
+        [object {${C}}; arrow right; object {${D}}];
+      ]);
     }
   >
   +chapter{Utilities}<

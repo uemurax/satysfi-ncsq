@@ -163,7 +163,7 @@ match (dir1, rc) with
 let pds-face dir1 pds =
 match (dir1, pds) with
 | (Horizontal, (pl, pr, _, _)) -> (pl, pr)
-| (Vertical, (_, _, pt, pb)) -> (pt, pb)
+| (Vertical, (_, _, pt, pb)) -> (pb, pt)
 
 let get-obj-bd dir1 cell =
 match cell with
