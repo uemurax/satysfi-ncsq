@@ -3,39 +3,44 @@
 @require: base/float
 @import: ./matrix
 
+% Name conventions
+% u, v, w: vectors
+% a, b: matrices
+% x, y, z: scalars
+
 module EQQP : sig
 
-% `solve c a r` solves the equality-constrained quadratic programming
-%     minimize (1/2)x^Tx + c^Tx
+% `solve u a r` solves the equality-constrained quadratic programming
+%     minimize (1/2)x^Tx + u^Tx
 %     subject to a^Tx = 0
 % using the R factor `r` of the matrix `a`.
-% Retruns (x, l) where l is Lagrange multipliers.
+% Retruns (x, lgr) where lgr is Lagrange multipliers.
 val solve : RealVector.t -> RealMatrix.t -> UpperTriangle.t -> RealVector.t * RealVector.t
 
 val feasible : RealMatrix.t -> RealVector.t -> bool
 
 end = struct
 
-let feasible a x = RealVector.(RealMatrix.app-t a x == zero (RealMatrix.n-rows a))
+let feasible a u = RealVector.(RealMatrix.app-t a u == zero (RealMatrix.n-rows a))
 
-let solve c a r =
-let m = RealMatrix.app-t a c in
-let l1 = LowerTriangle.app-inv (UpperTriangle.transpose r) m in
+let solve u a r =
+let v = RealMatrix.app-t a u in
+let l1 = LowerTriangle.app-inv (UpperTriangle.transpose r) v in
 let lgr = UpperTriangle.app-inv r l1 in
-let x = RealVector.(RealMatrix.app a lgr - c) in
+let x = RealVector.(RealMatrix.app a lgr - u) in
 (x, lgr)
 
 end
 
 module QP : sig
 
-% `solve a b x0` solves a least squares problem
+% `solve a u v0` solves a least squares problem
 %     minimize (1/2)x^Tx
-%     subject to a^Tx >= b
-% from an initial feasible point x0
+%     subject to a^Tx >= u
+% from an initial feasible point v0
 val solve : RealMatrix.t -> RealVector.t -> RealVector.t -> RealVector.t
 
-% `feasible a b x` returns true if a^Tx >= b
+% `feasible a u v` returns true if a^Tv >= u
 val feasible : RealMatrix.t -> RealVector.t -> RealVector.t -> bool
 
 end = struct
@@ -46,41 +51,41 @@ val solve : RealMatrix.t -> RealVector.t -> RealVector.t -> RealVector.t
 
 end = struct
 
-let remove k ls =
-let-rec aux xs k ys =
-match ys with
-| [] -> (None, List.reverse xs)
-| y :: ys -> (
-  if k <= 0 then (Some y, List.(reverse-append xs ys))
-  else aux (y :: xs) (k - 1) ys
+let remove k x-l =
+let-rec aux x-l k y-l =
+match y-l with
+| [] -> (None, List.reverse x-l)
+| y :: y-l1 -> (
+  if k <= 0 then (Some y, List.(reverse-append x-l y-l1))
+  else aux (y :: x-l) (k - 1) y-l1
 )
 in
-aux [] k ls
+aux [] k x-l
 
-% Remove an element of xs minimizing fs < t.
-% Return ((z, xo), ys) where xo is the minimizing fs, z is its value, and ys is xs from which xo is removed. Order is not preserved.
-let remove-min t f xs =
-let-rec aux (z, xo) xs ys =
-match ys with
-| y :: ys -> (
+% Remove an element of x-l minimizing f < t.
+% Return ((z, x-o), y-l) where x-o is the element minimizing f, z is its value, and y-l is x-l from which x-o is removed. Order is not preserved.
+let remove-min t f x-l =
+let-rec aux (z, x-o) x-l y-l =
+match y-l with
+| y :: y-l1 -> (
   let w = f y in
   if Float.(w < z) then (
-    let xs1 =
-    match xo with
-    | None -> xs
-    | Some x -> x :: xs
+    let x-l1 =
+    match x-o with
+    | None -> x-l
+    | Some x -> x :: x-l
     in
-    aux (w, Some y) xs1 ys
-  ) else aux (z, xo) (y :: xs) ys
+    aux (w, Some y) x-l1 y-l1
+  ) else aux (z, x-o) (y :: x-l) y-l1
 )
-| _ -> ((z, xo), List.(reverse-append ys xs))
+| _ -> ((z, x-o), List.(reverse-append y-l x-l))
 in
-aux (t, None) [] xs
+aux (t, None) [] x-l
 
 type state = (|
   working-set : (RealVector.t * float) list; % working set in the reverse order: the 0-th element is the right most column
   coworking-set : (RealVector.t * float) list;
-  x : RealVector.t;
+  position : RealVector.t;
   working-qr : QR.t;
   dim : int;
 |)
@@ -90,27 +95,27 @@ let epsilon = 0.0000000001
 let-rec solve-1 state =
 let wk0 = state#working-set in
 let cwk0 = state#coworking-set in
-let x0 = state#x in
+let u0 = state#position in
 let qr0 = state#working-qr in
 let r0 = QR.r qr0 in
 let dim = state#dim in
 let aw0 = RealMatrix.of-list dim (List.reverse-map Pair.fst wk0) in
-let (p, lgr) = EQQP.solve x0 aw0 r0 in
-if Float.(RealVector.norm p < epsilon) then (
-  let ko = RealVector.min lgr in
-  match ko with
-  | None -> x0
+let (du, lgr) = EQQP.solve u0 aw0 r0 in
+if Float.(RealVector.norm du < epsilon) then (
+  let k-o = RealVector.min lgr in
+  match k-o with
+  | None -> u0
   | Some (k, l) -> (
-    if Float.(l >= 0.0) then x0
+    if Float.(l >= 0.0) then u0
     else (
       let n = RealVector.length lgr in
       let i = n - (k + 1) in
       let qr1 = QR.remove-column k qr0 in
-      let (ao, wk1) = remove i wk0 in
+      let (u-o, wk1) = remove i wk0 in
       let cwk1 =
-      match ao with
+      match u-o with
       | None -> cwk0
-      | Some a -> a :: cwk0
+      | Some u -> u :: cwk0
       in
       solve-1 (|
         state with
@@ -122,17 +127,17 @@ if Float.(RealVector.norm p < epsilon) then (
   )
 )
 else (
-  let f (xs, b) = (
-    let s = RealVector.inner-product xs p in
-    if Float.(s < 0.0 -. epsilon) then (
-      let t = RealVector.inner-product xs x0 in
-      (1.0 /. s) *. (b -. t)
+  let f (v, x) = (
+    let y = RealVector.inner-product v du in
+    if Float.(y < 0.0 -. epsilon) then (
+      let z = RealVector.inner-product v u0 in
+      (1.0 /. y) *. (x -. z)
     ) else 2.0
   ) in
-  let ((alpha, ko), cwk1) = remove-min 1.0 f cwk0 in
-  let x1 = RealVector.(x0 + alpha * p) in
+  let ((z, k-o), cwk1) = remove-min 1.0 f cwk0 in
+  let u1 = RealVector.(u0 + z * du) in
   let (wk1, qr1) =
-  match ko with
+  match k-o with
   | None -> (wk0, qr0)
   | Some k -> (k :: wk0, QR.append-column (Pair.fst k) qr0)
   in
@@ -141,28 +146,28 @@ else (
     working-set = wk1;
     coworking-set = cwk1;
     working-qr = qr1;
-    x = x1;
+    position = u1;
   |)
 )
 
-let solve a b x =
-let n = RealVector.length x in
+let solve a u v0 =
+let n = RealVector.length v0 in
 let wk = [] in
-let cwk = List.zip (RealMatrix.to-list a) (RealVector.to-list b) in
+let cwk = List.zip (RealMatrix.to-list a) (RealVector.to-list u) in
 let qr = QR.nil n in
 solve-1 (|
   working-set = wk;
   coworking-set = cwk;
   working-qr = qr;
-  x = x;
+  position = v0;
   dim = n;
 |)
 
 end % ActiveSetMethod
 
-let feasible a b x =
-let y = RealMatrix.(app-t a x) in
-RealVector.(y >= b)
+let feasible a u v0 =
+let v = RealMatrix.(app-t a v0) in
+RealVector.(v >= u)
 
 let solve = ActiveSetMethod.solve
 

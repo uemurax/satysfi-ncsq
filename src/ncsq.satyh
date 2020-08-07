@@ -7,6 +7,12 @@
 @require: math
 @import: ./qp
 
+% Name conventions
+% -l or -ls: list of something
+% -ll: list of lists of something
+% -lll: list of lists of lists of something
+% -o: option of something
+
 % This type is DEPRECATED. Will be removed in v1
 type ncsq-arrow-style =
 | Solid
@@ -122,36 +128,36 @@ type cell-raw =
 
 % Utilities
 
-let-rec zip-with f xs ys =
-match (xs, ys) with
-| ([], _) -> List.map (fun y -> (f None (Some y))) ys
-| (_, []) -> List.map (fun x -> (f (Some x) None)) xs
-| (x :: xs, y :: ys) -> f (Some x) (Some y) :: zip-with f xs ys
+let-rec zip-with f x-l y-l =
+match (x-l, y-l) with
+| ([], _) -> List.map (fun y -> (f None (Some y))) y-l
+| (_, []) -> List.map (fun x -> (f (Some x) None)) x-l
+| (x :: x-l1, y :: y-l1) -> f (Some x) (Some y) :: zip-with f x-l1 y-l1
 
 module Matrix = struct
 
-let transpose fill xss =
+let transpose fill x-ll =
 List.fold-right
 (zip-with
- (fun y ys ->
-  Option.from fill y :: Option.from [] ys))
+ (fun y-o y-l-o ->
+  Option.from fill y-o :: Option.from [] y-l-o))
 []
-xss
+x-ll
 
 end
 
 let zip x0 y0 =
 zip-with
-(fun x y ->
- (Option.from x0 x, Option.from y0 y))
+(fun x-o y-o ->
+ (Option.from x0 x-o, Option.from y0 y-o))
 
-let get-grs-bbox grs =
+let get-grs-bbox gr-l =
 List.fold-right
 (fun gr ((x0, y0), (x1, y1)) ->
  (let ((gx0, gy0), (gx1, gy1)) = get-graphics-bbox gr in
   ((Length.min x0 gx0, Length.min y0 gy0), (Length.max x1 gx1, Length.max y1 gy1))))
 ((0pt, 0pt), (0pt, 0pt))
-grs
+gr-l
 
 % Calculate cell's boundary
 
@@ -172,10 +178,10 @@ match cell with
 (let (z0, z1) = rc-face dir1 (get-graphics-bbox gr) in
  let (p0, p1) = pds-face dir1 pds in
  (z0 -' p0, z1 +' p1))
-| Arrow-raw (cfg, dir, grs) ->
+| Arrow-raw (cfg, dir, gr-l) ->
 (match (dir1, dir) with
- | (Horizontal, (Vertical, _)) -> rc-face Horizontal (get-grs-bbox grs)
- | (Vertical, (Horizontal, _)) -> rc-face Vertical (get-grs-bbox grs)
+ | (Horizontal, (Vertical, _)) -> rc-face Horizontal (get-grs-bbox gr-l)
+ | (Vertical, (Horizontal, _)) -> rc-face Vertical (get-grs-bbox gr-l)
  | _ -> (0pt, 0pt))
 
 % bottom and top
@@ -184,64 +190,64 @@ let get-obj-bt cell = get-obj-bd Vertical cell
 % left and right
 let get-obj-lr cell = get-obj-bd Horizontal cell
 
-let get-objs-boundary dir1 cells =
+let get-objs-boundary dir1 cell-l =
 List.fold-right
 (fun cell (x, y) ->
  (let (x1, y1) = get-obj-bd dir1 cell in
   (Length.min x x1, Length.max y y1)))
 (0pt, 0pt)
-cells
+cell-l
 
 let get-objs-bt = get-objs-boundary Vertical
 
-let get-objss-bts cellss = List.map get-objs-bt cellss
+let get-objss-bts = List.map get-objs-bt
 
 let get-objs-lr = get-objs-boundary Horizontal
 
-let get-objss-lrs cellss = List.map get-objs-lr (Matrix.transpose Empty-raw cellss)
+let get-objss-lrs cell-ll = List.map get-objs-lr (Matrix.transpose Empty-raw cell-ll)
 
 % Determine source and target of an arrow
 
 % Find the first object in a list of cells
-let find-object cxs =
-let-rec aux xs ys =
-match ys with
-| [] -> (xs, None, [])
-| y :: ys ->
+let find-object cx-l =
+let-rec aux x-l y-l =
+match y-l with
+| [] -> (x-l, None, [])
+| y :: y-l1 ->
 (match y with
- | (Object-raw _, _) -> (xs, Some y, ys)
- | _ -> aux (y :: xs) ys)
+ | (Object-raw _, _) -> (x-l, Some y, y-l1)
+ | _ -> aux (y :: x-l) y-l1)
 in
-aux [] cxs
+aux [] cx-l
 
 % Find the first virtical/horizontal arrow in a list of cells
-let find-arrow dir1 cxs0 obx cxs =
-let-rec aux xs src ys zs =
-match zs with
-| [] -> (xs, src, ys, None, [])
-| z :: zs ->
+let find-arrow dir1 cx-l0 obx cx-l =
+let-rec aux x-l src y-l z-l =
+match z-l with
+| [] -> (x-l, src, y-l, None, [])
+| z :: z-l1 ->
 (match z with
- | (Object-raw _, _) -> aux (List.append ys (src :: xs)) z [] zs
+ | (Object-raw _, _) -> aux (List.append y-l (src :: x-l)) z [] z-l1
  | (Arrow-raw (_, dir, _), _) ->
  (match (dir1, dir) with
-  | (Horizontal, (Horizontal, _)) -> (xs, src, ys, Some z, zs)
-  | (Vertical, (Vertical, _)) -> (xs, src, ys, Some z, zs)
-  | _ -> aux xs src (z :: ys) zs)
- | _ -> aux xs src (z :: ys) zs)
+  | (Horizontal, (Horizontal, _)) -> (x-l, src, y-l, Some z, z-l1)
+  | (Vertical, (Vertical, _)) -> (x-l, src, y-l, Some z, z-l1)
+  | _ -> aux x-l src (z :: y-l) z-l1)
+ | _ -> aux x-l src (z :: y-l) z-l1)
 in
-aux cxs0 obx [] cxs
+aux cx-l0 obx [] cx-l
 
-let find-varrow cxs0 obx cxs = find-arrow Vertical cxs0 obx cxs
+let find-varrow = find-arrow Vertical
 
-let find-harrow cxs0 obx cxs = find-arrow Horizontal cxs0 obx cxs
+let find-harrow = find-arrow Horizontal
 
 % Adjust boundaries of cells
 
-let d-sum zs =
+let d-sum z-l =
 List.fold-right
 (fun (_, ((x, y), _)) l ->
  l +' (y -' x))
-0pt zs
+0pt z-l
 
 let bd-front dir1 bd =
 match (dir1, bd) with
@@ -253,18 +259,18 @@ match (dir1, bd) with
 | (Horizontal, (l, _)) -> l
 | (Vertical, (_, t)) -> t
 
-let make-qp-1-1 xs src ys arr zs tgt ws =
+let make-qp-1-1 x-ls src y-ls arr z-ls tgt w-ls =
 let (ar, (bd, fs)) = arr in
 match ar with
-| Arrow-raw (cfg, (dir1, _), grs) -> (
-  let (z0, z1) = rc-face dir1 (get-grs-bbox grs) in
+| Arrow-raw (cfg, (dir1, _), gr-ls) -> (
+  let (z0, z1) = rc-face dir1 (get-grs-bbox gr-ls) in
   let head = cfg#head-len in
   let tail = cfg#tail-len in
   let al = head +' tail +' (z1 -' z0) in
   let (b0, b1) = bd in
   let cl = b1 -' b0 in
-  let yl = d-sum ys in
-  let zl = d-sum zs in
+  let yl = d-sum y-ls in
+  let zl = d-sum z-ls in
   let (s, (sbd, _)) = src in
   let (t, (tbd, _)) = tgt in
   let sl = Length.abs (bd-front dir1 (get-obj-bd dir1 s) -' bd-front dir1 sbd) in
@@ -279,13 +285,13 @@ match ar with
     let f0 _ = (0.0, 0.0) in
     let f1 _ = (1.0, 1.0) in
     let cstr = List.(
-      map f0 ws
+      map f0 w-ls
       |> cons tc        % tgt
-      |> reverse-append (map f1 zs)
+      |> reverse-append (map f1 z-ls)
       |> cons (1.0, 1.0)          % arr
-      |> reverse-append (map f1 ys)
+      |> reverse-append (map f1 y-ls)
       |> cons sc        % src
-      |> reverse-append (map f0 xs)
+      |> reverse-append (map f0 x-ls)
     ) in
     let (fsp, fsq) = fs in
     let dd = d *' 0.55 in
@@ -294,67 +300,67 @@ match ar with
 )
 | _ -> (None, arr)
 
-let make-qp-1 dir1 cells (cstrs, pqs) =
-let cpqs = zip Empty-raw ((0pt, 0pt), (0pt, 0pt)) cells pqs in
-let (xs, src, ys) = find-object cpqs in
+let make-qp-1 dir1 cell-l (cstr-l, pq-l) =
+let cpq-l = zip Empty-raw ((0pt, 0pt), (0pt, 0pt)) cell-l pq-l in
+let (x-l, src, y-l) = find-object cpq-l in
 match src with
-| None -> (cstrs, pqs)
+| None -> (cstr-l, pq-l)
 | Some src -> (
-  let-rec aux cstrs xs src ys = (
-    let (xs, src, ys, arr, zs) = find-arrow dir1 xs src ys in
+  let-rec aux cstr-l x-l src y-l = (
+    let (x-l, src, y-l, arr, z-l) = find-arrow dir1 x-l src y-l in
     match arr with
-    | None -> (cstrs, List.(
-      zs
-      |> reverse-append ys
+    | None -> (cstr-l, List.(
+      z-l
+      |> reverse-append y-l
       |> cons src
-      |> reverse-append xs
+      |> reverse-append x-l
     ))
     | Some arr -> (
-      let (zs, tgt, ws) = find-object zs in
+      let (z-l, tgt, w-l) = find-object z-l in
       match tgt with
-      | None -> (cstrs, List.(
-        ws
-        |> reverse-append zs
+      | None -> (cstr-l, List.(
+        w-l
+        |> reverse-append z-l
         |> cons arr
-        |> reverse-append ys
+        |> reverse-append y-l
         |> cons src
-        |> reverse-append xs
+        |> reverse-append x-l
       ))
       | Some tgt -> (
-        let (cstro, arr) = make-qp-1-1 xs src ys arr zs tgt ws in
-        let cstrs =
+        let (cstro, arr) = make-qp-1-1 x-l src y-l arr z-l tgt w-l in
+        let cstr-l =
         match cstro with
-        | None -> cstrs
-        | Some cstr -> cstr :: cstrs
+        | None -> cstr-l
+        | Some cstr -> cstr :: cstr-l
         in
-        aux cstrs List.(append zs (arr :: append ys (src :: xs))) tgt ws
+        aux cstr-l List.(append z-l (arr :: append y-l (src :: x-l))) tgt w-l
       )
     )
   ) in
-  let (cstrs, cpqs) = aux cstrs xs src ys in
-  (cstrs, List.map Pair.snd cpqs)
+  let (cstr-l, cpq-l) = aux cstr-l x-l src y-l in
+  (cstr-l, List.map Pair.snd cpq-l)
 )
 
-let make-qp dir1 cellss pqs =
-let pqs1 = zip (0pt, 0pt) (0pt, 0pt) pqs [] in
-let (cstrs, pqs2) = List.fold-right (make-qp-1 dir1) ([], pqs1) cellss in
-(cstrs, List.map Pair.snd pqs2)
+let make-qp dir1 cell-ll pq-l =
+let pq-l1 = zip (0pt, 0pt) (0pt, 0pt) pq-l [] in
+let (cstr-l, pq-l2) = List.fold-right (make-qp-1 dir1) ([], pq-l1) cell-ll in
+(cstr-l, List.map Pair.snd pq-l2)
 
-let-rec part-2 ls =
-match ls with
-| x :: y :: ls -> (x, y) :: part-2 ls
+let-rec part-2 x-l =
+match x-l with
+| x :: y :: x-l1 -> (x, y) :: part-2 x-l1
 | _ -> []
 
 let len-to-f x = x /' 1pt
 let f-to-len x = 1pt *' x
 
-let solve-qp (cstrs, pqs) =
-let f ps = List.(concat (map (fun (x, y) -> [x; y]) ps)) in
-let ls = f pqs in
+let solve-qp (cstr-l, pq-l) =
+let f z-l = List.(concat (map (fun (x, y) -> [x; y]) z-l)) in
+let ls = f pq-l in
 let n = List.length ls in
 let x = RealVector.of-list (List.map len-to-f ls) in
-let (a1, b1) = List.unzip cstrs in
-let a2 = List.map (fun ps -> RealVector.of-list (f ps)) a1 in
+let (a1, b1) = List.unzip cstr-l in
+let a2 = List.map (fun z-l -> RealVector.of-list (f z-l)) a1 in
 let b2 = List.map len-to-f b1 in
 let v = RealVector.of-list (List.append (List.repeat n 0.0) b2) in
 let bs = RealVector.basis n in
@@ -364,55 +370,55 @@ part-2 (List.map f-to-len (RealVector.to-list y))
 
 let bd-enlarge (p, q) (dp, dq) = (p -' dp, q +' dq)
 
-let adjust-cellss-boundaries dir1 cellss pqs =
-let problem = make-qp dir1 cellss pqs in
+let adjust-cellss-boundaries dir1 cell-ll pq-l =
+let problem = make-qp dir1 cell-ll pq-l in
 match problem with
-| ([], _) -> pqs
+| ([], _) -> pq-l
 | _ -> (
-  let pqs1 = solve-qp problem in
-  zip-with (fun pqo1 pqo2 -> (
-    let pq1 = Option.from (0pt, 0pt) pqo1 in
-    let pq2 = Option.from (0pt, 0pt) pqo2 in
+  let pq-l1 = solve-qp problem in
+  zip-with (fun pq-o1 pq-o2 -> (
+    let pq1 = Option.from (0pt, 0pt) pq-o1 in
+    let pq2 = Option.from (0pt, 0pt) pq-o2 in
     bd-enlarge pq1 pq2
-  )) pqs pqs1
+  )) pq-l pq-l1
 )
 
-let adjust-cellss-bts cellss bts = adjust-cellss-boundaries Vertical (Matrix.transpose Empty-raw cellss) bts
+let adjust-cellss-bts cell-ll = adjust-cellss-boundaries Vertical (Matrix.transpose Empty-raw cell-ll)
 
-let adjust-cellss-lrs cellss lrs = adjust-cellss-boundaries Horizontal cellss lrs
+let adjust-cellss-lrs = adjust-cellss-boundaries Horizontal
 
 % Draw cells
 
-let make-grid dir1 bds =
-let (ls, _) =
+let make-grid dir1 bd-l =
+let (x-l, _) =
 List.fold-right
-(fun bd (ls, l) ->
- (let l1 = l -' bd-front dir1 bd in
-  (l1 :: ls, l1 +' bd-back dir1 bd)))
+(fun bd (x-l, x) ->
+ (let x1 = x -' bd-front dir1 bd in
+  (x1 :: x-l, x1 +' bd-back dir1 bd)))
 ([], 0pt)
-bds in
-ls
+bd-l in
+x-l
 
-let make-vgrid bts = make-grid Vertical bts
+let make-vgrid = make-grid Vertical
 
-let make-hgrid lrs = make-grid Horizontal lrs
+let make-hgrid = make-grid Horizontal
 
-let draw-objects vgrid hgrid cellss =
-let grsss =
+let draw-objects vgrid hgrid cell-ll =
+let gr-lll =
 zip-with
-(fun y cells ->
- (let y = Option.from 0pt y in
-  let cells = Option.from [] cells in
+(fun y-o cell-l-o ->
+ (let y = Option.from 0pt y-o in
+  let cell-l = Option.from [] cell-l-o in
   zip-with
-  (fun x cell ->
-   (let x = Option.from 0pt x in
-    let cell = Option.from Empty-raw cell in
+  (fun x-o cell-o ->
+   (let x = Option.from 0pt x-o in
+    let cell = Option.from Empty-raw cell-o in
     match cell with
     | Object-raw (gr, _) -> [shift-graphics (x, y) gr]
     | _ -> []))
-  hgrid cells))
-vgrid cellss in
-List.concat (List.concat grsss)
+  hgrid cell-l))
+vgrid cell-ll in
+List.concat (List.concat gr-lll)
 
 let arrow-from-to-c dir1 dir2 z s-front t-back head tail =
 let (from, to, t, h) =
@@ -426,7 +432,7 @@ match dir1 with
 
 let draw-arrow dir1 z src arr tgt =
 match arr with
-| (Arrow-raw (cfg, dir, grs), _) ->
+| (Arrow-raw (cfg, dir, gr-l), _) ->
 (match (dir1, dir) with
  | (Horizontal, (Vertical, _)) -> []
  | (Vertical, (Horizontal, _)) -> []
@@ -437,51 +443,51 @@ match arr with
   let t-back = tc +' bd-back dir1 (get-obj-bd dir1 t) in
   let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-len cfg#tail-len in
   let ga = cfg#draw from to in
-  List.append ga (List.map (shift-graphics c) grs)))
+  List.append ga (List.map (shift-graphics c) gr-l)))
 | _ -> []
 
-let draw-arrows dir1 vgrid hgrid cellss =
-let grss =
+let draw-arrows dir1 vgrid hgrid cell-ll =
+let gr-ll =
 zip-with
-(fun x cells ->
- (let x = Option.from 0pt x in
-  let cells = Option.from [] cells in
-  let cxs = zip Empty-raw 0pt cells vgrid in
-  let (_, src, ys) = find-object cxs in
+(fun x-o cell-l-o ->
+ (let x = Option.from 0pt x-o in
+  let cell-l = Option.from [] cell-l-o in
+  let cx-l = zip Empty-raw 0pt cell-l vgrid in
+  let (_, src, y-l) = find-object cx-l in
   match src with
   | None -> []
   | Some src ->
-  (let-rec aux src ys =
-   let (_, src, _, arr, zs) = find-arrow dir1 [] src ys in
+  (let-rec aux src y-l =
+   let (_, src, _, arr, z-l) = find-arrow dir1 [] src y-l in
    match arr with
    | None -> []
    | Some arr ->
-   (let (_, tgt, ws) = find-object zs in
+   (let (_, tgt, w-l) = find-object z-l in
     match tgt with
     | None -> []
     | Some tgt ->
-    (let grs = draw-arrow dir1 x src arr tgt in
-     List.append grs (aux tgt ws)))
+    (let gr-l = draw-arrow dir1 x src arr tgt in
+     List.append gr-l (aux tgt w-l)))
    in
-   aux src ys)))
-hgrid cellss in
-List.concat grss
+   aux src y-l)))
+hgrid cell-ll in
+List.concat gr-ll
 
-let draw-varrows vgrid hgrid cellss = draw-arrows Vertical vgrid hgrid (Matrix.transpose Empty-raw cellss)
+let draw-varrows vgrid hgrid cell-ll = draw-arrows Vertical vgrid hgrid (Matrix.transpose Empty-raw cell-ll)
 
-let draw-harrows vgrid hgrid cellss = draw-arrows Horizontal hgrid vgrid cellss
+let draw-harrows vgrid hgrid = draw-arrows Horizontal hgrid vgrid
 
-let draw-diagram cellss =
-let bts0 = get-objss-bts cellss in
-let bts = adjust-cellss-bts cellss bts0 in
-let lrs0 = get-objss-lrs cellss in
-let lrs = adjust-cellss-lrs cellss lrs0 in
-let vgrid = make-vgrid bts in
-let hgrid = make-hgrid lrs in
-let objs = draw-objects vgrid hgrid cellss in
-let varrs = draw-varrows vgrid hgrid cellss in
-let harrs = draw-harrows vgrid hgrid cellss in
-List.concat [objs; varrs; harrs]
+let draw-diagram cell-ll =
+let bt-l0 = get-objss-bts cell-ll in
+let bt-l = adjust-cellss-bts cell-ll bt-l0 in
+let lr-l0 = get-objss-lrs cell-ll in
+let lr-l = adjust-cellss-lrs cell-ll lr-l0 in
+let vgrid = make-vgrid bt-l in
+let hgrid = make-hgrid lr-l in
+let obj-l = draw-objects vgrid hgrid cell-ll in
+let varr-l = draw-varrows vgrid hgrid cell-ll in
+let harr-l = draw-harrows vgrid hgrid cell-ll in
+List.concat [obj-l; varr-l; harr-l]
 
 let draw-solid-arrow ctx =
 let color = get-text-color ctx in
@@ -649,25 +655,25 @@ match cell with
  let pds = arr2#paddings in
  Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds))
 
-let cd ctx cellss =
-let grs = draw-diagram (List.map (List.map (make-cell-raw ctx)) cellss) in
-let ((x0, y0), (x1, y1)) = get-grs-bbox grs in
+let cd ctx cell-ll =
+let gr-l = draw-diagram (List.map (List.map (make-cell-raw ctx)) cell-ll) in
+let ((x0, y0), (x1, y1)) = get-grs-bbox gr-l in
 let ym = (y0 +' y1) *' 0.5 -' 4pt in
 let w = x1 -' x0 in
 let h = y1 -' ym in
 let d = ym -' y0 in
 inline-graphics w h d
 (fun (px, py) ->
- (List.map (shift-graphics (px -' x0, py -' ym)) grs))
+ (List.map (shift-graphics (px -' x0, py -' ym)) gr-l))
 
-let-block ctx +cd cellss =
-line-break true true ctx (inline-fil ++ cd ctx cellss ++ inline-fil)
+let-block ctx +cd cell-ll =
+line-break true true ctx (inline-fil ++ cd ctx cell-ll ++ inline-fil)
 
-let-inline ctx \cd cellss =
-inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cellss);>)
+let-inline ctx \cd cell-ll =
+inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cell-ll);>)
 
-let-math \cd-m cellss =
-text-in-math MathOrd (fun ctx -> cd ctx cellss)
+let-math \cd-m cell-ll =
+text-in-math MathOrd (fun ctx -> cd ctx cell-ll)
 
 let invert-direction-vertically dir =
 match dir with
@@ -691,7 +697,7 @@ match cell with
 |))
 | _ -> cell
 
-let invert-v cellss = List.map (List.map invert-cell-vertically) (List.reverse cellss)
+let invert-v cell-ll = List.map (List.map invert-cell-vertically) (List.reverse cell-ll)
 
 let transpose-direction dir =
 match dir with
@@ -714,9 +720,9 @@ match cell with
 |))
 | _ -> cell
 
-let transpose cellss = List.map (List.map transpose-cell) (Matrix.transpose empty cellss)
+let transpose cell-ll = List.map (List.map transpose-cell) (Matrix.transpose empty cell-ll)
 
-let invert-h cellss = transpose (invert-v (transpose cellss))
+let invert-h cell-ll = transpose (invert-v (transpose cell-ll))
 
 % The following are DEPRECATED. Will be removed in v1
 
