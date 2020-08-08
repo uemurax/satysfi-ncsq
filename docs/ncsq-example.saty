@@ -237,22 +237,23 @@ arrow ?:left-label ?:right-label direction
       \d-code(```
 object ?:(pd-left, pd-right, pd-top, pd-bottom) label
 ```);%
-      The default value is \code(`(pd-left, pd-right, pd-top, pd-bottom) = (3pt, 3pt, 3pt, 3pt)`);.
+      Paddings are specified by ratios to the font size.
+      The default value is \code(`(pd-left, pd-right, pd-top, pd-bottom) = (0.25, 0.25, 0.25, 0.25)`);.
       \d-code(```
       \NCSq.cd(open NCSq in [
-        [object ?:(3pt, 10pt, 3pt, 20pt) {${A}};
+        [object ?:(0.25, 1.0, 0.25, 2.0) {${A}};
          arrow right; object {${B}}];
         [arrow down; empty; arrow down];
         [object {${C}}; arrow right;
-         object ?:(20pt, 3pt, 10pt, 3pt) {${D}}];
+         object ?:(2.0, 0.25, 1.0, 3.0) {${D}}];
       ]);
 ```);%
       \NCSq.cd(open NCSq in [
-        [object ?:(3pt, 10pt, 3pt, 20pt) {${A}};
+        [object ?:(0.25, 1.0, 0.25, 2.0) {${A}};
          arrow right; object {${B}}];
         [arrow down; empty; arrow down];
         [object {${C}}; arrow right;
-         object ?:(20pt, 3pt, 10pt, 3pt) {${D}}];
+         object ?:(2.0, 0.25, 1.0, 3.0) {${D}}];
       ]);
     }
     +p{
@@ -293,18 +294,18 @@ arrow ?:left-label ?:right-label ?:style direction
       \d-code(```
 arrow-2 ?:label ?:(pd-left, pd-right, pd-top, pd-bottom) direction
 ```);%
-      The default value is \code(`(pd-left, pd-right, pd-top, pd-bottom) = (6pt, 6pt, 3pt, 3pt)`);.
+      The default value is \code(`(pd-left, pd-right, pd-top, pd-bottom) = (0.5, 0.5, 0.25, 0.25)`);.
       \d-code(```
       \NCSq.cd(open NCSq in [
         [object {${A}}; arrow right; object {${B}}];
-        [arrow down; arrow-2 ?*?:(3pt, 20pt, 30pt, 3pt) down;
+        [arrow down; arrow-2 ?*?:(0.25, 2.0, 3.0, 0.25) down;
          arrow down];
         [object {${C}}; arrow right; object {${D}}];
       ]);
 ```);%
       \NCSq.cd(open NCSq in [
         [object {${A}}; arrow right; object {${B}}];
-        [arrow down; arrow-2 ?*?:(3pt, 20pt, 30pt, 3pt) down;
+        [arrow down; arrow-2 ?*?:(0.25, 2.0, 3.0, 0.25) down;
          arrow down];
         [object {${C}}; arrow right; object {${D}}];
       ]);
