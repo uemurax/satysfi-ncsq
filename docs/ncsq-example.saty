@@ -426,6 +426,25 @@ in
 ```);
       \NCSq.cd(NCSq.invert-h(cellss1));
     }
+    +p{
+      \code(`EasyCD`); module also provides \code(`transpose`); function.
+      \d-code(```
+      \EasyCD.cd(EasyCD.transpose [
+        ${| A | f | B |};
+        ${| g |   | h |};
+        ${| C | i | D |};
+        ${| j |   | k |};
+        ${| E | l | F |};
+      ]);
+```);%
+      \EasyCD.cd(EasyCD.transpose [
+        ${| A | f | B |};
+        ${| g |   | h |};
+        ${| C | i | D |};
+        ${| j |   | k |};
+        ${| E | l | F |};
+      ]);
+    }
   >
   +chapter{More examples}<
     +p{
