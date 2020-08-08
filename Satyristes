@@ -2,9 +2,11 @@
 
 (library
  (name "ncsq")
- (version "0.1.0")
+ (version "0.2.0")
  (sources
-  ((package "ncsq.satyh" "./src/ncsq.satyh")))
+  ((package "ncsq.satyh" "./src/ncsq.satyh")
+   (package "matrix.satyg" "./src/matrix.satyg")
+   (package "qp.satyg" "./src/qp.satyg")))
  (opam "satysfi-ncsq.opam")
  (dependencies
   ((base ())
@@ -12,13 +14,18 @@
 
 (libraryDoc
  (name "ncsq-doc")
- (version "0.1.0")
+ (version "0.2.0")
  (workingDirectory "docs")
  (build
-  ((satysfi "ncsq-example.saty" "-o" "ncsq-example.pdf")))
+  ((satysfi "ncsq-example.saty" "-o" "ncsq-example.pdf")
+   (satysfi "ncsq-notes.saty" "-o" "ncsq-notes.pdf")))
  (sources
   ((doc "ncsq-example.pdf" "docs/ncsq-example.pdf")
+   (doc "ncsq-notes.pdf" "docs/ncsq-notes.pdf")
    (doc "ncsq-example.saty" "docs/ncsq-example.saty")))
  (opam "satysfi-ncsq-doc.opam")
  (dependencies ((ncsq ())
-                (dist ()))))
+                (dist ())
+                (easytable ())
+                (matrix ())
+                (bibyfi ()))))
