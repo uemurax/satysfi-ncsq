@@ -28,6 +28,9 @@ type arrow-direction
 val \cd : [(cell list) list] inline-cmd
 val +cd : [(cell list) list] block-cmd
 val \cd-m : [(cell list) list] math-cmd
+val \ezcd : [(math list) list] inline-cmd
+val +ezcd : [(math list) list] block-cmd
+val \ezcd-m : [(math list) list] math-cmd
 
 % Building cells
 
@@ -691,6 +694,70 @@ inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cell-ll);>)
 
 let-math \cd-m cell-ll =
 text-in-math MathOrd (fun ctx -> cd ctx cell-ll)
+
+% Easy commutative diagrams
+
+module EZCD = struct
+
+let convert-row-odd label-over m-l =
+let-rec aux-odd acc m-l = (
+  match m-l with
+  | [] -> acc
+  | m :: m-l1 -> (
+    aux-even (object {${#m}} :: acc) m-l1
+  )
+) and aux-even acc m-l = (
+  match m-l with
+  | [] -> acc
+  | m :: m-l1 -> (
+    let ar = if label-over then arrow ?:{${#m}} right else arrow ?*?:{${#m}} right in
+    aux-odd (ar :: acc) m-l1
+  )
+) in
+List.(reverse (aux-odd [] m-l))
+
+let convert-row-even m-l =
+let-rec aux-odd (acc, n) m-l = (
+  match m-l with
+  | [] -> acc
+  | m :: m-l1 -> (
+    let label-left = (n >= 0) in
+    let ar = if label-left then arrow ?*?:{${#m}} down else arrow ?:{${#m}} down in
+    aux-even (ar :: acc, n - 2) m-l1
+  )
+) and aux-even (acc, n) m-l = (
+  match m-l with
+  | [] -> acc
+  | _ :: m-l1 -> (
+    aux-odd (empty :: acc, n - 2) m-l1
+  )
+) in
+List.(reverse (aux-odd ([], length m-l) m-l))
+
+let convert m-ll =
+let-rec aux-odd (acc, n) m-ll = (
+  match m-ll with
+  | [] -> acc
+  | m-l :: m-ll1 -> (
+    let c-l = convert-row-odd (n >= 0) m-l in
+    aux-even (c-l :: acc, n - 2) m-ll1
+  )
+) and aux-even (acc, n) m-ll = (
+  match m-ll with
+  | [] -> acc
+  | m-l :: m-ll1 -> (
+    let c-l = convert-row-even m-l in
+    aux-odd (c-l :: acc, n - 2) m-ll1
+  )
+) in
+List.(reverse (aux-odd ([], length m-ll) m-ll))
+end
+
+let-block +ezcd m-ll = '<+cd(EZCD.convert m-ll);>
+let-inline \ezcd m-ll = {\cd(EZCD.convert m-ll);}
+let-math \ezcd-m m-ll = ${\cd-m!(EZCD.convert m-ll)}
+
+% Utilities
 
 let invert-direction-vertically dir =
 match dir with

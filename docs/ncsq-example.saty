@@ -254,11 +254,11 @@ arrow ?:left-label ?:right-label direction
         ];
 ```);%
         draws the following diagram.
-        \NCSq.cd(open NCSq in [
-          [object {${A}}; arrow ?:{${f}} right; object {${B}}];
-          [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
-          [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
-        ]);%
+        \NCSq.ezcd[
+          ${| A | f | B |};
+          ${| g |   | h |};
+          ${| C | k | D |};
+        ];
       }
       +p{
         A row \code(`ms`); at an odd position is thought of as a horizontal chain of arrows.
