@@ -233,14 +233,11 @@ arrow ?:left-label ?:right-label direction
     }
     +section{\code(`\ezcd`); command}<
       +p{
-        WARNING: the following are not implemented yet.
-      }
-      +p{
         We often encounter a diagram, represented by a rectangular array ${\paren{c_{ij}}} of cells, such that
         \listing{
           * ${c_{ij}} for ${i} and ${j} odd is an object\;
-          * ${c_{ij}} for ${i} odd and ${j} even is a horizontal arrow\;
-          * ${c_{ij}} for ${i} even and ${j} odd is a vertical arrow\;
+          * ${c_{ij}} for ${i} odd and ${j} even is a right arrow\;
+          * ${c_{ij}} for ${i} even and ${j} odd is a down arrow\;
           * ${c_{ij}} for ${i} and ${j} even is empty.
         }
         \code(`NCSq`); module provides a command \code(`\ezcd`); to provide simplified syntax for such diagrams.
@@ -287,6 +284,25 @@ arrow ?:left-label ?:right-label direction
         \d-code(```
 [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down]
 ```);%
+      }
+      +p{
+        Here's a larger example.
+        \d-code(```
+        \NCSq.ezcd[
+          ${| A | a | B | b | C | c | D |};
+          ${| d |   | e |   | f |   | g |};
+          ${| E | h | F | i | G | j | H |};
+          ${| k |   | l |   | m |   | n |};
+          ${| I | o | J | p | K | q | L |};
+        ];
+```);%
+        \NCSq.ezcd[
+          ${| A | a | B | b | C | c | D |};
+          ${| d |   | e |   | f |   | g |};
+          ${| E | h | F | i | G | j | H |};
+          ${| k |   | l |   | m |   | n |};
+          ${| I | o | J | p | K | q | L |};
+        ];
       }
     >
   >
