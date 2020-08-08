@@ -7,6 +7,7 @@
 @require: math
 @import: ./qp
 @import: ./matrix
+@import: ./ncsq-util
 
 % Name conventions
 % -l or -ls: list of something
@@ -28,9 +29,6 @@ type arrow-direction
 val \cd : [(cell list) list] inline-cmd
 val +cd : [(cell list) list] block-cmd
 val \cd-m : [(cell list) list] math-cmd
-val \ezcd : [(math list) list] inline-cmd
-val +ezcd : [(math list) list] block-cmd
-val \ezcd-m : [(math list) list] math-cmd
 
 % Building cells
 
@@ -58,7 +56,6 @@ val equal : arrow-style
 val transpose : (cell list) list -> (cell list) list
 val invert-v : (cell list) list -> (cell list) list
 val invert-h : (cell list) list -> (cell list) list
-val ezcd-convert : (math list) list -> (cell list) list
 
 % The following are DEPRECATED. Will be removed in v1
 
@@ -133,29 +130,6 @@ type cell-raw =
 
 % Utilities
 
-let-rec zip-with f x-l y-l =
-match (x-l, y-l) with
-| ([], _) -> List.map (fun y -> (f None (Some y))) y-l
-| (_, []) -> List.map (fun x -> (f (Some x) None)) x-l
-| (x :: x-l1, y :: y-l1) -> f (Some x) (Some y) :: zip-with f x-l1 y-l1
-
-module Matrix = struct
-
-let transpose fill x-ll =
-List.fold-right
-(zip-with
- (fun y-o y-l-o ->
-  Option.from fill y-o :: Option.from [] y-l-o))
-[]
-x-ll
-
-end
-
-let zip x0 y0 =
-zip-with
-(fun x-o y-o ->
- (Option.from x0 x-o, Option.from y0 y-o))
-
 let get-grs-bbox gr-l =
 List.fold-right
 (fun gr ((x0, y0), (x1, y1)) ->
@@ -209,7 +183,7 @@ let get-objss-bts = List.map get-objs-bt
 
 let get-objs-lr = get-objs-boundary Horizontal
 
-let get-objss-lrs cell-ll = List.map get-objs-lr (Matrix.transpose Empty-raw cell-ll)
+let get-objss-lrs cell-ll = List.map get-objs-lr (NCSqUtil.transpose Empty-raw cell-ll)
 
 % Determine source and target of an arrow
 
@@ -306,7 +280,7 @@ match ar with
 | _ -> (None, arr)
 
 let make-qp-1 dir1 cell-l (cstr-l, pq-l) =
-let cpq-l = zip Empty-raw ((0pt, 0pt), (0pt, 0pt)) cell-l pq-l in
+let cpq-l = NCSqUtil.zip Empty-raw ((0pt, 0pt), (0pt, 0pt)) cell-l pq-l in
 let (x-l, src, y-l) = find-object cpq-l in
 match src with
 | None -> (cstr-l, pq-l)
@@ -347,7 +321,7 @@ match src with
 )
 
 let make-qp dir1 cell-ll pq-l =
-let pq-l1 = zip (0pt, 0pt) (0pt, 0pt) pq-l [] in
+let pq-l1 = NCSqUtil.zip (0pt, 0pt) (0pt, 0pt) pq-l [] in
 let (cstr-l, pq-l2) = List.fold-right (make-qp-1 dir1) ([], pq-l1) cell-ll in
 (cstr-l, List.map Pair.snd pq-l2)
 
@@ -381,14 +355,14 @@ match problem with
 | ([], _) -> pq-l
 | _ -> (
   let pq-l1 = solve-qp problem in
-  zip-with (fun pq-o1 pq-o2 -> (
+  NCSqUtil.zip-with (fun pq-o1 pq-o2 -> (
     let pq1 = Option.from (0pt, 0pt) pq-o1 in
     let pq2 = Option.from (0pt, 0pt) pq-o2 in
     bd-enlarge pq1 pq2
   )) pq-l pq-l1
 )
 
-let adjust-cellss-bts cell-ll = adjust-cellss-boundaries Vertical (Matrix.transpose Empty-raw cell-ll)
+let adjust-cellss-bts cell-ll = adjust-cellss-boundaries Vertical (NCSqUtil.transpose Empty-raw cell-ll)
 
 let adjust-cellss-lrs = adjust-cellss-boundaries Horizontal
 
@@ -410,11 +384,11 @@ let make-hgrid = make-grid Horizontal
 
 let draw-objects vgrid hgrid cell-ll =
 let gr-lll =
-zip-with
+NCSqUtil.zip-with
 (fun y-o cell-l-o ->
  (let y = Option.from 0pt y-o in
   let cell-l = Option.from [] cell-l-o in
-  zip-with
+  NCSqUtil.zip-with
   (fun x-o cell-o ->
    (let x = Option.from 0pt x-o in
     let cell = Option.from Empty-raw cell-o in
@@ -453,11 +427,11 @@ match arr with
 
 let draw-arrows dir1 vgrid hgrid cell-ll =
 let gr-ll =
-zip-with
+NCSqUtil.zip-with
 (fun x-o cell-l-o ->
  (let x = Option.from 0pt x-o in
   let cell-l = Option.from [] cell-l-o in
-  let cx-l = zip Empty-raw 0pt cell-l vgrid in
+  let cx-l = NCSqUtil.zip Empty-raw 0pt cell-l vgrid in
   let (_, src, y-l) = find-object cx-l in
   match src with
   | None -> []
@@ -478,7 +452,7 @@ zip-with
 hgrid cell-ll in
 List.concat gr-ll
 
-let draw-varrows vgrid hgrid cell-ll = draw-arrows Vertical vgrid hgrid (Matrix.transpose Empty-raw cell-ll)
+let draw-varrows vgrid hgrid cell-ll = draw-arrows Vertical vgrid hgrid (NCSqUtil.transpose Empty-raw cell-ll)
 
 let draw-harrows vgrid hgrid = draw-arrows Horizontal hgrid vgrid
 
@@ -696,70 +670,6 @@ inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cell-ll);>)
 let-math \cd-m cell-ll =
 text-in-math MathOrd (fun ctx -> cd ctx cell-ll)
 
-% Easy commutative diagrams
-
-module EZCD = struct
-
-let convert-row-odd label-over m-l =
-let-rec aux-odd acc m-l = (
-  match m-l with
-  | [] -> acc
-  | m :: m-l1 -> (
-    aux-even (object {${#m}} :: acc) m-l1
-  )
-) and aux-even acc m-l = (
-  match m-l with
-  | [] -> acc
-  | m :: m-l1 -> (
-    let ar = if label-over then arrow ?:{${#m}} right else arrow ?*?:{${#m}} right in
-    aux-odd (ar :: acc) m-l1
-  )
-) in
-List.(reverse (aux-odd [] m-l))
-
-let convert-row-even m-l =
-let-rec aux-odd (acc, n) m-l = (
-  match m-l with
-  | [] -> acc
-  | m :: m-l1 -> (
-    let label-left = (n >= 0) in
-    let ar = if label-left then arrow ?*?:{${#m}} down else arrow ?:{${#m}} down in
-    aux-even (ar :: acc, n - 2) m-l1
-  )
-) and aux-even (acc, n) m-l = (
-  match m-l with
-  | [] -> acc
-  | _ :: m-l1 -> (
-    aux-odd (empty :: acc, n - 2) m-l1
-  )
-) in
-List.(reverse (aux-odd ([], length m-l) m-l))
-
-let convert m-ll =
-let-rec aux-odd (acc, n) m-ll = (
-  match m-ll with
-  | [] -> acc
-  | m-l :: m-ll1 -> (
-    let c-l = convert-row-odd (n >= 0) m-l in
-    aux-even (c-l :: acc, n - 2) m-ll1
-  )
-) and aux-even (acc, n) m-ll = (
-  match m-ll with
-  | [] -> acc
-  | m-l :: m-ll1 -> (
-    let c-l = convert-row-even m-l in
-    aux-odd (c-l :: acc, n - 2) m-ll1
-  )
-) in
-List.(reverse (aux-odd ([], length m-ll) m-ll))
-end
-
-let ezcd-convert = EZCD.convert
-
-let-block +ezcd m-ll = '<+cd(ezcd-convert m-ll);>
-let-inline \ezcd m-ll = {\cd(ezcd-convert m-ll);}
-let-math \ezcd-m m-ll = ${\cd-m!(ezcd-convert m-ll)}
-
 % Utilities
 
 let invert-direction-vertically dir =
@@ -807,7 +717,7 @@ match cell with
 |))
 | _ -> cell
 
-let transpose cell-ll = List.map (List.map transpose-cell) (Matrix.transpose empty cell-ll)
+let transpose cell-ll = List.map (List.map transpose-cell) (NCSqUtil.transpose empty cell-ll)
 
 let invert-h cell-ll = transpose (invert-v (transpose cell-ll))
 

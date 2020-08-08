@@ -1,6 +1,7 @@
 @require: stdjareport
 @require: itemize
 @import: ../src/ncsq
+@import: ../src/easy-cd
 
 let cellss1 = open NCSq in [
   [object {${A}}; arrow ?:{${f}} right; object {${B}}];
@@ -231,7 +232,7 @@ arrow ?:left-label ?:right-label direction
         }
       });
     }
-    +section{\code(`\ezcd`); command}<
+    +section{\code(`ncsq/easy-cd`); package}<
       +p{
         We often encounter a diagram, represented by a rectangular array ${\paren{c_{ij}}} of cells, such that
         \listing{
@@ -240,18 +241,18 @@ arrow ?:left-label ?:right-label direction
           * ${c_{ij}} for ${i} even and ${j} odd is a down arrow\;
           * ${c_{ij}} for ${i} and ${j} even is empty.
         }
-        \code(`NCSq`); module provides a command \code(`\ezcd`); to provide simplified syntax for such diagrams.
-        \code(`\ezcd`); receives a rectangular array of math formulas and draws a diagram.
+        A helper package \code(`ncsq/easy-cd`); contains a module \code(`EasyCD`); which provides a command \code(`\EasyCD.cd`); to draw such diagrams with simplified syntax.
+        \code(`\EasyCD.cd`); receives a rectangular array of math formulas and draws a diagram.
         For example,
         \d-code(```
-        \NCSq.ezcd[
+        \EasyCD.cd[
           ${| A | f | B |};
           ${| g |   | h |};
           ${| C | k | D |};
         ];
 ```);%
         draws the following diagram.
-        \NCSq.ezcd[
+        \EasyCD.cd[
           ${| A | f | B |};
           ${| g |   | h |};
           ${| C | k | D |};
@@ -288,7 +289,7 @@ arrow ?:left-label ?:right-label direction
       +p{
         Here's a larger example.
         \d-code(```
-        \NCSq.ezcd[
+        \EasyCD.cd[
           ${| A | a | B | b | C | c | D |};
           ${| d |   | e |   | f |   | g |};
           ${| E | h | F | i | G | j | H |};
@@ -296,7 +297,7 @@ arrow ?:left-label ?:right-label direction
           ${| I | o | J | p | K | q | L |};
         ];
 ```);%
-        \NCSq.ezcd[
+        \EasyCD.cd[
           ${| A | a | B | b | C | c | D |};
           ${| d |   | e |   | f |   | g |};
           ${| E | h | F | i | G | j | H |};
@@ -430,7 +431,7 @@ in
     +p{
       Incomplete diagrams (diagrams that contain arrows missing source or target) may be useful for building diagrams programmatically.
       \d-code(```
-      \NCSq.cd(
+      \EasyCD.cd(
         % Incomplete square (one face is missing)
         let square-from a f b g h = [
           ${| #a | #f | #b |};
@@ -442,11 +443,10 @@ in
           square-from ${A_{#mi}} ${f_{#mi}} ${B_{#mi}}
           ${g_{#mi}} ${h_{#mi}}))
         |> List.concat
-        |> NCSq.ezcd-convert
-        |> NCSq.transpose
+        |> EasyCD.transpose
       );
 ```);%
-      \NCSq.cd(
+      \EasyCD.cd(
         % Incomplete square (one face is missing)
         let square-from a f b g h = [
           ${| #a | #f | #b |};
@@ -458,8 +458,7 @@ in
           square-from ${A_{#mi}} ${f_{#mi}} ${B_{#mi}}
           ${g_{#mi}} ${h_{#mi}}))
         |> List.concat
-        |> NCSq.ezcd-convert
-        |> NCSq.transpose
+        |> EasyCD.transpose
       );
     }
     +p{
