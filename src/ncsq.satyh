@@ -6,6 +6,7 @@
 @require: gr
 @require: math
 @import: ./qp
+@import: ./matrix
 
 % This type is DEPRECATED. Will be removed in v1
 type ncsq-arrow-style =
@@ -500,10 +501,11 @@ fun from to ->
  then
  []
  else
- let xf = x /' 1pt in
- let yf = y /' 1pt in
- let r = 1.0 /. exp (0.5 *. log (xf *. xf +. yf *. yf)) in
- let d = 1pt in
+ let p = 1pt in
+ let xf = x /' p in
+ let yf = y /' p in
+ let r = 1.0 /. RealVector.(norm (of-list [xf; yf])) in
+ let d = p in
  let dx = 0pt -' d *' (yf *. r) in
  let dy = d *' (xf *. r) in
  let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
