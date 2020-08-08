@@ -1,4 +1,5 @@
 @require: stdjareport
+@require: itemize
 @import: ../src/ncsq
 
 let cellss1 = open NCSq in [
@@ -230,6 +231,64 @@ arrow ?:left-label ?:right-label direction
         }
       });
     }
+    +section{\code(`\ezcd`); command}<
+      +p{
+        WARNING: the following are not implemented yet.
+      }
+      +p{
+        We often encounter a diagram, represented by a rectangular array ${\paren{c_{ij}}} of cells, such that
+        \listing{
+          * ${c_{ij}} for ${i} and ${j} odd is an object\;
+          * ${c_{ij}} for ${i} odd and ${j} even is a horizontal arrow\;
+          * ${c_{ij}} for ${i} even and ${j} odd is a vertical arrow\;
+          * ${c_{ij}} for ${i} and ${j} even is empty.
+        }
+        \code(`NCSq`); module provides a command \code(`\ezcd`); to provide simplified syntax for such diagrams.
+        \code(`\ezcd`); receives a rectangular array of math formulas and draws a diagram.
+        For example,
+        \d-code(```
+        \NCSq.ezcd[
+          ${| A | f | B |};
+          ${| g |   | h |};
+          ${| C | k | D |};
+        ];
+```);%
+        draws the following diagram.
+        \NCSq.cd(open NCSq in [
+          [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+          [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
+          [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
+        ]);%
+      }
+      +p{
+        A row \code(`ms`); at an odd position is thought of as a horizontal chain of arrows.
+        A math formula \code(`m`); in \code(`ms`); at an odd position is converted to an object with label \code(`{${#m}}`);.
+        A math formula \code(`m`); in \code(`ms`); at an even position is converted to a right arrow with label \code(`{${#m}}`);.
+        The position of the label on the right arrow depends on the position of the row \code(`ms`);:
+        if \code(`ms`); is in the upper half of the array, then the label is above the arrow\;
+        if \code(`ms`); is in the lower half of the array, then tha label is below the arrow.
+        For example, the first row in the above example is converted to
+        \d-code(```
+[object {${A}}; arrow ?:{${f}} right; object {${B}}]
+```);%
+        while the last row is converted to
+        \d-code(```
+[object {${C}}; arrow ?*?:{${k}} right; object {${D}}]
+```);%
+      }
+      +p{
+        A row \code(`ms`); at an even position contains vertical arrows.
+        A math formula in \code(`ms`); at an even position is converted to the empty cell.
+        A math formula \code(`m`); in \code(`ms`); at an odd position is converted to a down arrow with label \code(`{${#m}}`);.
+        The position of the label on the down arrow depends on the position of the math formula \code(`m`);:
+        if \code(`m`); is in the left half of \code(`ms`);, then the label is on the left side of the arrow\;
+        if \code(`m`); is in the right half of \code(`ms`);, then the label is on the right side of the arrow.
+        For example, the middle row in the above example is converted to
+        \d-code(```
+[arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down]
+```);%
+      }
+    >
   >
   +chapter{Changing styles}<
     +p{
