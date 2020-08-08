@@ -58,6 +58,7 @@ val equal : arrow-style
 val transpose : (cell list) list -> (cell list) list
 val invert-v : (cell list) list -> (cell list) list
 val invert-h : (cell list) list -> (cell list) list
+val ezcd-convert : (math list) list -> (cell list) list
 
 % The following are DEPRECATED. Will be removed in v1
 
@@ -753,9 +754,11 @@ let-rec aux-odd (acc, n) m-ll = (
 List.(reverse (aux-odd ([], length m-ll) m-ll))
 end
 
-let-block +ezcd m-ll = '<+cd(EZCD.convert m-ll);>
-let-inline \ezcd m-ll = {\cd(EZCD.convert m-ll);}
-let-math \ezcd-m m-ll = ${\cd-m!(EZCD.convert m-ll)}
+let ezcd-convert = EZCD.convert
+
+let-block +ezcd m-ll = '<+cd(ezcd-convert m-ll);>
+let-inline \ezcd m-ll = {\cd(ezcd-convert m-ll);}
+let-math \ezcd-m m-ll = ${\cd-m!(ezcd-convert m-ll)}
 
 % Utilities
 
