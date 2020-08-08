@@ -20,7 +20,22 @@ $ satyrographos install
 
 ## Usage
 
-See [example/](example/).
+In preamble:
+```
+@require: ncsq/ncsq
+```
+`NCSq` module provides a block command `+cd`, an inline command `\cd`, and a math command `\cd-m`.
+All of them receive a rectangular array of cells and draw a diagram.
+```
++NCSq.cd(open NCSq in [
+  [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+  [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
+  [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
+]);
+```
+![Sample diagram](docs/ncsq-sample.png)
+
+See [docs/ncsq-example.saty](docs/ncsq-example.saty) for details and further examples.
 
 ## Related packages
 
