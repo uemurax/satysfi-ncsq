@@ -1,0 +1,94 @@
+@require: stdjareport
+@import: ../../src/ncsq
+
+document (|
+  title = {\code(`NCSq`); package};
+  author = {Taichi Uemura};
+|) '<
+  +code(```
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+    [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
+    [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
+  ]);
+```);
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow ?:{${f}} right; object {${B}}];
+    [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
+    [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
+  ]);
+  +code(```
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow ?:{${g}} right; object {${B}};
+     arrow ?:{the longest label I've ever seen} right; object {${C}}];
+    [arrow down; empty; arrow down;
+     empty; arrow down];
+    [object {LARGE OBJECT}; arrow ?*?:{${f}} right; object {${E}};
+     arrow ?*?:{${h}} right; object {${F}}];
+  ]);
+```);
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow ?:{${g}} right; object {${B}};
+     arrow ?:{the longest label I've ever seen} right; object {${C}}];
+    [arrow down; empty; arrow down;
+     empty; arrow down];
+    [object {LARGE OBJECT}; arrow ?*?:{${f}} right; object {${E}};
+     arrow ?*?:{${h}} right; object {${F}}];
+  ]);
+  +code(```
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow right; object {${B}}; empty;
+     arrow ?:{Of course, arrows sufficiently stretch} right;
+     empty; object {${C}}];
+    [empty; empty; arrow down;
+     empty; empty; empty; arrow down];
+    [arrow down; empty; object {${D}};
+     arrow right; object {${E}}; arrow right; object {${F}}];
+    [empty; empty; arrow down;
+     empty; arrow down; empty; empty];
+    [object {${G}}; arrow right; object {${H}};
+     arrow ?*?:{${f}} right; object {${I}}; empty; arrow down];
+    [arrow down; empty; empty;
+     empty; arrow down; empty; empty];
+    [object {${J}}; empty;
+     arrow ?*?:{even when there's another long label} right;
+     empty; object {${K}}; arrow right; object {${L}}];
+  ]);
+```);
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow right; object {${B}}; empty;
+     arrow ?:{Of course, arrows sufficiently stretch} right;
+     empty; object {${C}}];
+    [empty; empty; arrow down;
+     empty; empty; empty; arrow down];
+    [arrow down; empty; object {${D}};
+     arrow right; object {${E}}; arrow right; object {${F}}];
+    [empty; empty; arrow down;
+     empty; arrow down; empty; empty];
+    [object {${G}}; arrow right; object {${H}};
+     arrow ?*?:{${f}} right; object {${I}}; empty; arrow down];
+    [arrow down; empty; empty;
+     empty; arrow down; empty; empty];
+    [object {${J}}; empty;
+     arrow ?*?:{even when there's another long label} right;
+     empty; object {${K}}; arrow right; object {${L}}];
+  ]);
+  +p{
+    Diagonal arrows and crossed arrows are not supported.
+  }
+  +p{
+    Parallel arrows are not supported.
+  }
+  +code(```
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow ?*?*?:solid right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+  ]);
+```);
+  +NCSq.cd(open NCSq in [
+    [object {${A}}; arrow ?*?*?:solid right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+  ]);
+>
