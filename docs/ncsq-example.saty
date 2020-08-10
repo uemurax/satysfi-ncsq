@@ -337,7 +337,7 @@ object ?:(pd-left, pd-right, pd-top, pd-bottom) label
       \d-code(```
 arrow ?:left-label ?:right-label ?:style direction
 ```);%
-      \code(`style`); can be \code(`solid`); (default), \code(`dashed`); or \code(`equal`);, which are constants provided by \code(`NCSq`); module.
+      \code(`NCSq`); module provides three styles: \code(`solid`); (default)\; \code(`dashed`);\; and \code(`equal`);.
       \d-code(```
     \NCSq.cd(open NCSq in [
       [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
@@ -364,6 +364,7 @@ arrow ?:left-label ?:right-label ?:style direction
       \NCSq.cd(open NCSq in [
       [object {${A}}; eqarrow right; object {${B}}];
       ]);%
+      See Section \ref(`sec-arrow-style`); for deeper configuration.
     }
     +p{
       \code(`arrow-2`); accepts the second optional argument to change paddings.
@@ -386,6 +387,65 @@ arrow-2 ?:label ?:(pd-left, pd-right, pd-top, pd-bottom) direction
         [object {${C}}; arrow right; object {${D}}];
       ]);
     }
+    +section?:(`sec-arrow-style`){Arrow styles}<
+      +p{
+        \code(`ncsq/arrows`); package, which is loaded by \code(`ncsq/ncsq`);, provides some arrow styles.
+        An \dfn{arrow style} consists of three components: body\; tail\; and head.
+        An arrow style is constructed by \code(`NCSqArrowStyle.of-bth`); function.
+        \d-code(```
+NCSqArrowStyle.of-bth body tail head
+```);%
+        Modules \code(`NCSqArrowBody`);, \code(`NCSqArrowTail`); and \code(`NCSqArrowHead`); provides some body styles, tail styles and head styles, respectively.
+        \d-code(```
+        \NCSq.cd(
+          let implies = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
+          in
+          let line = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.none
+          in
+          let dashed-line = NCSqArrowStyle.of-bth
+          NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.none
+          in
+          let bodyless = NCSqArrowStyle.of-bth
+          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee
+          in
+          open NCSq in
+          let row style = [
+            object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
+          ] in [
+            row implies;
+            row line;
+            row dashed-line;
+            row bodyless;
+          ]
+        );
+```);%
+        \NCSq.cd(
+          let implies = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
+          in
+          let line = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.none
+          in
+          let dashed-line = NCSqArrowStyle.of-bth
+          NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.none
+          in
+          let bodyless = NCSqArrowStyle.of-bth
+          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee
+          in
+          open NCSq in
+          let row style = [
+            object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
+          ] in [
+            row implies;
+            row line;
+            row dashed-line;
+            row bodyless;
+          ]
+        );
+      }
+    >
   >
   +chapter{Utilities}<
     +p{
