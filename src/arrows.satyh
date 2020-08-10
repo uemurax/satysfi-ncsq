@@ -1,0 +1,252 @@
+@require: pervasives
+@require: base/list-ext
+@require: base/option-ext
+@require: base/length
+@require: base/float
+@require: gr
+@import: ./ncsq-util
+
+module NCSqConst : sig
+
+val line-width : float
+
+end = struct
+
+let line-width = 0.042
+
+end
+
+module NCSqArrowBody : sig
+
+type t
+
+val destruct : t -> context -> (|
+  left : length;
+  right : length;
+  draw : (
+    (length -> length) ->       % tail depth
+    (length -> length) ->       % head depth
+    point ->                    % from
+    point ->                    % to
+    graphics list
+  );
+|)
+
+val none : t
+val solid : t
+val dashed : t
+val solid-2 : t
+
+end = struct
+
+type t = context -> (|
+  left : length;
+  right : length;
+  draw : (length -> length) -> (length -> length) -> point -> point -> graphics list;
+|)
+
+let destruct body = body
+
+let body-end-points tail head (from, p0) (to, p1) =
+NCSqUtil.angle from to
+|> Option.map (fun (dx, dy) -> (
+  let (x0, y0) = from in
+  let (x1, y1) = to in
+  let t0 = tail p0 in
+  let h0 = head p1 in
+  let a0 = (x0 +' t0 *' dx) +' p0 *' dy in
+  let b0 = (y0 +' t0 *' dy) -' p0 *' dx in
+  let a1 = (x1 -' h0 *' dx) +' p1 *' dy in
+  let b1 = (y1 -' h0 *' dy) -' p1 *' dx in
+  ((a0, b0), (a1, b1))
+))
+
+let none ctx = (|
+  left = 0pt;
+  right = 0pt;
+  draw = fun _ _ _ _ -> [];
+|)
+
+let of-lines lf-l0 ctx =
+let color = get-text-color ctx in
+let fs = get-font-size ctx in
+let lf-l = List.map (fun (x, y, f) -> (fs *' x, fs *' y, f fs color)) lf-l0 in
+let left = List.fold-right (fun (from-pos, to-pos, _) l -> Length.(min l (min from-pos to-pos))) 0pt lf-l in
+let right = List.fold-right (fun (from-pos, to-pos, _) r -> Length.(max r (max from-pos to-pos))) 0pt lf-l in
+let-rec aux gr-l lf-l tail head from to = (
+  match lf-l with
+  | [] -> gr-l
+  | (from-pos, to-pos, lf) :: lf-l1 -> (
+    let gr-l1 = (
+      match body-end-points tail head (from, from-pos) (to, to-pos) with
+      | None -> gr-l
+      | Some (z0, z1) -> (
+        let gr = lf z0 z1 in
+        gr :: gr-l
+      )
+    ) in
+    aux gr-l1 lf-l1 tail head from to
+  )
+) in
+(|
+  left = left;
+  right = right;
+  draw = aux [] lf-l;
+|)
+
+let line fs c x y = stroke (fs *' NCSqConst.line-width) c (Gr.line x y)
+let dashed-line fs c x y =
+let w = fs *' NCSqConst.line-width in
+let dash = (fs *' 0.25, fs *' 0.25, fs *' 0.0) in
+dashed-stroke w dash c (Gr.line x y)
+
+let solid = of-lines [(0.0, 0.0, line)]
+
+let dashed = of-lines [(0.0, 0.0, dashed-line)]
+
+let solid-2 =
+let p = NCSqConst.line-width *. 2.0 in
+let np = Float.neg p in
+of-lines [(np, np, line); (p, p, line)]
+
+end
+
+module NCSqArrowHead : sig
+
+type t
+
+val destruct : t -> context -> (
+  length ->                     % body left
+  length ->                     % body right
+  (|
+    padding : length;
+    depth : length -> length;
+    draw : float * float -> graphics list;
+  |)
+)
+
+val none : t
+val vee : t
+
+end = struct
+
+type t = context -> length -> length -> (|
+  padding : length;
+  depth : length -> length;
+  draw : float * float -> graphics list;
+|)
+
+let destruct head = head
+
+let pd-base = 0.67
+
+let none ctx _ _ =
+let pd = get-font-size ctx *' pd-base in
+(|
+  padding = pd;
+  depth = fun _ -> 0pt;
+  draw = fun _ -> [];
+|)
+
+let vee ctx left right =
+let w0 = get-font-size ctx in
+let color = get-text-color ctx in
+let d0 = w0 *' 0.13 in
+let d1 = Length.(max (max (abs left) (abs right)) d0) in
+let d2 = w0 *' 0.067 in
+let d = d1 +' d2 in
+let lw = w0 *' NCSqConst.line-width in
+(|
+  padding = w0 *' pd-base +' d;
+  depth = Length.abs;
+  draw = fun (dx, dy) -> (
+    let (x1, y1) = (d *' Float.neg (dx +. dy), d *' (dx -. dy)) in
+    let (x2, y2) = (d *' (dy -. dx), d *' Float.neg (dx +. dy)) in
+    let gr1 = stroke lw color (Gr.line (0pt, 0pt) (x1, y1)) in
+    let gr2 = stroke lw color (Gr.line (0pt, 0pt) (x2, y2)) in
+    [gr1; gr2]
+  );
+|)
+
+end
+
+module NCSqArrowTail : sig
+
+type t
+
+val destruct : t -> context -> (
+  length ->                     % body left
+  length ->                     % body right
+  (|
+    padding : length;
+    depth : length -> length;
+    draw : float * float -> graphics list;
+  |)
+)
+
+val none : t
+
+end = struct
+
+type t = context -> length -> length -> (|
+  padding : length;
+  depth : length -> length;
+  draw : float * float -> graphics list;
+|)
+
+let destruct tail = tail
+
+let none ctx _ _ =
+let pd = get-font-size ctx *' 0.67 in
+(|
+  padding = pd;
+  depth = fun _ -> 0pt;
+  draw = fun _ -> [];
+|)
+
+end
+
+module NCSqArrowStyle : sig
+
+type t
+
+val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
+
+val destruct : t -> context -> (|
+  tail-padding : length;
+  head-padding : length;
+  draw : point -> point -> graphics list
+|)
+
+end = struct
+
+type body = NCSqArrowBody.t
+type tail = NCSqArrowTail.t
+type head = NCSqArrowHead.t
+
+type t = body * tail * head
+
+let of-bth body tail head = (body, tail, head)
+
+let destruct (body, tail, head) ctx =
+let b = NCSqArrowBody.destruct body ctx in
+let l = b#left in
+let r = b#right in
+let t = NCSqArrowTail.destruct tail ctx l r in
+let h = NCSqArrowHead.destruct head ctx l r in
+(|
+  tail-padding = t#padding;
+  head-padding = h#padding;
+  draw = fun from to -> (
+    match NCSqUtil.angle from to with
+    | None -> []
+    | Some a -> (
+      let grs-tail = List.map (shift-graphics from) (t#draw a) in
+      let grs-body = b#draw t#depth h#depth from to in
+      let grs-head = List.map (shift-graphics to) (h#draw a) in
+      List.concat [grs-tail; grs-body; grs-head]
+    )
+  );
+|)
+
+end

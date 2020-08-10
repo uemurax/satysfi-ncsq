@@ -8,6 +8,7 @@
 @import: ./qp
 @import: ./matrix
 @import: ./ncsq-util
+@import: ./arrows
 
 % Name conventions
 % -l or -ls: list of something
@@ -23,7 +24,6 @@ type ncsq-arrow-style =
 module NCSq : sig
 
 type cell
-type arrow-style
 type arrow-direction
 
 val \cd : [(cell list) list] inline-cmd
@@ -34,7 +34,7 @@ val \cd-m : [(cell list) list] math-cmd
 
 val empty : cell
 val object : float * float * float * float ?-> inline-text -> cell
-val arrow : inline-text ?-> inline-text ?-> arrow-style ?-> arrow-direction -> cell
+val arrow : inline-text ?-> inline-text ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
 val arrow-2 : inline-text ?-> float * float * float * float ?-> arrow-direction -> cell
 val eqarrow : arrow-direction -> cell
 
@@ -45,11 +45,11 @@ val right : arrow-direction
 val up : arrow-direction
 val down : arrow-direction
 
-% Arrow styles
+% Arrow style
 
-val solid : arrow-style
-val dashed : arrow-style
-val equal : arrow-style
+val solid : NCSqArrowStyle.t
+val dashed : NCSqArrowStyle.t
+val equal : NCSqArrowStyle.t
 
 % Utilities
 
@@ -509,11 +509,6 @@ let h = get-font-size ctx in
 
 % Commands
 
-type arrow-style =
-| ArrSolid
-| ArrDashed
-| ArrEqual
-
 type object = (|
   label : inline-text;
   paddings : float * float * float * float;
@@ -521,7 +516,7 @@ type object = (|
 
 type arrow = (|
   direction : arrow-direction;
-  style : arrow-style;
+  style : NCSqArrowStyle.t;
   left-label : inline-text option;
   right-label : inline-text option;
 |)
@@ -543,10 +538,6 @@ let right = (Horizontal, Forwards)
 let up = (Vertical, Backwards)
 let down = (Vertical, Forwards)
 
-let solid = ArrSolid
-let dashed = ArrDashed
-let equal = ArrEqual
-
 let empty = Empty
 
 let object ?:pds-opt label =
@@ -558,7 +549,11 @@ Object (|
 let arrow ?:left-label ?: right-label ?:style-opt direction =
 Arrow (|
   direction = direction;
-  style = Option.from solid style-opt;
+  style = (
+    Option.from
+    (NCSqArrowStyle.of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee)
+    style-opt
+  );
   left-label = left-label;
   right-label = right-label;
 |)
@@ -569,6 +564,10 @@ Arrow-2 (|
   paddings = Option.from (let (pdx, pdy) = (0.5, 0.25) in (pdx, pdx, pdy, pdy)) pds-opt;
   direction = direction;
 |)
+
+let solid = NCSqArrowStyle.of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee
+let dashed = NCSqArrowStyle.of-bth NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.vee
+let equal = NCSqArrowStyle.of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.none
 
 let eqarrow direction = arrow ?* ?* ?:(equal) direction
 
@@ -591,7 +590,7 @@ match cell with
  let pds = make-pds ctx obj#paddings in
  Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' shift-y ctx) gr, pds))
 | Arrow arr ->
-(let style = arr#style in
+(let style = NCSqArrowStyle.destruct arr#style ctx in
  let label-ctx = label-context ctx in
  let draw-label l = draw-text (0pt, 0pt) (read-inline label-ctx l) in
  let grl = Option.map draw-label arr#left-label in
@@ -620,13 +619,9 @@ match cell with
    )
  ) in
  Arrow-raw ((|
-   (arrow-config-default ctx)
-   with
-   draw =
-   (match style with
-    | ArrSolid -> draw-solid-arrow ctx
-    | ArrDashed -> draw-dashed-arrow ctx
-    | ArrEqual -> draw-eq ctx);
+   head-len = style#head-padding;
+   tail-len = style#tail-padding;
+   draw = style#draw;
  |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
 | Arrow-2 arr2 ->
 (let m1 =
