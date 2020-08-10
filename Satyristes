@@ -5,6 +5,8 @@
  (version "0.2.0")
  (sources
   ((package "ncsq.satyh" "./src/ncsq.satyh")
+   (package "ncsq-util.satyg" "./src/ncsq-util.satyg")
+   (package "easy-cd.satyh" "./src/easy-cd.satyh")
    (package "matrix.satyg" "./src/matrix.satyg")
    (package "qp.satyg" "./src/qp.satyg")))
  (opam "satysfi-ncsq.opam")

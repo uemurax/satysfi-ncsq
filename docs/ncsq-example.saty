@@ -1,5 +1,7 @@
 @require: stdjareport
+@require: itemize
 @import: ../src/ncsq
+@import: ../src/easy-cd
 
 let cellss1 = open NCSq in [
   [object {${A}}; arrow ?:{${f}} right; object {${B}}];
@@ -230,6 +232,80 @@ arrow ?:left-label ?:right-label direction
         }
       });
     }
+    +section{\code(`ncsq/easy-cd`); package}<
+      +p{
+        We often encounter a diagram, represented by a rectangular array ${\paren{c_{ij}}} of cells, such that
+        \listing{
+          * ${c_{ij}} for ${i} and ${j} odd is an object\;
+          * ${c_{ij}} for ${i} odd and ${j} even is a right arrow\;
+          * ${c_{ij}} for ${i} even and ${j} odd is a down arrow\;
+          * ${c_{ij}} for ${i} and ${j} even is empty.
+        }
+        A helper package \code(`ncsq/easy-cd`); contains a module \code(`EasyCD`); which provides a command \code(`\EasyCD.cd`); to draw such diagrams with simplified syntax.
+        \code(`\EasyCD.cd`); receives a rectangular array of math formulas and draws a diagram.
+        For example,
+        \d-code(```
+        \EasyCD.cd[
+          ${| A | f | B |};
+          ${| g |   | h |};
+          ${| C | k | D |};
+        ];
+```);%
+        draws the following diagram.
+        \EasyCD.cd[
+          ${| A | f | B |};
+          ${| g |   | h |};
+          ${| C | k | D |};
+        ];
+      }
+      +p{
+        A row \code(`ms`); at an odd position is thought of as a horizontal chain of arrows.
+        A math formula \code(`m`); in \code(`ms`); at an odd position is converted to an object with label \code(`{${#m}}`);.
+        A math formula \code(`m`); in \code(`ms`); at an even position is converted to a right arrow with label \code(`{${#m}}`);.
+        The position of the label on the right arrow depends on the position of the row \code(`ms`);:
+        if \code(`ms`); is in the upper half of the array, then the label is above the arrow\;
+        if \code(`ms`); is in the lower half of the array, then tha label is below the arrow.
+        For example, the first row in the above example is converted to
+        \d-code(```
+[object {${A}}; arrow ?:{${f}} right; object {${B}}]
+```);%
+        while the last row is converted to
+        \d-code(```
+[object {${C}}; arrow ?*?:{${k}} right; object {${D}}]
+```);%
+      }
+      +p{
+        A row \code(`ms`); at an even position contains vertical arrows.
+        A math formula in \code(`ms`); at an even position is converted to the empty cell.
+        A math formula \code(`m`); in \code(`ms`); at an odd position is converted to a down arrow with label \code(`{${#m}}`);.
+        The position of the label on the down arrow depends on the position of the math formula \code(`m`);:
+        if \code(`m`); is in the left half of \code(`ms`);, then the label is on the left side of the arrow\;
+        if \code(`m`); is in the right half of \code(`ms`);, then the label is on the right side of the arrow.
+        For example, the middle row in the above example is converted to
+        \d-code(```
+[arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down]
+```);%
+      }
+      +p{
+        Here's a larger example.
+        \d-code(```
+        \EasyCD.cd[
+          ${| A | a | B | b | C | c | D |};
+          ${| d |   | e |   | f |   | g |};
+          ${| E | h | F | i | G | j | H |};
+          ${| k |   | l |   | m |   | n |};
+          ${| I | o | J | p | K | q | L |};
+        ];
+```);%
+        \EasyCD.cd[
+          ${| A | a | B | b | C | c | D |};
+          ${| d |   | e |   | f |   | g |};
+          ${| E | h | F | i | G | j | H |};
+          ${| k |   | l |   | m |   | n |};
+          ${| I | o | J | p | K | q | L |};
+        ];
+      }
+    >
   >
   +chapter{Changing styles}<
     +p{
@@ -350,47 +426,58 @@ in
 ```);
       \NCSq.cd(NCSq.invert-h(cellss1));
     }
+    +p{
+      \code(`EasyCD`); module also provides \code(`transpose`); function.
+      \d-code(```
+      \EasyCD.cd(EasyCD.transpose [
+        ${| A | f | B |};
+        ${| g |   | h |};
+        ${| C | i | D |};
+        ${| j |   | k |};
+        ${| E | l | F |};
+      ]);
+```);%
+      \EasyCD.cd(EasyCD.transpose [
+        ${| A | f | B |};
+        ${| g |   | h |};
+        ${| C | i | D |};
+        ${| j |   | k |};
+        ${| E | l | F |};
+      ]);
+    }
   >
   +chapter{More examples}<
     +p{
       Incomplete diagrams (diagrams that contain arrows missing source or target) may be useful for building diagrams programmatically.
       \d-code(```
-      \NCSq.cd(
+      \EasyCD.cd(
         % Incomplete square (one face is missing)
-        let square-from flip a f b g k = open NCSq in [
-          [object {${#a}};
-           if flip then arrow ?*?:{${#f}} right
-           else arrow ?:{${#f}} right;
-           object {${#b}}];
-          [arrow ?*?:{${#g}} down; empty; arrow ?:{${#k}} down];
-        ]
-        in
+        let square-from a f b g h = [
+          ${| #a | #f | #b |};
+          ${| #g |    | #h |};
+        ] in
         [1; 2; 3; 4; 5]
         |> List.map (fun i -> (
           let mi = math-char MathOrd (arabic i) in
-          square-from (i > 3)
-          ${A_{#mi}} ${f_{#mi}} ${B_{#mi}} ${g_{#mi}} ${h_{#mi}}))
+          square-from ${A_{#mi}} ${f_{#mi}} ${B_{#mi}}
+          ${g_{#mi}} ${h_{#mi}}))
         |> List.concat
-        |> NCSq.transpose
+        |> EasyCD.transpose
       );
-```);
-      \NCSq.cd(
+```);%
+      \EasyCD.cd(
         % Incomplete square (one face is missing)
-        let square-from flip a f b g k = open NCSq in [
-          [object {${#a}};
-           if flip then arrow ?*?:{${#f}} right
-           else arrow ?:{${#f}} right;
-           object {${#b}}];
-          [arrow ?*?:{${#g}} down; empty; arrow ?:{${#k}} down];
-        ]
-        in
+        let square-from a f b g h = [
+          ${| #a | #f | #b |};
+          ${| #g |    | #h |};
+        ] in
         [1; 2; 3; 4; 5]
         |> List.map (fun i -> (
           let mi = math-char MathOrd (arabic i) in
-          square-from (i > 3)
-          ${A_{#mi}} ${f_{#mi}} ${B_{#mi}} ${g_{#mi}} ${h_{#mi}}))
+          square-from ${A_{#mi}} ${f_{#mi}} ${B_{#mi}}
+          ${g_{#mi}} ${h_{#mi}}))
         |> List.concat
-        |> NCSq.transpose
+        |> EasyCD.transpose
       );
     }
     +p{

@@ -35,6 +35,15 @@ All of them receive a rectangular array of cells and draw a diagram.
 ```
 ![Sample diagram](docs/ncsq-sample.png)
 
+For such a simple diagram, `ncsq/easy-cd` package provides simpler syntax.
+```
++EasyCD.cd[
+  ${| A | f | B |};
+  ${| g |   | h |};
+  ${| C | k | D |};
+];
+```
+
 See [docs/ncsq-example.saty](docs/ncsq-example.saty) for details and further examples.
 
 ## Related packages
