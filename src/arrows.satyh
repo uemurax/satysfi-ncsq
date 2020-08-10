@@ -213,6 +213,8 @@ type t
 val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 
 val destruct : t -> context -> (|
+  left : length;
+  right : length;
   tail-padding : length;
   head-padding : length;
   draw : point -> point -> graphics list
@@ -235,6 +237,8 @@ let r = b#right in
 let t = NCSqArrowTail.destruct tail ctx l r in
 let h = NCSqArrowHead.destruct head ctx l r in
 (|
+  left = l;
+  right = r;
   tail-padding = t#padding;
   head-padding = h#padding;
   draw = fun from to -> (

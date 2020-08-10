@@ -595,7 +595,9 @@ match cell with
  let draw-label l = draw-text (0pt, 0pt) (read-inline label-ctx l) in
  let grl = Option.map draw-label arr#left-label in
  let grr = Option.map draw-label arr#right-label in
- let pd = (get-font-size label-ctx) *' 0.3 in
+ let pd0 = (get-font-size label-ctx) *' 0.3 in
+ let pdl = pd0 -' style#left in
+ let pdr = pd0 +' style#right in
  let shift-gr f gr =
  (let rc = get-graphics-bbox gr in
   shift-graphics (f rc) gr)
@@ -604,18 +606,18 @@ match cell with
  let (gr0, gr1) = (
    match dir with
    | (Horizontal, dir2) -> (
-     let hyu ((x0, y0), (x1, _)) = ((0pt -' (x0 +' x1) *' 0.5), pd -' y0) in
-     let hyb ((x0, _), (x1, y1)) = ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1) in
+     let hyu pd ((x0, y0), (x1, _)) = ((0pt -' (x0 +' x1) *' 0.5), pd -' y0) in
+     let hyb pd ((x0, _), (x1, y1)) = ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1) in
      match dir2 with
-     | Forwards -> (Option.map (shift-gr hyu) grl, Option.map (shift-gr hyb) grr)
-     | Backwards -> (Option.map (shift-gr hyb) grl, Option.map (shift-gr hyu) grr)
+     | Forwards -> (Option.map (shift-gr (hyu pdl)) grl, Option.map (shift-gr (hyb pdr)) grr)
+     | Backwards -> (Option.map (shift-gr (hyb pdl)) grl, Option.map (shift-gr (hyu pdr)) grr)
    )
    | (Vertical, dir2) -> (
-     let hxl ((_, y0), (x1, y1)) = ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5) in
-     let hxr ((x0, y0), (_, y1)) = (pd -' x0, 0pt -' (y0 +' y1) *' 0.5) in
+     let hxl pd ((_, y0), (x1, y1)) = ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5) in
+     let hxr pd ((x0, y0), (_, y1)) = (pd -' x0, 0pt -' (y0 +' y1) *' 0.5) in
      match dir2 with
-     | Forwards -> (Option.map (shift-gr hxr) grl, Option.map (shift-gr hxl) grr)
-     | Backwards -> (Option.map (shift-gr hxl) grl, Option.map (shift-gr hxr) grr)
+     | Forwards -> (Option.map (shift-gr (hxr pdl)) grl, Option.map (shift-gr (hxl pdr)) grr)
+     | Backwards -> (Option.map (shift-gr (hxl pdl)) grl, Option.map (shift-gr (hxr pdr)) grr)
    )
  ) in
  Arrow-raw ((|
