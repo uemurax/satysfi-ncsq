@@ -399,49 +399,47 @@ NCSqArrowStyle.of-bth body tail head
         \d-code(```
         \NCSq.cd(
           let implies = NCSqArrowStyle.of-bth
-          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
-          in
-          let line = NCSqArrowStyle.of-bth
-          NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.none
-          in
-          let dashed-line = NCSqArrowStyle.of-bth
-          NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.none
-          in
+          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee in
           let bodyless = NCSqArrowStyle.of-bth
-          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee
-          in
+          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee in
+          let tail = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid NCSqArrowTail.vee NCSqArrowHead.vee in
+          let tail-imp = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid-2 NCSqArrowTail.vee NCSqArrowHead.vee in
+          let dashed-two-heads = NCSqArrowStyle.of-bth
+          NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.vee-2 in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
           ] in [
             row implies;
-            row line;
-            row dashed-line;
             row bodyless;
+            row tail;
+            row tail-imp;
+            row dashed-two-heads;
           ]
         );
 ```);%
         \NCSq.cd(
           let implies = NCSqArrowStyle.of-bth
-          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
-          in
-          let line = NCSqArrowStyle.of-bth
-          NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.none
-          in
-          let dashed-line = NCSqArrowStyle.of-bth
-          NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.none
-          in
+          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee in
           let bodyless = NCSqArrowStyle.of-bth
-          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee
-          in
+          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee in
+          let tail = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid NCSqArrowTail.vee NCSqArrowHead.vee in
+          let tail-imp = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid-2 NCSqArrowTail.vee NCSqArrowHead.vee in
+          let dashed-two-heads = NCSqArrowStyle.of-bth
+          NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.vee-2 in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
           ] in [
             row implies;
-            row line;
-            row dashed-line;
             row bodyless;
+            row tail;
+            row tail-imp;
+            row dashed-two-heads;
           ]
         );
       }

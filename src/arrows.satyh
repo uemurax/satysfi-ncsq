@@ -9,10 +9,18 @@
 module NCSqConst : sig
 
 val line-width : float
+val vee-min-width : float
+val vee-ext : float
+val pd-base : float
 
 end = struct
 
 let line-width = 0.042
+
+let vee-min-width = 0.13
+let vee-ext = 0.067
+
+let pd-base = 0.67
 
 end
 
@@ -35,6 +43,7 @@ val destruct : t -> context -> (|
 val none : t
 val solid : t
 val dashed : t
+% double solid lines =====
 val solid-2 : t
 
 end = struct
@@ -126,7 +135,10 @@ val destruct : t -> context -> (
 )
 
 val none : t
+% ->
 val vee : t
+% ->>
+val vee-2 : t
 
 end = struct
 
@@ -138,10 +150,8 @@ type t = context -> length -> length -> (|
 
 let destruct head = head
 
-let pd-base = 0.67
-
 let none ctx _ _ =
-let pd = get-font-size ctx *' pd-base in
+let pd = get-font-size ctx *' NCSqConst.pd-base in
 (|
   padding = pd;
   depth = fun _ -> 0pt;
@@ -151,13 +161,13 @@ let pd = get-font-size ctx *' pd-base in
 let vee ctx left right =
 let w0 = get-font-size ctx in
 let color = get-text-color ctx in
-let d0 = w0 *' 0.13 in
+let d0 = w0 *' NCSqConst.vee-min-width in
 let d1 = Length.(max (max (abs left) (abs right)) d0) in
-let d2 = w0 *' 0.067 in
+let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let lw = w0 *' NCSqConst.line-width in
 (|
-  padding = w0 *' pd-base +' d;
+  padding = w0 *' NCSqConst.pd-base +' d;
   depth = Length.abs;
   draw = fun (dx, dy) -> (
     let (x1, y1) = (d *' Float.neg (dx +. dy), d *' (dx -. dy)) in
@@ -165,6 +175,22 @@ let lw = w0 *' NCSqConst.line-width in
     let gr1 = stroke lw color (Gr.line (0pt, 0pt) (x1, y1)) in
     let gr2 = stroke lw color (Gr.line (0pt, 0pt) (x2, y2)) in
     [gr1; gr2]
+  );
+|)
+
+let vee-shift = NCSqConst.vee-min-width *. 1.5
+
+let vee-2 ctx left right =
+let v = vee ctx left right in
+let d = get-font-size ctx *' vee-shift in
+let nd = Length.neg d in
+(|
+  v with
+  padding = v#padding +' d;
+  draw = fun (dx, dy) -> (
+    let gr-l1 = v#draw (dx, dy) in
+    let gr-l2 = List.map (shift-graphics (nd *' dx, nd *' dy)) gr-l1 in
+    List.concat [gr-l1; gr-l2]
   );
 |)
 
@@ -185,6 +211,8 @@ val destruct : t -> context -> (
 )
 
 val none : t
+% >-
+val vee : t
 
 end = struct
 
@@ -202,6 +230,27 @@ let pd = get-font-size ctx *' 0.67 in
   padding = pd;
   depth = fun _ -> 0pt;
   draw = fun _ -> [];
+|)
+
+let vee ctx left right =
+let w0 = get-font-size ctx in
+let color = get-text-color ctx in
+let d0 = w0 *' NCSqConst.vee-min-width in
+let d1 = Length.(max (max (abs left) (abs right)) d0) in
+let d2 = w0 *' NCSqConst.vee-ext in
+let d = d1 +' d2 in
+let lw = w0 *' NCSqConst.line-width in
+(|
+  padding = w0 *' NCSqConst.pd-base +' d;
+  depth = fun x -> d -' (Length.abs x);
+  draw = fun (dx, dy) -> (
+    let (x0, y0) = (d *' dx, d *' dy) in
+    let (x1, y1) = (Length.neg y0, x0) in
+    let (x2, y2) = (y0, Length.neg x0) in
+    let gr1 = stroke lw color (Gr.line (x0, y0) (x1, y1)) in
+    let gr2 = stroke lw color (Gr.line (x0, y0) (x2, y2)) in
+    [gr1; gr2]
+  );
 |)
 
 end
