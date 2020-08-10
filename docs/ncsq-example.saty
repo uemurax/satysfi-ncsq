@@ -451,7 +451,30 @@ NCSqArrowStyle.of-bth body tail head
             row hook-l;
             row hook-r-3;
           ]
-        );
+        );%
+        \code(`NCSqArrowStyle`); module provides some preconfigured styles.
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; arrow ?:{${f}} right; object {${X}}];
+          [arrow ?:{${\sim}}?:{${i}}?:(tail) down; empty;
+           arrow ?*?*?:(equal) down];
+          [object {${B}}; arrow ?:{${h}}?*?:(dashed) right;
+           object {${X}}];
+          [arrow ?*?*?:(equal) down; empty;
+           arrow ?:{${p}}?*?:(two-heads) down];
+          [object {${B}}; arrow ?*?:{${g}} right; object {${Y}}];
+        ]);
+```);%
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; arrow ?:{${f}} right; object {${X}}];
+          [arrow ?:{${\sim}}?:{${i}}?:(tail) down; empty;
+           arrow ?*?*?:(equal) down];
+          [object {${B}}; arrow ?:{${h}}?*?:(dashed) right;
+           object {${X}}];
+          [arrow ?*?*?:(equal) down; empty;
+           arrow ?:{${p}}?*?:(two-heads) down];
+          [object {${B}}; arrow ?*?:{${g}} right; object {${Y}}];
+        ]);
       }
     >
   >

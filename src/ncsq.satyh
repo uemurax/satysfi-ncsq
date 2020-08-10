@@ -468,45 +468,6 @@ let varr-l = draw-varrows vgrid hgrid cell-ll in
 let harr-l = draw-harrows vgrid hgrid cell-ll in
 List.concat [obj-l; varr-l; harr-l]
 
-let draw-solid-arrow ctx =
-let color = get-text-color ctx in
-let h = get-font-size ctx in
-Gr.arrow (h *' 0.042) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
-
-let draw-dashed-arrow ctx =
-let color = get-text-color ctx in
-let h = get-font-size ctx in
-Gr.dashed-arrow (h *' 0.042) (h *' 0.25, h *' 0.25, h *' 0.0) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
-
-let draw-eq ctx =
-let color = get-text-color ctx in
-let h = get-font-size ctx in
-fun from to ->
-(let ((x0, y0), (x1, y1)) = (from, to) in
- let (x, y) = (x1 -' x0, y1 -' y0) in
- if Length.equal x 0pt && Length.equal y 0pt
- then
- []
- else
- let p = 1pt in
- let xf = x /' p in
- let yf = y /' p in
- let r = 1.0 /. RealVector.(norm (of-list [xf; yf])) in
- let d = h *' 0.083 in
- let dx = 0pt -' d *' (yf *. r) in
- let dy = d *' (xf *. r) in
- let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
- let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
- List.map (stroke (h *' 0.042) color) [l1; l2])
-
-let arrow-config-default ctx =
-let h = get-font-size ctx in
-(|
-  head-len = h *' 0.83;
-  tail-len = h *' 0.67;
-  draw = draw-solid-arrow ctx;
-|)
-
 % Commands
 
 type object = (|
@@ -565,9 +526,9 @@ Arrow-2 (|
   direction = direction;
 |)
 
-let solid = NCSqArrowStyle.of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee
-let dashed = NCSqArrowStyle.of-bth NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.vee
-let equal = NCSqArrowStyle.of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.none
+let solid = NCSqArrowStyle.solid
+let dashed = NCSqArrowStyle.dashed
+let equal = NCSqArrowStyle.equal
 
 let eqarrow direction = arrow ?* ?* ?:(equal) direction
 
@@ -728,6 +689,45 @@ let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
 let pd = 3pt in
 let pds = (pd, pd, pd, pd) in
 Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
+
+let draw-solid-arrow ctx =
+let color = get-text-color ctx in
+let h = get-font-size ctx in
+Gr.arrow (h *' 0.042) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
+
+let draw-dashed-arrow ctx =
+let color = get-text-color ctx in
+let h = get-font-size ctx in
+Gr.dashed-arrow (h *' 0.042) (h *' 0.25, h *' 0.25, h *' 0.0) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
+
+let draw-eq ctx =
+let color = get-text-color ctx in
+let h = get-font-size ctx in
+fun from to ->
+(let ((x0, y0), (x1, y1)) = (from, to) in
+ let (x, y) = (x1 -' x0, y1 -' y0) in
+ if Length.equal x 0pt && Length.equal y 0pt
+ then
+ []
+ else
+ let p = 1pt in
+ let xf = x /' p in
+ let yf = y /' p in
+ let r = 1.0 /. RealVector.(norm (of-list [xf; yf])) in
+ let d = h *' 0.083 in
+ let dx = 0pt -' d *' (yf *. r) in
+ let dy = d *' (xf *. r) in
+ let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
+ let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
+ List.map (stroke (h *' 0.042) color) [l1; l2])
+
+let arrow-config-default ctx =
+let h = get-font-size ctx in
+(|
+  head-len = h *' 0.83;
+  tail-len = h *' 0.67;
+  draw = draw-solid-arrow ctx;
+|)
 
 let arr ctx dir ?:style-opt l r =
 let style = Option.from Solid style-opt in

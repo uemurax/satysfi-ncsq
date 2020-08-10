@@ -383,6 +383,23 @@ module NCSqArrowStyle : sig
 
 type t
 
+% ----->
+val solid : t
+% - - ->
+val dashed : t
+% =====
+val equal : t
+% =====>
+val implies : t
+% >---->
+val tail : t
+% ---->>
+val two-heads : t
+% (____>
+val hook-l : t
+% (‾‾‾‾>
+val hook-r : t
+
 val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 
 val destruct : t -> context -> (|
@@ -402,6 +419,15 @@ type head = NCSqArrowHead.t
 type t = body * tail * head
 
 let of-bth body tail head = (body, tail, head)
+
+let solid = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee
+let dashed = of-bth NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.vee
+let equal = of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.none
+let implies = of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
+let tail = of-bth NCSqArrowBody.solid NCSqArrowTail.vee NCSqArrowHead.vee
+let two-heads = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee-2
+let hook-l = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-l NCSqArrowHead.vee
+let hook-r = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-r NCSqArrowHead.vee
 
 let destruct (body, tail, head) ctx =
 let b = NCSqArrowBody.destruct body ctx in
