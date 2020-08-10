@@ -17,8 +17,8 @@ end = struct
 
 let line-width = 0.042
 
-let vee-min-width = 0.13
-let vee-ext = 0.067
+let vee-min-width = 0.125
+let vee-ext = 0.125
 
 let pd-base = 0.67
 
@@ -42,9 +42,13 @@ val destruct : t -> context -> (|
 
 val none : t
 val solid : t
-val dashed : t
 % double solid lines =====
 val solid-2 : t
+val multi-solid : int -> t
+val dashed : t
+% double dashed lines = = =
+val dashed-2 : t
+val multi-dashed : int -> t
 
 end = struct
 
@@ -56,45 +60,38 @@ type t = context -> (|
 
 let destruct body = body
 
-let body-end-points tail head (from, p0) (to, p1) =
-NCSqUtil.angle from to
-|> Option.map (fun (dx, dy) -> (
-  let (x0, y0) = from in
-  let (x1, y1) = to in
-  let t0 = tail p0 in
-  let h0 = head p1 in
-  let a0 = (x0 +' t0 *' dx) +' p0 *' dy in
-  let b0 = (y0 +' t0 *' dy) -' p0 *' dx in
-  let a1 = (x1 -' h0 *' dx) +' p1 *' dy in
-  let b1 = (y1 -' h0 *' dy) -' p1 *' dx in
-  ((a0, b0), (a1, b1))
-))
-
 let none ctx = (|
   left = 0pt;
   right = 0pt;
   draw = fun _ _ _ _ -> [];
 |)
 
+let shift ((x0, y0), (x1, y1)) p =
+NCSqUtil.angle (x0, y0) (x1, y1)
+|> Option.map (fun (dx, dy) -> (
+  let dx0 = p *' dx in
+  let dy0 = p *' dy in
+  ((x0 +' dy0, y0 -' dx0), (x1 +' dy0, y1 -' dx0))
+))
+
 let of-lines lf-l0 ctx =
-let color = get-text-color ctx in
 let fs = get-font-size ctx in
-let lf-l = List.map (fun (x, y, f) -> (fs *' x, fs *' y, f fs color)) lf-l0 in
-let left = List.fold-right (fun (from-pos, to-pos, _) l -> Length.(min l (min from-pos to-pos))) 0pt lf-l in
-let right = List.fold-right (fun (from-pos, to-pos, _) r -> Length.(max r (max from-pos to-pos))) 0pt lf-l in
-let-rec aux gr-l lf-l tail head from to = (
+let lf-l = List.map (fun (x, f) -> (fs *' x, f ctx)) lf-l0 in
+let left = List.fold-right (fun (pos, _) l -> Length.(min l pos)) 0pt lf-l in
+let right = List.fold-right (fun (pos, _) r -> Length.(max r pos)) 0pt lf-l in
+let-rec aux gr-ll lf-l tail head from to = (
   match lf-l with
-  | [] -> gr-l
-  | (from-pos, to-pos, lf) :: lf-l1 -> (
-    let gr-l1 = (
-      match body-end-points tail head (from, from-pos) (to, to-pos) with
-      | None -> gr-l
-      | Some (z0, z1) -> (
-        let gr = lf z0 z1 in
-        gr :: gr-l
+  | [] -> List.concat gr-ll
+  | (pos, lf) :: lf-l1 -> (
+    let gr-ll1 = (
+      match shift (from, to) pos with
+      | None -> gr-ll
+      | Some (z, w) -> (
+        let gr-l = lf z w (tail pos) (head pos) in
+        gr-l :: gr-ll
       )
     ) in
-    aux gr-l1 lf-l1 tail head from to
+    aux gr-ll1 lf-l1 tail head from to
   )
 ) in
 (|
@@ -103,20 +100,63 @@ let-rec aux gr-l lf-l tail head from to = (
   draw = aux [] lf-l;
 |)
 
-let line fs c x y = stroke (fs *' NCSqConst.line-width) c (Gr.line x y)
-let dashed-line fs c x y =
-let w = fs *' NCSqConst.line-width in
-let dash = (fs *' 0.25, fs *' 0.25, fs *' 0.0) in
-dashed-stroke w dash c (Gr.line x y)
+let line-end-points from to t0 h0 =
+NCSqUtil.angle from to
+|> Option.map (fun (dx, dy) -> (
+  let (x0, y0) = from in
+  let (x1, y1) = to in
+  let a0 = x0 +' t0 *' dx in
+  let b0 = y0 +' t0 *' dy in
+  let a1 = x1 -' h0 *' dx in
+  let b1 = y1 -' h0 *' dy in
+  ((a0, b0), (a1, b1))
+))
 
-let solid = of-lines [(0.0, 0.0, line)]
+let line ctx =
+let fs = get-font-size ctx in
+let c = get-text-color ctx in
+fun x y t h -> (
+  match line-end-points x y t h with
+  | None -> []
+  | Some (a, b) -> (
+    [stroke (fs *' NCSqConst.line-width) c (Gr.line a b)]
+  )
+)
 
-let dashed = of-lines [(0.0, 0.0, dashed-line)]
-
-let solid-2 =
+let multi-lines n lf =
 let p = NCSqConst.line-width *. 2.0 in
-let np = Float.neg p in
-of-lines [(np, np, line); (p, p, line)]
+let q = p *. 2.0 in
+let b = Float.(neg (p *. of-int (n - 1))) in
+let-rec aux ls x m = (
+  if m <= 0 then ls
+  else aux ((x, lf) :: ls) (x +. q) (m - 1)
+) in
+of-lines (aux [] b n)
+
+let multi-solid n = multi-lines n line
+
+let solid = multi-solid 1
+let solid-2 = multi-solid 2
+
+let dashed-line ctx =
+let fs = get-font-size ctx in
+let d1 = fs *' 0.25 in
+let d2 = d1 in
+let c = get-text-color ctx in
+fun x y t h -> (
+  match line-end-points x y t h with
+  | None -> []
+  | Some (a, b) -> (
+    let w = fs *' NCSqConst.line-width in
+    let dash = (d1, d2, t) in
+    [dashed-stroke w dash c (Gr.line a b)]
+  )
+)
+
+let multi-dashed n = multi-lines n dashed-line
+
+let dashed = multi-dashed 1
+let dashed-2 = multi-dashed 2
 
 end
 
