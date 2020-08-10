@@ -11,6 +11,8 @@ module NCSqConst : sig
 val line-width : float
 val vee-min-width : float
 val vee-ext : float
+val hook-min-width : float
+val hook-ext : float
 val pd-base : float
 
 end = struct
@@ -19,6 +21,8 @@ let line-width = 0.042
 
 let vee-min-width = 0.125
 let vee-ext = 0.125
+let hook-min-width = vee-min-width
+let hook-ext = vee-ext *. 1.5
 
 let pd-base = 0.67
 
@@ -253,6 +257,10 @@ val destruct : t -> context -> (
 val none : t
 % >-
 val vee : t
+% (_
+val hook-l : t
+% (‾
+val hook-r : t
 
 end = struct
 
@@ -290,6 +298,82 @@ let lw = w0 *' NCSqConst.line-width in
     let gr1 = stroke lw color (Gr.line (x0, y0) (x1, y1)) in
     let gr2 = stroke lw color (Gr.line (x0, y0) (x2, y2)) in
     [gr1; gr2]
+  );
+|)
+
+% curve from (r, -r) to (r, r) via (0, 0)
+% approximately a half circle
+let hook-path r =
+let t = r *' 0.55228 in             % cf. Gr.circle
+let rt = r -' t in
+let nr = Length.neg r in
+start-path (r, nr)
+|> bezier-to (rt, nr) (0pt, Length.neg t) (0pt, 0pt)
+|> bezier-to (0pt, t) (rt, r) (r, r)
+|> terminate-path
+
+let hook-depth r y =
+let yy = y /' 1pt in
+let rr = r /' 1pt in
+let s = yy /. rr in
+let xx = rr *. (1.0 -. Float.sqrt(1.0 -. s *. s)) in
+1pt *' xx
+
+let hook-l-1 ctx left right =
+let fs = get-font-size ctx in
+let w0 = fs *' NCSqConst.hook-min-width in
+let w1 = right -' left in
+let w2 = fs *' NCSqConst.hook-ext in
+let w = (Length.(max w0 w1) +' w2) in
+let r = w *' 0.5 in
+let path = hook-path r in
+let curve = hook-path r in
+let centre = right -' r in
+(|
+  padding = fs *' NCSqConst.pd-base +' r;
+  depth = fun y0 -> (
+    let y = y0 -' centre in
+    if Length.(y > r) then r
+    else if Length.(y >= neg r) then hook-depth r y
+    else r
+  );
+  curve = fun (dx, dy) -> (
+    curve
+    |> shift-path (0pt, 0pt -' centre)
+    |> linear-transform-path dx (Float.neg dy) dy dx
+  );
+|)
+
+let hook-l ctx left right =
+let h1 = hook-l-1 ctx left right in
+let lw = get-font-size ctx *' NCSqConst.line-width in
+let color = get-text-color ctx in
+(|
+  padding = h1#padding;
+  depth = h1#depth;
+  draw = fun (dx, dy) -> (
+    let cv = h1#curve (dx, dy) in
+    [stroke lw color cv]
+  );
+|)
+
+let hook-r ctx left right =
+let h1 = hook-l-1 ctx (Length.neg right) (Length.neg left) in
+let lw = get-font-size ctx *' NCSqConst.line-width in
+let color = get-text-color ctx in
+(|
+  padding = h1#padding;
+  depth = fun y -> (h1#depth (Length.neg y));
+  draw = fun (dx, dy) -> (
+    let x2 = dx *. dx in
+    let y2 = dy *. dy in
+    let z = x2 -. y2 in
+    let xy2 = 2.0 *. dx *. dy in
+    let cv = (
+      h1#curve (dx, dy)
+      |> linear-transform-path z xy2 xy2 (Float.neg z)
+    ) in
+    [stroke lw color cv]
   );
 |)
 

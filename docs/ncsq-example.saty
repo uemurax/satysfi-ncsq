@@ -407,6 +407,11 @@ NCSqArrowStyle.of-bth body tail head
           let seven = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-dashed 7)
           NCSqArrowTail.vee NCSqArrowHead.vee in
+          let hook-l = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid NCSqArrowTail.hook-l NCSqArrowHead.vee in
+          let hook-r-3 = NCSqArrowStyle.of-bth
+          (NCSqArrowBody.multi-solid 3)
+          NCSqArrowTail.hook-r NCSqArrowHead.vee in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
@@ -415,6 +420,8 @@ NCSqArrowStyle.of-bth body tail head
             row bodyless;
             row tail-2h;
             row seven;
+            row hook-l;
+            row hook-r-3;
           ]
         );
 ```);%
@@ -428,6 +435,11 @@ NCSqArrowStyle.of-bth body tail head
           let seven = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-dashed 7)
           NCSqArrowTail.vee NCSqArrowHead.vee in
+          let hook-l = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid NCSqArrowTail.hook-l NCSqArrowHead.vee in
+          let hook-r-3 = NCSqArrowStyle.of-bth
+          (NCSqArrowBody.multi-solid 3)
+          NCSqArrowTail.hook-r NCSqArrowHead.vee in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
@@ -436,6 +448,8 @@ NCSqArrowStyle.of-bth body tail head
             row bodyless;
             row tail-2h;
             row seven;
+            row hook-l;
+            row hook-r-3;
           ]
         );
       }
