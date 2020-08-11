@@ -8,6 +8,7 @@
 @import: ./qp
 @import: ./matrix
 @import: ./ncsq-util
+@import: ./arrows
 
 % Name conventions
 % -l or -ls: list of something
@@ -23,7 +24,6 @@ type ncsq-arrow-style =
 module NCSq : sig
 
 type cell
-type arrow-style
 type arrow-direction
 
 val \cd : [(cell list) list] inline-cmd
@@ -34,7 +34,7 @@ val \cd-m : [(cell list) list] math-cmd
 
 val empty : cell
 val object : float * float * float * float ?-> inline-text -> cell
-val arrow : inline-text ?-> inline-text ?-> arrow-style ?-> arrow-direction -> cell
+val arrow : inline-text ?-> inline-text ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
 val arrow-2 : inline-text ?-> float * float * float * float ?-> arrow-direction -> cell
 val eqarrow : arrow-direction -> cell
 
@@ -45,11 +45,11 @@ val right : arrow-direction
 val up : arrow-direction
 val down : arrow-direction
 
-% Arrow styles
+% Arrow style
 
-val solid : arrow-style
-val dashed : arrow-style
-val equal : arrow-style
+val solid : NCSqArrowStyle.t
+val dashed : NCSqArrowStyle.t
+val equal : NCSqArrowStyle.t
 
 % Utilities
 
@@ -116,8 +116,12 @@ type direction2 =
 type arrow-direction = direction1 * direction2
 
 type arrow-config = (|
-  head-len : length;
-  tail-len : length;
+  padding : length;
+  left : length;
+  right : length;
+  length : length;
+  head-padding : length;
+  tail-padding : length;
   draw : point -> point -> graphics list;
 |)
 
@@ -145,6 +149,8 @@ match (dir1, rc) with
 | (Horizontal, ((x0, _), (x1, _))) -> (x0, x1)
 | (Vertical, ((_, y0), (_, y1))) -> (y0, y1)
 
+let face-union (x0, y0) (x1, y1) = Length.((min x0 x1, max y0 y1))
+
 let pds-face dir1 pds =
 match (dir1, pds) with
 | (Horizontal, (pl, pr, _, _)) -> (pl, pr)
@@ -157,11 +163,31 @@ match cell with
 (let (z0, z1) = rc-face dir1 (get-graphics-bbox gr) in
  let (p0, p1) = pds-face dir1 pds in
  (z0 -' p0, z1 +' p1))
-| Arrow-raw (cfg, dir, gr-l) ->
-(match (dir1, dir) with
- | (Horizontal, (Vertical, _)) -> rc-face Horizontal (get-grs-bbox gr-l)
- | (Vertical, (Horizontal, _)) -> rc-face Vertical (get-grs-bbox gr-l)
- | _ -> (0pt, 0pt))
+| Arrow-raw (cfg, dir, gr-l) -> (
+  let (p, q) = (
+    match (dir1, dir) with
+    | (Horizontal, (Vertical, dir2)) -> (
+      let f1 = rc-face Horizontal (get-grs-bbox gr-l) in
+      let f2 = (
+        match dir2 with
+        | Backwards -> (cfg#left, cfg#right)
+        | Forwards -> Length.((neg cfg#right, neg cfg#left))
+      )
+      in face-union f1 f2
+    )
+    | (Vertical, (Horizontal, dir2)) -> (
+      let f1 = rc-face Vertical (get-grs-bbox gr-l) in
+      let f2 = (
+        match dir2 with
+        | Backwards -> (cfg#left, cfg#right)
+        | Forwards -> Length.((neg cfg#right, neg cfg#left))
+      )
+      in face-union f1 f2
+    )
+    | _ -> (0pt, 0pt)
+  ) in
+  (p -' cfg#padding, q +' cfg#padding)
+)
 
 % bottom and top
 let get-obj-bt cell = get-obj-bd Vertical cell
@@ -243,9 +269,10 @@ let (ar, (bd, fs)) = arr in
 match ar with
 | Arrow-raw (cfg, (dir1, _), gr-ls) -> (
   let (z0, z1) = rc-face dir1 (get-grs-bbox gr-ls) in
-  let head = cfg#head-len in
-  let tail = cfg#tail-len in
-  let al = head +' tail +' (z1 -' z0) in
+  let head = cfg#head-padding in
+  let tail = cfg#tail-padding in
+  let body = Length.max (z1 -' z0) cfg#length in
+  let al = body +' head +' tail in
   let (b0, b1) = bd in
   let cl = b1 -' b0 in
   let yl = d-sum y-ls in
@@ -420,7 +447,7 @@ match arr with
   let (t, tc) = tgt in
   let s-front = sc +' bd-front dir1 (get-obj-bd dir1 s) in
   let t-back = tc +' bd-back dir1 (get-obj-bd dir1 t) in
-  let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-len cfg#tail-len in
+  let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-padding cfg#tail-padding in
   let ga = cfg#draw from to in
   List.append ga (List.map (shift-graphics c) gr-l)))
 | _ -> []
@@ -468,51 +495,7 @@ let varr-l = draw-varrows vgrid hgrid cell-ll in
 let harr-l = draw-harrows vgrid hgrid cell-ll in
 List.concat [obj-l; varr-l; harr-l]
 
-let draw-solid-arrow ctx =
-let color = get-text-color ctx in
-let h = get-font-size ctx in
-Gr.arrow (h *' 0.042) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
-
-let draw-dashed-arrow ctx =
-let color = get-text-color ctx in
-let h = get-font-size ctx in
-Gr.dashed-arrow (h *' 0.042) (h *' 0.25, h *' 0.25, h *' 0.0) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
-
-let draw-eq ctx =
-let color = get-text-color ctx in
-let h = get-font-size ctx in
-fun from to ->
-(let ((x0, y0), (x1, y1)) = (from, to) in
- let (x, y) = (x1 -' x0, y1 -' y0) in
- if Length.equal x 0pt && Length.equal y 0pt
- then
- []
- else
- let p = 1pt in
- let xf = x /' p in
- let yf = y /' p in
- let r = 1.0 /. RealVector.(norm (of-list [xf; yf])) in
- let d = h *' 0.083 in
- let dx = 0pt -' d *' (yf *. r) in
- let dy = d *' (xf *. r) in
- let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
- let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
- List.map (stroke (h *' 0.042) color) [l1; l2])
-
-let arrow-config-default ctx =
-let h = get-font-size ctx in
-(|
-  head-len = h *' 0.83;
-  tail-len = h *' 0.67;
-  draw = draw-solid-arrow ctx;
-|)
-
 % Commands
-
-type arrow-style =
-| ArrSolid
-| ArrDashed
-| ArrEqual
 
 type object = (|
   label : inline-text;
@@ -521,7 +504,7 @@ type object = (|
 
 type arrow = (|
   direction : arrow-direction;
-  style : arrow-style;
+  style : NCSqArrowStyle.t;
   left-label : inline-text option;
   right-label : inline-text option;
 |)
@@ -543,10 +526,6 @@ let right = (Horizontal, Forwards)
 let up = (Vertical, Backwards)
 let down = (Vertical, Forwards)
 
-let solid = ArrSolid
-let dashed = ArrDashed
-let equal = ArrEqual
-
 let empty = Empty
 
 let object ?:pds-opt label =
@@ -558,7 +537,11 @@ Object (|
 let arrow ?:left-label ?: right-label ?:style-opt direction =
 Arrow (|
   direction = direction;
-  style = Option.from solid style-opt;
+  style = (
+    Option.from
+    (NCSqArrowStyle.of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee)
+    style-opt
+  );
   left-label = left-label;
   right-label = right-label;
 |)
@@ -569,6 +552,10 @@ Arrow-2 (|
   paddings = Option.from (let (pdx, pdy) = (0.5, 0.25) in (pdx, pdx, pdy, pdy)) pds-opt;
   direction = direction;
 |)
+
+let solid = NCSqArrowStyle.solid
+let dashed = NCSqArrowStyle.dashed
+let equal = NCSqArrowStyle.equal
 
 let eqarrow direction = arrow ?* ?* ?:(equal) direction
 
@@ -591,12 +578,14 @@ match cell with
  let pds = make-pds ctx obj#paddings in
  Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' shift-y ctx) gr, pds))
 | Arrow arr ->
-(let style = arr#style in
+(let style = NCSqArrowStyle.destruct arr#style ctx in
  let label-ctx = label-context ctx in
  let draw-label l = draw-text (0pt, 0pt) (read-inline label-ctx l) in
  let grl = Option.map draw-label arr#left-label in
  let grr = Option.map draw-label arr#right-label in
- let pd = (get-font-size label-ctx) *' 0.3 in
+ let pd0 = (get-font-size label-ctx) *' 0.3 in
+ let pdl = pd0 -' style#body-left in
+ let pdr = pd0 +' style#body-right in
  let shift-gr f gr =
  (let rc = get-graphics-bbox gr in
   shift-graphics (f rc) gr)
@@ -605,28 +594,28 @@ match cell with
  let (gr0, gr1) = (
    match dir with
    | (Horizontal, dir2) -> (
-     let hyu ((x0, y0), (x1, _)) = ((0pt -' (x0 +' x1) *' 0.5), pd -' y0) in
-     let hyb ((x0, _), (x1, y1)) = ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1) in
+     let hyu pd ((x0, y0), (x1, _)) = ((0pt -' (x0 +' x1) *' 0.5), pd -' y0) in
+     let hyb pd ((x0, _), (x1, y1)) = ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1) in
      match dir2 with
-     | Forwards -> (Option.map (shift-gr hyu) grl, Option.map (shift-gr hyb) grr)
-     | Backwards -> (Option.map (shift-gr hyb) grl, Option.map (shift-gr hyu) grr)
+     | Forwards -> (Option.map (shift-gr (hyu pdl)) grl, Option.map (shift-gr (hyb pdr)) grr)
+     | Backwards -> (Option.map (shift-gr (hyb pdl)) grl, Option.map (shift-gr (hyu pdr)) grr)
    )
    | (Vertical, dir2) -> (
-     let hxl ((_, y0), (x1, y1)) = ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5) in
-     let hxr ((x0, y0), (_, y1)) = (pd -' x0, 0pt -' (y0 +' y1) *' 0.5) in
+     let hxl pd ((_, y0), (x1, y1)) = ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5) in
+     let hxr pd ((x0, y0), (_, y1)) = (pd -' x0, 0pt -' (y0 +' y1) *' 0.5) in
      match dir2 with
-     | Forwards -> (Option.map (shift-gr hxr) grl, Option.map (shift-gr hxl) grr)
-     | Backwards -> (Option.map (shift-gr hxl) grl, Option.map (shift-gr hxr) grr)
+     | Forwards -> (Option.map (shift-gr (hxr pdl)) grl, Option.map (shift-gr (hxl pdr)) grr)
+     | Backwards -> (Option.map (shift-gr (hxl pdl)) grl, Option.map (shift-gr (hxr pdr)) grr)
    )
  ) in
  Arrow-raw ((|
-   (arrow-config-default ctx)
-   with
-   draw =
-   (match style with
-    | ArrSolid -> draw-solid-arrow ctx
-    | ArrDashed -> draw-dashed-arrow ctx
-    | ArrEqual -> draw-eq ctx);
+   padding = pd0;
+   left = style#body-left;
+   right = style#body-right;
+   length = style#body-length;
+   head-padding = style#head-padding;
+   tail-padding = style#tail-padding;
+   draw = style#draw;
  |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
 | Arrow-2 arr2 ->
 (let m1 =
@@ -731,6 +720,49 @@ let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
 let pd = 3pt in
 let pds = (pd, pd, pd, pd) in
 Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' 4pt) gr, pds)
+
+let draw-solid-arrow ctx =
+let color = get-text-color ctx in
+let h = get-font-size ctx in
+Gr.arrow (h *' 0.042) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
+
+let draw-dashed-arrow ctx =
+let color = get-text-color ctx in
+let h = get-font-size ctx in
+Gr.dashed-arrow (h *' 0.042) (h *' 0.25, h *' 0.25, h *' 0.0) color (h *' 0.5) (h *' 0.42) (h *' 0.125)
+
+let draw-eq ctx =
+let color = get-text-color ctx in
+let h = get-font-size ctx in
+fun from to ->
+(let ((x0, y0), (x1, y1)) = (from, to) in
+ let (x, y) = (x1 -' x0, y1 -' y0) in
+ if Length.equal x 0pt && Length.equal y 0pt
+ then
+ []
+ else
+ let p = 1pt in
+ let xf = x /' p in
+ let yf = y /' p in
+ let r = 1.0 /. RealVector.(norm (of-list [xf; yf])) in
+ let d = h *' 0.083 in
+ let dx = 0pt -' d *' (yf *. r) in
+ let dy = d *' (xf *. r) in
+ let l1 = Gr.line (x0 +' dx, y0 +' dy) (x1 +' dx, y1 +' dy) in
+ let l2 = Gr.line (x0 -' dx, y0 -' dy) (x1 -' dx, y1 -' dy) in
+ List.map (stroke (h *' 0.042) color) [l1; l2])
+
+let arrow-config-default ctx =
+let h = get-font-size ctx in
+(|
+  padding = 0pt;
+  left = 0pt;
+  right = 0pt;
+  length = 0pt;
+  head-padding = h *' 0.83;
+  tail-padding = h *' 0.67;
+  draw = draw-solid-arrow ctx;
+|)
 
 let arr ctx dir ?:style-opt l r =
 let style = Option.from Solid style-opt in

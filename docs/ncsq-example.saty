@@ -337,7 +337,7 @@ object ?:(pd-left, pd-right, pd-top, pd-bottom) label
       \d-code(```
 arrow ?:left-label ?:right-label ?:style direction
 ```);%
-      \code(`style`); can be \code(`solid`); (default), \code(`dashed`); or \code(`equal`);, which are constants provided by \code(`NCSq`); module.
+      \code(`NCSq`); module provides three styles: \code(`solid`); (default)\; \code(`dashed`);\; and \code(`equal`);.
       \d-code(```
     \NCSq.cd(open NCSq in [
       [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
@@ -364,6 +364,7 @@ arrow ?:left-label ?:right-label ?:style direction
       \NCSq.cd(open NCSq in [
       [object {${A}}; eqarrow right; object {${B}}];
       ]);%
+      See Section \ref(`sec-arrow-style`); for deeper configuration.
     }
     +p{
       \code(`arrow-2`); accepts the second optional argument to change paddings.
@@ -386,6 +387,106 @@ arrow-2 ?:label ?:(pd-left, pd-right, pd-top, pd-bottom) direction
         [object {${C}}; arrow right; object {${D}}];
       ]);
     }
+    +section?:(`sec-arrow-style`){Arrow styles}<
+      +p{
+        \code(`ncsq/arrows`); package, which is loaded by \code(`ncsq/ncsq`);, provides some arrow styles.
+        An \dfn{arrow style} consists of three components: body\; tail\; and head.
+        An arrow style is constructed by \code(`NCSqArrowStyle.of-bth`); function.
+        \d-code(```
+NCSqArrowStyle.of-bth body tail head
+```);%
+        Modules \code(`NCSqArrowBody`);, \code(`NCSqArrowTail`); and \code(`NCSqArrowHead`); provides some body styles, tail styles and head styles, respectively.
+        \d-code(```
+        \NCSq.cd(
+          let style-1 = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid-2 NCSqArrowTail.vdash NCSqArrowHead.vee in
+          let style-2 = NCSqArrowStyle.of-bth
+          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee-2 in
+          let style-3 = NCSqArrowStyle.of-bth
+          (NCSqArrowBody.multi-dashed 7)
+          NCSqArrowTail.vee NCSqArrowHead.vee in
+          let style-4 = NCSqArrowStyle.of-bth
+          NCSqArrowBody.(cross solid)
+          NCSqArrowTail.hook-l NCSqArrowHead.triangle in
+          let style-5 = NCSqArrowStyle.of-bth
+          (NCSqArrowBody.multi-solid 3)
+          NCSqArrowTail.hook-r-2 NCSqArrowHead.harpoon-l in
+          open NCSq in
+          let row style = [
+            object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
+          ] in [
+            row style-1;
+            row style-2;
+            row style-3;
+            row style-4;
+            row style-5;
+          ]
+        );
+```);%
+        \NCSq.cd(
+          let style-1 = NCSqArrowStyle.of-bth
+          NCSqArrowBody.solid-2 NCSqArrowTail.vdash NCSqArrowHead.vee in
+          let style-2 = NCSqArrowStyle.of-bth
+          NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee-2 in
+          let style-3 = NCSqArrowStyle.of-bth
+          (NCSqArrowBody.multi-dashed 7)
+          NCSqArrowTail.vee NCSqArrowHead.vee in
+          let style-4 = NCSqArrowStyle.of-bth
+          NCSqArrowBody.(cross solid)
+          NCSqArrowTail.hook-l NCSqArrowHead.triangle in
+          let style-5 = NCSqArrowStyle.of-bth
+          (NCSqArrowBody.multi-solid 3)
+          NCSqArrowTail.hook-r-2 NCSqArrowHead.harpoon-l in
+          open NCSq in
+          let row style = [
+            object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
+          ] in [
+            row style-1;
+            row style-2;
+            row style-3;
+            row style-4;
+            row style-5;
+          ]
+        );%
+        \code(`NCSqArrowStyle`); module provides some preconfigured styles.
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; arrow ?:{${f}} right; object {${X}}];
+          [arrow ?:{${\sim}}?:{${i}}?:(tail) down; empty;
+           arrow ?*?*?:(equal) down];
+          [object {${B}}; arrow ?:{${h}}?*?:(dashed) right;
+           object {${X}}];
+          [arrow ?*?*?:(equal) down; empty;
+           arrow ?:{${p}}?*?:(two-heads) down];
+          [object {${B}}; arrow ?*?:{${g}} right; object {${Y}}];
+        ]);
+```);%
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; arrow ?:{${f}} right; object {${X}}];
+          [arrow ?:{${\sim}}?:{${i}}?:(tail) down; empty;
+           arrow ?*?*?:(equal) down];
+          [object {${B}}; arrow ?:{${h}}?*?:(dashed) right;
+           object {${X}}];
+          [arrow ?*?*?:(equal) down; empty;
+           arrow ?:{${p}}?*?:(two-heads) down];
+          [object {${B}}; arrow ?*?:{${g}} right; object {${Y}}];
+        ]);%
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; object {${\ni}}; object {${a}}];
+          [arrow ?*?:{${f}}?:(hook-r) down; empty;
+           arrow ?*?*?:(mapsto) down];
+          [object {${B}}; object {${\ni}}; object {${b}}];
+        ]);
+```);%
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; object {${\ni}}; object {${a}}];
+          [arrow ?*?:{${f}}?:(hook-r) down; empty;
+           arrow ?*?*?:(mapsto) down];
+          [object {${B}}; object {${\ni}}; object {${b}}];
+        ]);%
+      }
+    >
   >
   +chapter{Utilities}<
     +p{
