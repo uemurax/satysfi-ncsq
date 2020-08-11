@@ -116,8 +116,11 @@ type direction2 =
 type arrow-direction = direction1 * direction2
 
 type arrow-config = (|
-  head-len : length;
-  tail-len : length;
+  padding : length;
+  left : length;
+  right : length;
+  head-padding : length;
+  tail-padding : length;
   draw : point -> point -> graphics list;
 |)
 
@@ -145,6 +148,8 @@ match (dir1, rc) with
 | (Horizontal, ((x0, _), (x1, _))) -> (x0, x1)
 | (Vertical, ((_, y0), (_, y1))) -> (y0, y1)
 
+let face-union (x0, y0) (x1, y1) = Length.((min x0 x1, max y0 y1))
+
 let pds-face dir1 pds =
 match (dir1, pds) with
 | (Horizontal, (pl, pr, _, _)) -> (pl, pr)
@@ -157,11 +162,31 @@ match cell with
 (let (z0, z1) = rc-face dir1 (get-graphics-bbox gr) in
  let (p0, p1) = pds-face dir1 pds in
  (z0 -' p0, z1 +' p1))
-| Arrow-raw (cfg, dir, gr-l) ->
-(match (dir1, dir) with
- | (Horizontal, (Vertical, _)) -> rc-face Horizontal (get-grs-bbox gr-l)
- | (Vertical, (Horizontal, _)) -> rc-face Vertical (get-grs-bbox gr-l)
- | _ -> (0pt, 0pt))
+| Arrow-raw (cfg, dir, gr-l) -> (
+  let (p, q) = (
+    match (dir1, dir) with
+    | (Horizontal, (Vertical, dir2)) -> (
+      let f1 = rc-face Horizontal (get-grs-bbox gr-l) in
+      let f2 = (
+        match dir2 with
+        | Backwards -> (cfg#left, cfg#right)
+        | Forwards -> Length.((neg cfg#right, neg cfg#left))
+      )
+      in face-union f1 f2
+    )
+    | (Vertical, (Horizontal, dir2)) -> (
+      let f1 = rc-face Vertical (get-grs-bbox gr-l) in
+      let f2 = (
+        match dir2 with
+        | Backwards -> (cfg#left, cfg#right)
+        | Forwards -> Length.((neg cfg#right, neg cfg#left))
+      )
+      in face-union f1 f2
+    )
+    | _ -> (0pt, 0pt)
+  ) in
+  (p -' cfg#padding, q +' cfg#padding)
+)
 
 % bottom and top
 let get-obj-bt cell = get-obj-bd Vertical cell
@@ -243,8 +268,8 @@ let (ar, (bd, fs)) = arr in
 match ar with
 | Arrow-raw (cfg, (dir1, _), gr-ls) -> (
   let (z0, z1) = rc-face dir1 (get-grs-bbox gr-ls) in
-  let head = cfg#head-len in
-  let tail = cfg#tail-len in
+  let head = cfg#head-padding in
+  let tail = cfg#tail-padding in
   let al = head +' tail +' (z1 -' z0) in
   let (b0, b1) = bd in
   let cl = b1 -' b0 in
@@ -420,7 +445,7 @@ match arr with
   let (t, tc) = tgt in
   let s-front = sc +' bd-front dir1 (get-obj-bd dir1 s) in
   let t-back = tc +' bd-back dir1 (get-obj-bd dir1 t) in
-  let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-len cfg#tail-len in
+  let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-padding cfg#tail-padding in
   let ga = cfg#draw from to in
   List.append ga (List.map (shift-graphics c) gr-l)))
 | _ -> []
@@ -582,8 +607,11 @@ match cell with
    )
  ) in
  Arrow-raw ((|
-   head-len = style#head-padding;
-   tail-len = style#tail-padding;
+   padding = pd0;
+   left = style#left;
+   right = style#right;
+   head-padding = style#head-padding;
+   tail-padding = style#tail-padding;
    draw = style#draw;
  |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
 | Arrow-2 arr2 ->
@@ -724,8 +752,11 @@ fun from to ->
 let arrow-config-default ctx =
 let h = get-font-size ctx in
 (|
-  head-len = h *' 0.83;
-  tail-len = h *' 0.67;
+  padding = 0pt;
+  left = 0pt;
+  right = 0pt;
+  head-padding = h *' 0.83;
+  tail-padding = h *' 0.67;
   draw = draw-solid-arrow ctx;
 |)
 
