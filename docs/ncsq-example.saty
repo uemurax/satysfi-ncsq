@@ -397,9 +397,8 @@ NCSqArrowStyle.of-bth body tail head
 ```);%
         Modules \code(`NCSqArrowBody`);, \code(`NCSqArrowTail`); and \code(`NCSqArrowHead`); provides some body styles, tail styles and head styles, respectively.
         \d-code(```
-        \NCSq.cd(
           let implies = NCSqArrowStyle.of-bth
-          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee in
+          NCSqArrowBody.solid-2 NCSqArrowTail.vdash NCSqArrowHead.vee in
           let bodyless = NCSqArrowStyle.of-bth
           NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee-2 in
           let seven = NCSqArrowStyle.of-bth
@@ -425,7 +424,7 @@ NCSqArrowStyle.of-bth body tail head
 ```);%
         \NCSq.cd(
           let implies = NCSqArrowStyle.of-bth
-          NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee in
+          NCSqArrowBody.solid-2 NCSqArrowTail.vdash NCSqArrowHead.vee in
           let bodyless = NCSqArrowStyle.of-bth
           NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee-2 in
           let seven = NCSqArrowStyle.of-bth
@@ -470,7 +469,21 @@ NCSqArrowStyle.of-bth body tail head
           [arrow ?*?*?:(equal) down; empty;
            arrow ?:{${p}}?*?:(two-heads) down];
           [object {${B}}; arrow ?*?:{${g}} right; object {${Y}}];
+        ]);%
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; object {${\ni}}; object {${a}}];
+          [arrow ?*?:{${f}}?:(hook-r) down; empty;
+           arrow ?*?*?:(mapsto) down];
+          [object {${B}}; object {${\ni}}; object {${b}}];
         ]);
+```);%
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object {${A}}; object {${\ni}}; object {${a}}];
+          [arrow ?*?:{${f}}?:(hook-r) down; empty;
+           arrow ?*?*?:(mapsto) down];
+          [object {${B}}; object {${\ni}}; object {${b}}];
+        ]);%
       }
     >
   >

@@ -472,6 +472,8 @@ val hook-r : t
 % ((‾
 val hook-r-2 : t
 val multi-hook-r : int -> t
+% |-
+val vdash : t
 
 % Tail transformers
 val shift : bool -> float -> t -> t
@@ -685,6 +687,26 @@ let multi-hook-r n = duplicate true n hook-shift hook-r
 
 let hook-r-2 ctx body = multi-hook-r 2 ctx body
 
+let vdash ctx body =
+let fs = get-font-size ctx in
+let color = get-text-color ctx in
+let d0 = fs *' NCSqConst.vee-min-width in
+let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
+let d2 = fs *' NCSqConst.vee-ext in
+let d = d1 +' d2 in
+let curve = Gr.line (0pt, d) (0pt, Length.neg d) in
+let lw = fs *' NCSqConst.line-width in
+(|
+  metadata = (|
+    padding = fs *' NCSqConst.pd-base;
+    depth = fun _ -> 0pt;
+  |);
+  draw = fun (dx, dy) -> (
+    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
+    [stroke lw color curve1]
+  );
+|)
+
 end
 
 module NCSqArrowStyle : sig
@@ -709,6 +731,8 @@ val hook-l : t
 val hook-r : t
 % ----|>
 val triangle : t
+% |---->
+val mapsto : t
 
 val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 
@@ -740,6 +764,7 @@ let two-heads = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee-
 let hook-l = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-l NCSqArrowHead.vee
 let hook-r = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-r NCSqArrowHead.vee
 let triangle = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.triangle
+let mapsto = of-bth NCSqArrowBody.solid NCSqArrowTail.vdash NCSqArrowHead.vee
 
 let destruct (body, tail, head) ctx =
 let b = NCSqArrowBody.destruct body ctx in
