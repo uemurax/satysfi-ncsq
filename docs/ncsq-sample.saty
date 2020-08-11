@@ -10,7 +10,7 @@ let-block +contents = '<
   ]);
 >
 
-let width = 110pt
+let width = 108pt
 let height = 121pt
 
 let ctx = get-initial-context width (command \math)
@@ -21,7 +21,7 @@ in
 page-break
 (UserDefinedPaper (width, height))
 (fun _ -> (|
-  text-origin = (0pt, 2pt);
+  text-origin = (0pt, 1pt);
   text-height = height;
 |))
 (fun _ -> (|

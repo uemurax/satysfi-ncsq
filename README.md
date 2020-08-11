@@ -50,4 +50,4 @@ See [docs/ncsq-example.saty](docs/ncsq-example.saty) for details and further exa
 
 The standard library includes
 [cd](https://github.com/gfngfn/SATySFi/blob/master/lib-satysfi/dist/packages/cd.satyh)
-package which I follow in arrow style.
+package.
