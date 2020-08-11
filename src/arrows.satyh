@@ -36,6 +36,23 @@ module NCSqArrowBody : sig
 
 type t
 
+% Basic body styles
+val none : t
+val solid : t
+% double solid lines =====
+val solid-2 : t
+val multi-solid : int -> t
+val dashed : t
+% double dashed lines = = =
+val dashed-2 : t
+val multi-dashed : int -> t
+
+% Transformers
+% Adjoin |, e.g. `cross solid` looks like --+--
+val cross : t -> t
+% duplicate lines with spacing
+val multiple : int -> float -> t -> t
+
 val destruct : t -> context -> (|
   metadata : (|
     mid-left : length;
@@ -60,20 +77,6 @@ val destruct : t -> context -> (|
     graphics list
   );
 |)
-
-val none : t
-val solid : t
-% double solid lines =====
-val solid-2 : t
-val multi-solid : int -> t
-val dashed : t
-% double dashed lines = = =
-val dashed-2 : t
-val multi-dashed : int -> t
-
-% Decorators
-% --+--
-val cross : t -> t
 
 end = struct
 
@@ -113,44 +116,76 @@ let none _ = (|
   draw = fun _ _ _ _ -> [];
 |)
 
-let shift ((x0, y0), (x1, y1)) p =
-NCSqUtil.angle (x0, y0) (x1, y1)
-|> Option.map (fun (dx, dy) -> (
-  let dx0 = p *' dx in
-  let dy0 = p *' dy in
-  ((x0 +' dy0, y0 -' dx0), (x1 +' dy0, y1 -' dx0))
-))
-
-let of-lines lf-l0 ctx =
-let fs = get-font-size ctx in
-let lf-l = List.map (fun (x, f) -> (fs *' x, f ctx)) lf-l0 in
-let left = List.fold-right (fun (pos, _) l -> Length.(min l pos)) 0pt lf-l in
-let right = List.fold-right (fun (pos, _) r -> Length.(max r pos)) 0pt lf-l in
-let-rec aux gr-ll lf-l tail head from to = (
-  match lf-l with
-  | [] -> List.concat gr-ll
-  | (pos, lf) :: lf-l1 -> (
-    let gr-ll1 = (
-      match shift (from, to) pos with
-      | None -> gr-ll
-      | Some (z, w) -> (
-        let gr-l = lf z w (tail#depth pos) (head#depth pos) in
-        gr-l :: gr-ll
-      )
-    ) in
-    aux gr-ll1 lf-l1 tail head from to
-  )
-) in
+let union body1 body2 ctx =
+let b1 = body1 ctx in
+let b2 = body2 ctx in
+let m1 = b1#metadata in
+let m2 = b2#metadata in
 (|
   metadata = (|
-    mid-left = left;
-    mid-right = right;
-    end-left = left;
-    end-right = right;
-    min-len = 0pt;
+    mid-left = Length.min m1#mid-left m2#mid-left;
+    mid-right = Length.max m1#mid-right m2#mid-right;
+    end-left = Length.min m1#end-left m2#end-left;
+    end-right = Length.max m1#end-right m2#end-right;
+    min-len = Length.max m1#min-len m2#min-len;
   |);
-  draw = aux [] lf-l;
+  draw = fun tail head from to -> (
+    let gr-l1 = b1#draw tail head from to in
+    let gr-l2 = b2#draw tail head from to in
+    List.concat [gr-l1; gr-l2]
+  );
 |)
+
+let shift p body ctx =
+let b = body ctx in
+let m = b#metadata in
+(|
+  metadata = (|
+    m with
+    mid-left = m#mid-left +' p;
+    mid-right = m#mid-right +' p;
+    end-left = m#end-left +' p;
+    end-right = m#end-right +' p
+  |);
+  draw = fun tail head from to -> (
+    match NCSqUtil.angle from to with
+    | None -> []
+    | Some (dx, dy) -> (
+      let (x0, y0) = from in
+      let (x1, y1) = to in
+      let (s, t) = (p *' dy, Length.neg (p *' dx)) in
+      let z = (x0 +' s, y0 +' t) in
+      let w = (x1 +' s, y1 +' t) in
+      let tail1 = (|
+        tail with
+        depth = fun q -> tail#depth (q +' p)
+      |) in
+      let head1 = (|
+        head with
+        depth = fun q -> head#depth (q +' p)
+      |) in
+      b#draw tail1 head1 z w
+    )
+  );
+|)
+
+let multiple n pd body ctx =
+let b = body ctx in
+let m = b#metadata in
+let left = Length.(min m#end-left m#mid-left) in
+let right = Length.(max m#end-right m#mid-right) in
+let w = Length.abs (right -' left) in
+let d = w +' get-font-size ctx *' pd in
+let-rec aux acc p n = (
+  if n <= 0 then acc
+  else (
+    let b1 = shift p body in
+    let p1 = p -' d in
+    let acc1 = union b1 acc in
+    aux acc1 p1 (n - 1)
+  )
+) in
+aux none (d *' Float.(0.5 *. of-int (n - 1))) n ctx
 
 let line-end-points from to t0 h0 =
 NCSqUtil.angle from to
@@ -164,50 +199,49 @@ NCSqUtil.angle from to
   ((a0, b0), (a1, b1))
 ))
 
-let line ctx =
+let line strokef =
+(|
+  metadata = (|
+    end-left = 0pt;
+    end-right = 0pt;
+    mid-left = 0pt;
+    mid-right = 0pt;
+    min-len = 0pt;
+  |);
+  draw = fun tail head from to -> (
+    let t = tail#depth 0pt in
+    let h = head#depth 0pt in
+    match line-end-points from to t h with
+    | None -> []
+    | Some (z0, z1) -> (
+      let curve = Gr.line z0 z1 in
+      [strokef t h curve]
+    )
+  );
+|)
+
+let solid ctx =
 let fs = get-font-size ctx in
-let c = get-text-color ctx in
-fun x y t h -> (
-  match line-end-points x y t h with
-  | None -> []
-  | Some (a, b) -> (
-    [stroke (fs *' NCSqConst.line-width) c (Gr.line a b)]
-  )
-)
+let lw = fs *' NCSqConst.line-width in
+let color = get-text-color ctx in
+line (fun _ _ -> stroke lw color)
 
-let multi-lines n lf =
-let p = NCSqConst.line-width *. 2.0 in
-let q = p *. 2.0 in
-let b = Float.(neg (p *. of-int (n - 1))) in
-let-rec aux ls x m = (
-  if m <= 0 then ls
-  else aux ((x, lf) :: ls) (x +. q) (m - 1)
-) in
-of-lines (aux [] b n)
+let spacing = NCSqConst.line-width *. 4.0
 
-let multi-solid n = multi-lines n line
+let multi-solid n = multiple n spacing solid
 
-let solid ctx = multi-solid 1 ctx
 let solid-2 ctx = multi-solid 2 ctx
 
-let dashed-line ctx =
+let dashed ctx =
 let fs = get-font-size ctx in
+let lw = fs *' NCSqConst.line-width in
+let color = get-text-color ctx in
 let d1 = fs *' 0.25 in
 let d2 = d1 in
-let c = get-text-color ctx in
-fun x y t h -> (
-  match line-end-points x y t h with
-  | None -> []
-  | Some (a, b) -> (
-    let w = fs *' NCSqConst.line-width in
-    let dash = (d1, d2, t) in
-    [dashed-stroke w dash c (Gr.line a b)]
-  )
-)
+line (fun t _ -> dashed-stroke lw (d1, d2, t) color)
 
-let multi-dashed n = multi-lines n dashed-line
+let multi-dashed n = multiple n spacing dashed
 
-let dashed ctx = multi-dashed 1 ctx
 let dashed-2 ctx = multi-dashed 2 ctx
 
 let cross body ctx =
