@@ -33,11 +33,23 @@ module NCSqArrowBody : sig
 type t
 
 val destruct : t -> context -> (|
-  left : length;
-  right : length;
+  metadata : (|
+    mid-left : length;
+    mid-right : length;
+    end-left : length;
+    end-right : length;
+  |);
   draw : (
-    (length -> length) ->       % tail depth
-    (length -> length) ->       % head depth
+    (|
+      % metadata of tail
+      depth : length -> length;
+      padding : length;
+    |) ->
+    (|
+      % metadata of head
+      depth : length -> length;
+      padding : length;
+    |) ->
     point ->                    % from
     point ->                    % to
     graphics list
@@ -56,17 +68,37 @@ val multi-dashed : int -> t
 
 end = struct
 
+type metadata = (|
+  mid-left : length;
+  mid-right : length;
+  end-left : length;
+  end-right : length;
+|)
+
+type tail-metadata = (|
+  depth : length -> length;
+  padding : length;
+|)
+
+type head-metadata = (|
+  depth : length -> length;
+  padding : length;
+|)
+
 type t = context -> (|
-  left : length;
-  right : length;
-  draw : (length -> length) -> (length -> length) -> point -> point -> graphics list;
+  metadata : metadata;
+  draw : tail-metadata -> head-metadata -> point -> point -> graphics list;
 |)
 
 let destruct body = body
 
-let none ctx = (|
-  left = 0pt;
-  right = 0pt;
+let none _ = (|
+  metadata = (|
+    mid-left = 0pt;
+    mid-right = 0pt;
+    end-left = 0pt;
+    end-right = 0pt;
+  |);
   draw = fun _ _ _ _ -> [];
 |)
 
@@ -91,7 +123,7 @@ let-rec aux gr-ll lf-l tail head from to = (
       match shift (from, to) pos with
       | None -> gr-ll
       | Some (z, w) -> (
-        let gr-l = lf z w (tail pos) (head pos) in
+        let gr-l = lf z w (tail#depth pos) (head#depth pos) in
         gr-l :: gr-ll
       )
     ) in
@@ -99,8 +131,12 @@ let-rec aux gr-ll lf-l tail head from to = (
   )
 ) in
 (|
-  left = left;
-  right = right;
+  metadata = (|
+    mid-left = left;
+    mid-right = right;
+    end-left = left;
+    end-right = right;
+  |);
   draw = aux [] lf-l;
 |)
 
@@ -139,8 +175,8 @@ of-lines (aux [] b n)
 
 let multi-solid n = multi-lines n line
 
-let solid = multi-solid 1
-let solid-2 = multi-solid 2
+let solid ctx = multi-solid 1 ctx
+let solid-2 ctx = multi-solid 2 ctx
 
 let dashed-line ctx =
 let fs = get-font-size ctx in
@@ -159,8 +195,8 @@ fun x y t h -> (
 
 let multi-dashed n = multi-lines n dashed-line
 
-let dashed = multi-dashed 1
-let dashed-2 = multi-dashed 2
+let dashed ctx = multi-dashed 1 ctx
+let dashed-2 ctx = multi-dashed 2 ctx
 
 end
 
@@ -169,11 +205,18 @@ module NCSqArrowHead : sig
 type t
 
 val destruct : t -> context -> (
-  length ->                     % body left
-  length ->                     % body right
   (|
-    padding : length;
-    depth : length -> length;
+    % metadata of body
+    mid-left : length;
+    mid-right : length;
+    end-left : length;
+    end-right : length;
+  |) ->
+  (|
+    metadata : (|
+      padding : length;
+      depth : length -> length;
+    |);
     draw : float * float -> graphics list;
   |)
 )
@@ -186,33 +229,48 @@ val vee-2 : t
 
 end = struct
 
-type t = context -> length -> length -> (|
+type body-metadata = (|
+  mid-left : length;
+  mid-right : length;
+  end-left : length;
+  end-right : length;
+|)
+
+type metadata = (|
   padding : length;
   depth : length -> length;
+|)
+
+type t = context -> body-metadata -> (|
+  metadata: metadata;
   draw : float * float -> graphics list;
 |)
 
 let destruct head = head
 
-let none ctx _ _ =
+let none ctx _ =
 let pd = get-font-size ctx *' NCSqConst.pd-base in
 (|
-  padding = pd;
-  depth = fun _ -> 0pt;
+  metadata = (|
+    padding = pd;
+    depth = fun _ -> 0pt;
+  |);
   draw = fun _ -> [];
 |)
 
-let vee ctx left right =
+let vee ctx body =
 let w0 = get-font-size ctx in
 let color = get-text-color ctx in
 let d0 = w0 *' NCSqConst.vee-min-width in
-let d1 = Length.(max (max (abs left) (abs right)) d0) in
+let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
 let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let lw = w0 *' NCSqConst.line-width in
 (|
-  padding = w0 *' NCSqConst.pd-base +' d;
-  depth = Length.abs;
+  metadata = (|
+    padding = w0 *' NCSqConst.pd-base +' d;
+    depth = Length.abs;
+  |);
   draw = fun (dx, dy) -> (
     let (x1, y1) = (d *' Float.neg (dx +. dy), d *' (dx -. dy)) in
     let (x2, y2) = (d *' (dy -. dx), d *' Float.neg (dx +. dy)) in
@@ -224,13 +282,16 @@ let lw = w0 *' NCSqConst.line-width in
 
 let vee-shift = NCSqConst.vee-min-width *. 1.5
 
-let vee-2 ctx left right =
-let v = vee ctx left right in
+let vee-2 ctx body =
+let v = vee ctx body in
 let d = get-font-size ctx *' vee-shift in
 let nd = Length.neg d in
 (|
   v with
-  padding = v#padding +' d;
+  metadata = (|
+    v#metadata with
+    padding = v#metadata#padding +' d;
+  |);
   draw = fun (dx, dy) -> (
     let gr-l1 = v#draw (dx, dy) in
     let gr-l2 = List.map (shift-graphics (nd *' dx, nd *' dy)) gr-l1 in
@@ -245,11 +306,18 @@ module NCSqArrowTail : sig
 type t
 
 val destruct : t -> context -> (
-  length ->                     % body left
-  length ->                     % body right
   (|
-    padding : length;
-    depth : length -> length;
+    % metadata of body
+    mid-left : length;
+    mid-right : length;
+    end-left : length;
+    end-right : length;
+  |) ->
+  (|
+    metadata : (|
+      padding : length;
+      depth : length -> length;
+    |);
     draw : float * float -> graphics list;
   |)
 )
@@ -264,33 +332,48 @@ val hook-r : t
 
 end = struct
 
-type t = context -> length -> length -> (|
+type body-metadata = (|
+  mid-left : length;
+  mid-right : length;
+  end-left : length;
+  end-right : length;
+|)
+
+type metadata = (|
   padding : length;
   depth : length -> length;
+|)
+
+type t = context -> body-metadata -> (|
+  metadata : metadata;
   draw : float * float -> graphics list;
 |)
 
 let destruct tail = tail
 
-let none ctx _ _ =
+let none ctx _ =
 let pd = get-font-size ctx *' 0.67 in
 (|
-  padding = pd;
-  depth = fun _ -> 0pt;
+  metadata = (|
+    padding = pd;
+    depth = fun _ -> 0pt;
+  |);
   draw = fun _ -> [];
 |)
 
-let vee ctx left right =
+let vee ctx body =
 let w0 = get-font-size ctx in
 let color = get-text-color ctx in
 let d0 = w0 *' NCSqConst.vee-min-width in
-let d1 = Length.(max (max (abs left) (abs right)) d0) in
+let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
 let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let lw = w0 *' NCSqConst.line-width in
 (|
-  padding = w0 *' NCSqConst.pd-base +' d;
-  depth = fun x -> d -' (Length.abs x);
+  metadata = (|
+    padding = w0 *' NCSqConst.pd-base +' d;
+    depth = fun x -> d -' (Length.abs x);
+  |);
   draw = fun (dx, dy) -> (
     let (x0, y0) = (d *' dx, d *' dy) in
     let (x1, y1) = (Length.neg y0, x0) in
@@ -319,24 +402,26 @@ let s = yy /. rr in
 let xx = rr *. (1.0 -. Float.sqrt(1.0 -. s *. s)) in
 1pt *' xx
 
-let hook-l-1 ctx left right =
+let hook-l-1 ctx body =
 let fs = get-font-size ctx in
 let w0 = fs *' NCSqConst.hook-min-width in
-let w1 = right -' left in
+let w1 = body#end-right -' body#end-left in
 let w2 = fs *' NCSqConst.hook-ext in
 let w = (Length.(max w0 w1) +' w2) in
 let r = w *' 0.5 in
 let path = hook-path r in
 let curve = hook-path r in
-let centre = right -' r in
+let centre = body#end-right -' r in
 (|
-  padding = fs *' NCSqConst.pd-base +' r;
-  depth = fun y0 -> (
-    let y = y0 -' centre in
-    if Length.(y > r) then r
-    else if Length.(y >= neg r) then hook-depth r y
-    else r
-  );
+  metadata = (|
+    padding = fs *' NCSqConst.pd-base +' r;
+    depth = fun y0 -> (
+      let y = y0 -' centre in
+      if Length.(y > r) then r
+      else if Length.(y >= neg r) then hook-depth r y
+      else r
+    );
+  |);
   curve = fun (dx, dy) -> (
     curve
     |> shift-path (0pt, 0pt -' centre)
@@ -344,26 +429,31 @@ let centre = right -' r in
   );
 |)
 
-let hook-l ctx left right =
-let h1 = hook-l-1 ctx left right in
+let hook-l ctx body =
+let h1 = hook-l-1 ctx body in
 let lw = get-font-size ctx *' NCSqConst.line-width in
 let color = get-text-color ctx in
 (|
-  padding = h1#padding;
-  depth = h1#depth;
+  metadata = h1#metadata;
   draw = fun (dx, dy) -> (
     let cv = h1#curve (dx, dy) in
     [stroke lw color cv]
   );
 |)
 
-let hook-r ctx left right =
-let h1 = hook-l-1 ctx (Length.neg right) (Length.neg left) in
+let hook-r ctx body =
+let h1 = hook-l-1 ctx (|
+  body with
+  end-left = Length.neg body#end-right;
+  end-right = Length.neg body#end-left;
+|) in
 let lw = get-font-size ctx *' NCSqConst.line-width in
 let color = get-text-color ctx in
 (|
-  padding = h1#padding;
-  depth = fun y -> (h1#depth (Length.neg y));
+  metadata = (|
+    h1#metadata with
+    depth = fun y -> (h1#metadata#depth (Length.neg y));
+  |);
   draw = fun (dx, dy) -> (
     let x2 = dx *. dx in
     let y2 = dy *. dy in
@@ -431,21 +521,20 @@ let hook-r = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-r NCSqArrowHead.vee
 
 let destruct (body, tail, head) ctx =
 let b = NCSqArrowBody.destruct body ctx in
-let l = b#left in
-let r = b#right in
-let t = NCSqArrowTail.destruct tail ctx l r in
-let h = NCSqArrowHead.destruct head ctx l r in
+let bm = b#metadata in
+let t = NCSqArrowTail.destruct tail ctx bm in
+let h = NCSqArrowHead.destruct head ctx bm in
 (|
-  left = l;
-  right = r;
-  tail-padding = t#padding;
-  head-padding = h#padding;
+  left = bm#mid-left;
+  right = bm#mid-right;
+  tail-padding = t#metadata#padding;
+  head-padding = h#metadata#padding;
   draw = fun from to -> (
     match NCSqUtil.angle from to with
     | None -> []
     | Some a -> (
       let grs-tail = List.map (shift-graphics from) (t#draw a) in
-      let grs-body = b#draw t#depth h#depth from to in
+      let grs-body = b#draw t#metadata h#metadata from to in
       let grs-head = List.map (shift-graphics to) (h#draw a) in
       List.concat [grs-tail; grs-body; grs-head]
     )
