@@ -47,7 +47,7 @@ val dashed : t
 val dashed-2 : t
 val multi-dashed : int -> t
 
-% Transformers
+% Body transformers
 % Adjoin |, e.g. `cross solid` looks like --+--
 val cross : t -> t
 % duplicate lines with spacing
@@ -291,6 +291,22 @@ module NCSqArrowHead : sig
 
 type t
 
+% Basic head styles
+val none : t
+% ->
+val vee : t
+% ->>
+val vee-2 : t
+val multi-vee : int -> t
+% -|>
+val triangle : t
+
+% Head transformers
+val shift : bool -> float -> t -> t
+val union : t -> t -> t
+% duplicate with shift
+val duplicate : bool -> int -> float -> t -> t
+
 val destruct : t -> context -> (
   (|
     % metadata of body
@@ -308,14 +324,6 @@ val destruct : t -> context -> (
     draw : float * float -> graphics list;
   |)
 )
-
-val none : t
-% ->
-val vee : t
-% ->>
-val vee-2 : t
-% -|>
-val triangle : t
 
 end = struct
 
@@ -349,6 +357,50 @@ let pd = get-font-size ctx *' NCSqConst.pd-base in
   draw = fun _ -> [];
 |)
 
+let shift keep-depth p head ctx body =
+let h = head ctx body in
+let m = h#metadata in
+let pd = get-font-size ctx *' p in
+let np = Length.neg pd in
+(|
+  metadata = (|
+    padding = m#padding +' pd;
+    depth = (
+      if keep-depth then m#depth
+      else fun q -> m#depth q +' pd
+    );
+  |);
+  draw = fun (dx, dy) -> (
+    h#draw (dx, dy)
+    |> List.map (shift-graphics (np *' dx, np *' dy))
+  );
+|)
+
+let union head1 head2 ctx body =
+let h1 = head1 ctx body in
+let h2 = head2 ctx body in
+let m1 = h1#metadata in
+let m2 = h2#metadata in
+(|
+  metadata = (|
+    padding = Length.(max m1#padding m2#padding);
+    depth = fun p -> Length.(max (m1#depth p) (m2#depth p));
+  |);
+  draw = fun (dx, dy) -> (
+    let gr-l1 = h1#draw (dx, dy) in
+    let gr-l2 = h2#draw (dx, dy) in
+    List.concat [gr-l1; gr-l2]
+  );
+|)
+
+let-rec duplicate keep-depth n p head =
+if n <= 0 then none
+else (
+  let h1 = duplicate keep-depth (n - 1) p head in
+  let h2 = shift keep-depth p h1 in
+  union head h2
+)
+
 let vee ctx body =
 let w0 = get-font-size ctx in
 let color = get-text-color ctx in
@@ -372,22 +424,9 @@ let lw = w0 *' NCSqConst.line-width in
 
 let vee-shift = NCSqConst.vee-min-width *. 1.5
 
-let vee-2 ctx body =
-let v = vee ctx body in
-let d = get-font-size ctx *' vee-shift in
-let nd = Length.neg d in
-(|
-  v with
-  metadata = (|
-    v#metadata with
-    padding = v#metadata#padding +' d;
-  |);
-  draw = fun (dx, dy) -> (
-    let gr-l1 = v#draw (dx, dy) in
-    let gr-l2 = List.map (shift-graphics (nd *' dx, nd *' dy)) gr-l1 in
-    List.concat [gr-l1; gr-l2]
-  );
-|)
+let multi-vee n = duplicate true n vee-shift vee
+
+let vee-2 ctx body = multi-vee 2 ctx body
 
 let sqrt3 = Float.sqrt 3.0
 
@@ -419,6 +458,27 @@ module NCSqArrowTail : sig
 
 type t
 
+% Basic tail styles
+val none : t
+% >-
+val vee : t
+% (_
+val hook-l : t
+% ((_
+val hook-l-2 : t
+val multi-hook-l : int -> t
+% (‾
+val hook-r : t
+% ((‾
+val hook-r-2 : t
+val multi-hook-r : int -> t
+
+% Tail transformers
+val shift : bool -> float -> t -> t
+val union : t -> t -> t
+% duplicate with shift
+val duplicate : bool -> int -> float -> t -> t
+
 val destruct : t -> context -> (
   (|
     % metadata of body
@@ -436,14 +496,6 @@ val destruct : t -> context -> (
     draw : float * float -> graphics list;
   |)
 )
-
-val none : t
-% >-
-val vee : t
-% (_
-val hook-l : t
-% (‾
-val hook-r : t
 
 end = struct
 
@@ -579,6 +631,59 @@ let color = get-text-color ctx in
     [stroke lw color cv]
   );
 |)
+
+let shift keep-depth p tail ctx body =
+let t = tail ctx body in
+let m = t#metadata in
+let pd = get-font-size ctx *' p in
+(|
+  metadata = (|
+    padding = m#padding +' pd;
+    depth = (
+      if keep-depth then m#depth
+      else fun q -> m#depth q +' pd
+    );
+  |);
+  draw = fun (dx, dy) -> (
+    t#draw (dx, dy)
+    |> List.map (shift-graphics (pd *' dx, pd *' dy))
+  );
+|)
+
+let union tail1 tail2 ctx body =
+let t1 = tail1 ctx body in
+let t2 = tail2 ctx body in
+let m1 = t1#metadata in
+let m2 = t2#metadata in
+(|
+  metadata = (|
+    padding = Length.(max m1#padding m2#padding);
+    depth = fun p -> Length.(max (m1#depth p) (m2#depth p));
+  |);
+  draw = fun (dx, dy) -> (
+    let gr-l1 = t1#draw (dx, dy) in
+    let gr-l2 = t2#draw (dx, dy) in
+    List.concat [gr-l1; gr-l2]
+  );
+|)
+
+let-rec duplicate keep-depth n p tail =
+if n <= 0 then none
+else (
+  let t1 = duplicate keep-depth (n - 1) p tail in
+  let t2 = shift keep-depth p t1 in
+  union tail t2
+)
+
+let hook-shift = NCSqConst.hook-min-width *. 1.5
+
+let multi-hook-l n = duplicate true n hook-shift hook-l
+
+let hook-l-2 ctx body = multi-hook-l 2 ctx body
+
+let multi-hook-r n = duplicate true n hook-shift hook-r
+
+let hook-r-2 ctx body = multi-hook-r 2 ctx body
 
 end
 

@@ -408,9 +408,9 @@ NCSqArrowStyle.of-bth body tail head
           let hook-l = NCSqArrowStyle.of-bth
           NCSqArrowBody.(cross solid)
           NCSqArrowTail.hook-l NCSqArrowHead.triangle in
-          let hook-r-3 = NCSqArrowStyle.of-bth
+          let hook-r = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-solid 3)
-          NCSqArrowTail.hook-r NCSqArrowHead.vee in
+          NCSqArrowTail.hook-r-2 NCSqArrowHead.vee in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
@@ -419,7 +419,7 @@ NCSqArrowStyle.of-bth body tail head
             row bodyless;
             row seven;
             row hook-l;
-            row hook-r-3;
+            row hook-r;
           ]
         );
 ```);%
@@ -434,9 +434,9 @@ NCSqArrowStyle.of-bth body tail head
           let hook-l = NCSqArrowStyle.of-bth
           NCSqArrowBody.(cross solid)
           NCSqArrowTail.hook-l NCSqArrowHead.triangle in
-          let hook-r-3 = NCSqArrowStyle.of-bth
+          let hook-r = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-solid 3)
-          NCSqArrowTail.hook-r NCSqArrowHead.vee in
+          NCSqArrowTail.hook-r-2 NCSqArrowHead.vee in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
@@ -445,7 +445,7 @@ NCSqArrowStyle.of-bth body tail head
             row bodyless;
             row seven;
             row hook-l;
-            row hook-r-3;
+            row hook-r;
           ]
         );%
         \code(`NCSqArrowStyle`); module provides some preconfigured styles.
