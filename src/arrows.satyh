@@ -13,6 +13,8 @@ val vee-min-width : float
 val vee-ext : float
 val hook-min-width : float
 val hook-ext : float
+val tri-min-width : float
+val tri-ext : float
 val pd-base : float
 
 end = struct
@@ -23,6 +25,8 @@ let vee-min-width = 0.125
 let vee-ext = 0.125
 let hook-min-width = vee-min-width
 let hook-ext = vee-ext *. 1.5
+let tri-min-width = vee-min-width *. 0.7
+let tri-ext = vee-ext *. 0.7
 
 let pd-base = 0.67
 
@@ -276,6 +280,8 @@ val none : t
 val vee : t
 % ->>
 val vee-2 : t
+% -|>
+val triangle : t
 
 end = struct
 
@@ -316,6 +322,8 @@ let d0 = w0 *' NCSqConst.vee-min-width in
 let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
 let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
+let nd = Length.neg d in
+let curve = Gr.poly-line (nd, d) [(0pt, 0pt); (nd, nd)] in
 let lw = w0 *' NCSqConst.line-width in
 (|
   metadata = (|
@@ -323,11 +331,8 @@ let lw = w0 *' NCSqConst.line-width in
     depth = Length.abs;
   |);
   draw = fun (dx, dy) -> (
-    let (x1, y1) = (d *' Float.neg (dx +. dy), d *' (dx -. dy)) in
-    let (x2, y2) = (d *' (dy -. dx), d *' Float.neg (dx +. dy)) in
-    let gr1 = stroke lw color (Gr.line (0pt, 0pt) (x1, y1)) in
-    let gr2 = stroke lw color (Gr.line (0pt, 0pt) (x2, y2)) in
-    [gr1; gr2]
+    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
+    [stroke lw color curve1]
   );
 |)
 
@@ -347,6 +352,30 @@ let nd = Length.neg d in
     let gr-l1 = v#draw (dx, dy) in
     let gr-l2 = List.map (shift-graphics (nd *' dx, nd *' dy)) gr-l1 in
     List.concat [gr-l1; gr-l2]
+  );
+|)
+
+let sqrt3 = Float.sqrt 3.0
+
+let triangle ctx body =
+let fs = get-font-size ctx in
+let color = get-text-color ctx in
+let d0 = fs *' NCSqConst.tri-min-width in
+let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
+let d2 = fs *' NCSqConst.tri-ext in
+let d = d1 +' d2 in
+let h = d *' sqrt3 in
+let nh = Length.neg h in
+let curve = Gr.polygon (0pt, 0pt) [(nh, d); (nh, Length.neg d)] in
+let lw = fs *' NCSqConst.line-width in
+(|
+  metadata = (|
+    padding = fs *' NCSqConst.pd-base +' h;
+    depth = fun _ -> h;
+  |);
+  draw = fun (dx, dy) -> (
+    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
+    [stroke lw color curve1]
   );
 |)
 
@@ -421,6 +450,7 @@ let d0 = w0 *' NCSqConst.vee-min-width in
 let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
 let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
+let curve = Gr.poly-line (0pt, d) [(d, 0pt); (0pt, Length.neg d)] in
 let lw = w0 *' NCSqConst.line-width in
 (|
   metadata = (|
@@ -428,12 +458,8 @@ let lw = w0 *' NCSqConst.line-width in
     depth = fun x -> d -' (Length.abs x);
   |);
   draw = fun (dx, dy) -> (
-    let (x0, y0) = (d *' dx, d *' dy) in
-    let (x1, y1) = (Length.neg y0, x0) in
-    let (x2, y2) = (y0, Length.neg x0) in
-    let gr1 = stroke lw color (Gr.line (x0, y0) (x1, y1)) in
-    let gr2 = stroke lw color (Gr.line (x0, y0) (x2, y2)) in
-    [gr1; gr2]
+    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
+    [stroke lw color curve1]
   );
 |)
 
@@ -542,6 +568,8 @@ val two-heads : t
 val hook-l : t
 % (‾‾‾‾>
 val hook-r : t
+% ----|>
+val triangle : t
 
 val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 
@@ -572,6 +600,7 @@ let tail = of-bth NCSqArrowBody.solid NCSqArrowTail.vee NCSqArrowHead.vee
 let two-heads = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee-2
 let hook-l = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-l NCSqArrowHead.vee
 let hook-r = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-r NCSqArrowHead.vee
+let triangle = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.triangle
 
 let destruct (body, tail, head) ctx =
 let b = NCSqArrowBody.destruct body ctx in
