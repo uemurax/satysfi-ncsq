@@ -119,6 +119,7 @@ type arrow-config = (|
   padding : length;
   left : length;
   right : length;
+  length : length;
   head-padding : length;
   tail-padding : length;
   draw : point -> point -> graphics list;
@@ -270,7 +271,8 @@ match ar with
   let (z0, z1) = rc-face dir1 (get-grs-bbox gr-ls) in
   let head = cfg#head-padding in
   let tail = cfg#tail-padding in
-  let al = head +' tail +' (z1 -' z0) in
+  let body = Length.max (z1 -' z0) cfg#length in
+  let al = body +' head +' tail in
   let (b0, b1) = bd in
   let cl = b1 -' b0 in
   let yl = d-sum y-ls in
@@ -582,8 +584,8 @@ match cell with
  let grl = Option.map draw-label arr#left-label in
  let grr = Option.map draw-label arr#right-label in
  let pd0 = (get-font-size label-ctx) *' 0.3 in
- let pdl = pd0 -' style#left in
- let pdr = pd0 +' style#right in
+ let pdl = pd0 -' style#body-left in
+ let pdr = pd0 +' style#body-right in
  let shift-gr f gr =
  (let rc = get-graphics-bbox gr in
   shift-graphics (f rc) gr)
@@ -608,8 +610,9 @@ match cell with
  ) in
  Arrow-raw ((|
    padding = pd0;
-   left = style#left;
-   right = style#right;
+   left = style#body-left;
+   right = style#body-right;
+   length = style#body-length;
    head-padding = style#head-padding;
    tail-padding = style#tail-padding;
    draw = style#draw;
@@ -755,6 +758,7 @@ let h = get-font-size ctx in
   padding = 0pt;
   left = 0pt;
   right = 0pt;
+  length = 0pt;
   head-padding = h *' 0.83;
   tail-padding = h *' 0.67;
   draw = draw-solid-arrow ctx;

@@ -38,6 +38,7 @@ val destruct : t -> context -> (|
     mid-right : length;
     end-left : length;
     end-right : length;
+    min-len : length;
   |);
   draw : (
     (|
@@ -66,6 +67,10 @@ val dashed : t
 val dashed-2 : t
 val multi-dashed : int -> t
 
+% Decorators
+% --+--
+val cross : t -> t
+
 end = struct
 
 type metadata = (|
@@ -73,6 +78,7 @@ type metadata = (|
   mid-right : length;
   end-left : length;
   end-right : length;
+  min-len : length;
 |)
 
 type tail-metadata = (|
@@ -98,6 +104,7 @@ let none _ = (|
     mid-right = 0pt;
     end-left = 0pt;
     end-right = 0pt;
+    min-len = 0pt;
   |);
   draw = fun _ _ _ _ -> [];
 |)
@@ -136,6 +143,7 @@ let-rec aux gr-ll lf-l tail head from to = (
     mid-right = right;
     end-left = left;
     end-right = right;
+    min-len = 0pt;
   |);
   draw = aux [] lf-l;
 |)
@@ -198,6 +206,47 @@ let multi-dashed n = multi-lines n dashed-line
 let dashed ctx = multi-dashed 1 ctx
 let dashed-2 ctx = multi-dashed 2 ctx
 
+let cross body ctx =
+let b = body ctx in
+let bm = b#metadata in
+let fs = get-font-size ctx in
+let w0 = fs *' NCSqConst.vee-min-width in
+let w1 = Length.(max (neg bm#mid-left) bm#mid-right) in
+let w2 = Length.max w0 w1 in
+let w3 = w2 +' fs *' NCSqConst.vee-ext in
+let lw = fs *' NCSqConst.line-width in
+let color = get-text-color ctx in
+(|
+  metadata = (|
+    bm with
+    mid-left = Length.neg w3;
+    mid-right = w3;
+    min-len = Length.max bm#min-len lw;
+  |);
+  draw = fun tail head from to -> (
+    let gr-l1 = b#draw tail head from to in
+    let gr-l2 = (
+      match NCSqUtil.angle from to with
+      | None -> []
+      | Some (dx, dy) -> (
+        let (x0, y0) = from in
+        let (x1, y1) = to in
+        let tp = tail#padding in
+        let hp = head#padding in
+        let (a0, b0) = (x0 +' tp *' dx, y0 +' tp *' dy) in
+        let (a1, b1) = (x1 -' hp *' dx, y1 -' hp *' dy) in
+        let (a2, b2) = ((a0 +' a1) *' 0.5, (b0 +' b1) *' 0.5) in
+        let (wx, wy) = (w3 *' dy, w3 *' dx) in
+        let c1 = (a2 -' wx, b2 +' wy) in
+        let c2 = (a2 +' wx, b2 -' wy) in
+        let gr = stroke lw color (Gr.line c1 c2) in
+        [gr]
+      )
+    ) in
+    List.concat [gr-l1; gr-l2]
+  );
+|)
+
 end
 
 module NCSqArrowHead : sig
@@ -211,6 +260,7 @@ val destruct : t -> context -> (
     mid-right : length;
     end-left : length;
     end-right : length;
+    min-len : length;
   |) ->
   (|
     metadata : (|
@@ -234,6 +284,7 @@ type body-metadata = (|
   mid-right : length;
   end-left : length;
   end-right : length;
+  min-len : length;
 |)
 
 type metadata = (|
@@ -312,6 +363,7 @@ val destruct : t -> context -> (
     mid-right : length;
     end-left : length;
     end-right : length;
+    min-len : length;
   |) ->
   (|
     metadata : (|
@@ -337,6 +389,7 @@ type body-metadata = (|
   mid-right : length;
   end-left : length;
   end-right : length;
+  min-len : length;
 |)
 
 type metadata = (|
@@ -493,8 +546,9 @@ val hook-r : t
 val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 
 val destruct : t -> context -> (|
-  left : length;
-  right : length;
+  body-left : length;
+  body-right : length;
+  body-length : length;
   tail-padding : length;
   head-padding : length;
   draw : point -> point -> graphics list
@@ -525,8 +579,9 @@ let bm = b#metadata in
 let t = NCSqArrowTail.destruct tail ctx bm in
 let h = NCSqArrowHead.destruct head ctx bm in
 (|
-  left = bm#mid-left;
-  right = bm#mid-right;
+  body-left = bm#mid-left;
+  body-right = bm#mid-right;
+  body-length = bm#min-len;
   tail-padding = t#metadata#padding;
   head-padding = h#metadata#padding;
   draw = fun from to -> (
