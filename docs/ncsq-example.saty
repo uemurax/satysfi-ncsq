@@ -397,54 +397,55 @@ NCSqArrowStyle.of-bth body tail head
 ```);%
         Modules \code(`NCSqArrowBody`);, \code(`NCSqArrowTail`); and \code(`NCSqArrowHead`); provides some body styles, tail styles and head styles, respectively.
         \d-code(```
-          let implies = NCSqArrowStyle.of-bth
+        \NCSq.cd(
+          let style-1 = NCSqArrowStyle.of-bth
           NCSqArrowBody.solid-2 NCSqArrowTail.vdash NCSqArrowHead.vee in
-          let bodyless = NCSqArrowStyle.of-bth
+          let style-2 = NCSqArrowStyle.of-bth
           NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee-2 in
-          let seven = NCSqArrowStyle.of-bth
+          let style-3 = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-dashed 7)
           NCSqArrowTail.vee NCSqArrowHead.vee in
-          let hook-l = NCSqArrowStyle.of-bth
+          let style-4 = NCSqArrowStyle.of-bth
           NCSqArrowBody.(cross solid)
           NCSqArrowTail.hook-l NCSqArrowHead.triangle in
-          let hook-r = NCSqArrowStyle.of-bth
+          let style-5 = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-solid 3)
-          NCSqArrowTail.hook-r-2 NCSqArrowHead.vee in
+          NCSqArrowTail.hook-r-2 NCSqArrowHead.harpoon-l in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
           ] in [
-            row implies;
-            row bodyless;
-            row seven;
-            row hook-l;
-            row hook-r;
+            row style-1;
+            row style-2;
+            row style-3;
+            row style-4;
+            row style-5;
           ]
         );
 ```);%
         \NCSq.cd(
-          let implies = NCSqArrowStyle.of-bth
+          let style-1 = NCSqArrowStyle.of-bth
           NCSqArrowBody.solid-2 NCSqArrowTail.vdash NCSqArrowHead.vee in
-          let bodyless = NCSqArrowStyle.of-bth
+          let style-2 = NCSqArrowStyle.of-bth
           NCSqArrowBody.none NCSqArrowTail.none NCSqArrowHead.vee-2 in
-          let seven = NCSqArrowStyle.of-bth
+          let style-3 = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-dashed 7)
           NCSqArrowTail.vee NCSqArrowHead.vee in
-          let hook-l = NCSqArrowStyle.of-bth
+          let style-4 = NCSqArrowStyle.of-bth
           NCSqArrowBody.(cross solid)
           NCSqArrowTail.hook-l NCSqArrowHead.triangle in
-          let hook-r = NCSqArrowStyle.of-bth
+          let style-5 = NCSqArrowStyle.of-bth
           (NCSqArrowBody.multi-solid 3)
-          NCSqArrowTail.hook-r-2 NCSqArrowHead.vee in
+          NCSqArrowTail.hook-r-2 NCSqArrowHead.harpoon-l in
           open NCSq in
           let row style = [
             object {${A}}; arrow ?:{${f}}?*?:style right; object {${B}}
           ] in [
-            row implies;
-            row bodyless;
-            row seven;
-            row hook-l;
-            row hook-r;
+            row style-1;
+            row style-2;
+            row style-3;
+            row style-4;
+            row style-5;
           ]
         );%
         \code(`NCSqArrowStyle`); module provides some preconfigured styles.

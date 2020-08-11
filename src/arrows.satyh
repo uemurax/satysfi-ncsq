@@ -300,6 +300,10 @@ val vee-2 : t
 val multi-vee : int -> t
 % -|>
 val triangle : t
+% __\
+val harpoon-l : t
+% ‾‾/
+val harpoon-r : t
 
 % Head transformers
 val shift : bool -> float -> t -> t
@@ -449,6 +453,63 @@ let lw = fs *' NCSqConst.line-width in
   draw = fun (dx, dy) -> (
     let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
     [stroke lw color curve1]
+  );
+|)
+
+let harpoon-l-1 ctx body =
+let fs = get-font-size ctx in
+let r = body#end-right in
+let l = body#end-left in
+let d0 = fs *' NCSqConst.vee-min-width in
+let d1 = Length.(max (r -' l) d0) in
+let d2 = fs *' NCSqConst.vee-ext in
+let d = d1 +' d2 in
+let nd = Length.neg d in
+(|
+  metadata = (|
+    padding = fs *' NCSqConst.pd-base +' d;
+    depth = fun p -> r -' p;
+  |);
+  curve = fun (dx, dy) -> (
+    Gr.line (0pt, 0pt) (nd, d)
+    |> shift-path (0pt, Length.neg r)
+    |> linear-transform-path dx (Float.neg dy) dy dx
+  );
+|)
+
+let harpoon-l ctx body =
+let h1 = harpoon-l-1 ctx body in
+let color = get-text-color ctx in
+let lw = get-font-size ctx *' NCSqConst.line-width in
+(|
+  metadata = h1#metadata;
+  draw = fun (dx, dy) -> (
+    let curve = h1#curve (dx, dy) in
+    [stroke lw color curve]
+  );
+|)
+
+let harpoon-r ctx body =
+let h1 = harpoon-l-1 ctx (|
+  body with
+  end-left = Length.neg body#end-right;
+  end-right = Length.neg body#end-left;
+|) in
+let m1 = h1#metadata in
+let color = get-text-color ctx in
+let lw = get-font-size ctx *' NCSqConst.line-width in
+(|
+  metadata = (|
+    m1 with
+    depth = fun p -> m1#depth (Length.neg p);
+  |);
+  draw = fun (dx, dy) -> (
+    let curve = (
+      let (a, b, c, d) = NCSqUtil.mirror (dx, dy) in
+      h1#curve (dx, dy)
+      |> linear-transform-path a b c d
+    ) in
+    [stroke lw color curve]
   );
 |)
 
@@ -622,13 +683,10 @@ let color = get-text-color ctx in
     depth = fun y -> (h1#metadata#depth (Length.neg y));
   |);
   draw = fun (dx, dy) -> (
-    let x2 = dx *. dx in
-    let y2 = dy *. dy in
-    let z = x2 -. y2 in
-    let xy2 = 2.0 *. dx *. dy in
+    let (a, b, c, d) = NCSqUtil.mirror (dx, dy) in
     let cv = (
       h1#curve (dx, dy)
-      |> linear-transform-path z xy2 xy2 (Float.neg z)
+      |> linear-transform-path a b c d
     ) in
     [stroke lw color cv]
   );
@@ -720,7 +778,7 @@ val dashed : t
 % =====
 val equal : t
 % =====>
-val implies : t
+val solid-2 : t
 % >---->
 val tail : t
 % ---->>
@@ -733,6 +791,9 @@ val hook-r : t
 val triangle : t
 % |---->
 val mapsto : t
+
+val harpoon-l : t
+val harpoon-r : t
 
 val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 
@@ -758,13 +819,15 @@ let of-bth body tail head = (body, tail, head)
 let solid = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee
 let dashed = of-bth NCSqArrowBody.dashed NCSqArrowTail.none NCSqArrowHead.vee
 let equal = of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.none
-let implies = of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
+let solid-2 = of-bth NCSqArrowBody.solid-2 NCSqArrowTail.none NCSqArrowHead.vee
 let tail = of-bth NCSqArrowBody.solid NCSqArrowTail.vee NCSqArrowHead.vee
 let two-heads = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee-2
 let hook-l = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-l NCSqArrowHead.vee
 let hook-r = of-bth NCSqArrowBody.solid NCSqArrowTail.hook-r NCSqArrowHead.vee
 let triangle = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.triangle
 let mapsto = of-bth NCSqArrowBody.solid NCSqArrowTail.vdash NCSqArrowHead.vee
+let harpoon-l = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.harpoon-l
+let harpoon-r = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.harpoon-r
 
 let destruct (body, tail, head) ctx =
 let b = NCSqArrowBody.destruct body ctx in

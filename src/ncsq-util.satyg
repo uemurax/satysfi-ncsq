@@ -8,6 +8,8 @@ val zip-with : ('a option -> 'b option -> 'c) -> 'a list -> 'b list -> 'c list
 val zip : 'a -> 'b -> 'a list -> 'b list -> ('a * 'b) list
 val transpose : 'a -> ('a list) list -> ('a list) list
 val angle : (length * length) -> (length * length) -> (float * float) option
+% returns a linear transformation to mirror against a line
+val mirror : (float * float) -> (float * float * float * float)
 
 end = struct
 
@@ -39,5 +41,12 @@ else (
   let r = 1.0 /. z in
   Some (dx *. r, dy *. r)
 )
+
+let mirror (dx, dy) =
+let x2 = dx *. dx in
+let y2 = dy *. dy in
+let z = x2 -. y2 in
+let xy2 = 2.0 *. dx *. dy in
+(z, xy2, xy2, (Float.neg z))
 
 end
