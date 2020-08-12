@@ -28,9 +28,9 @@ In preamble:
 All of them receive a rectangular array of cells and draw a diagram.
 ```
 +NCSq.cd(open NCSq in [
-  [object {${A}}; arrow ?:{${f}} right; object {${B}}];
-  [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
-  [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
+  [object ${A}; arrow ?:${f} right; object ${B}];
+  [arrow ?*?:${g} down; empty; arrow ?:${h} down];
+  [object ${C}; arrow ?*?:${k} right; object ${D}];
 ]);
 ```
 ![Sample diagram](docs/ncsq-sample.png)
