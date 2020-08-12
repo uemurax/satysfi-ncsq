@@ -18,13 +18,13 @@ let-rec aux-odd acc m-l = (
   match m-l with
   | [] -> acc
   | m :: m-l1 -> (
-    aux-even (NCSq.object {${#m}} :: acc) m-l1
+    aux-even (NCSq.object m :: acc) m-l1
   )
 ) and aux-even acc m-l = (
   match m-l with
   | [] -> acc
   | m :: m-l1 -> (
-    let ar = NCSq.(if label-over then arrow ?:{${#m}} right else arrow ?*?:{${#m}} right) in
+    let ar = NCSq.(if label-over then arrow ?:m right else arrow ?*?:m right) in
     aux-odd (ar :: acc) m-l1
   )
 ) in
@@ -36,7 +36,7 @@ let-rec aux-odd (acc, n) m-l = (
   | [] -> acc
   | m :: m-l1 -> (
     let label-left = (n >= 0) in
-    let ar = NCSq.(if label-left then arrow ?*?:{${#m}} down else arrow ?:{${#m}} down) in
+    let ar = NCSq.(if label-left then arrow ?*?:m down else arrow ?:m down) in
     aux-even (ar :: acc, n - 2) m-l1
   )
 ) and aux-even (acc, n) m-l = (

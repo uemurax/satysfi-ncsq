@@ -4,9 +4,9 @@ let-inline ctx \math m = script-guard Latin (embed-math ctx m)
 
 let-block +contents = '<
   +NCSq.cd(open NCSq in [
-    [object {${A}}; arrow ?:{${f}} right; object {${B}}];
-    [arrow ?*?:{${g}} down; empty; arrow ?:{${h}} down];
-    [object {${C}}; arrow ?*?:{${k}} right; object {${D}}];
+    [object ${A}; arrow ?:${f} right; object ${B}];
+    [arrow ?*?:${g} down; empty; arrow ?:${h} down];
+    [object ${C}; arrow ?*?:${k} right; object ${D}];
   ]);
 >
 
