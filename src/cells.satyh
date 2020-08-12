@@ -1,6 +1,37 @@
 @require: base/list-ext
 @import: ./base/rect
 @import: ./base/paddings
+@import: ./arrows
+
+module NCSqDirection : sig
+
+type t
+
+val h : t
+val v : t
+val elim : (|
+  h : unit -> 'a;
+  v : unit -> 'a;
+|) -> t -> 'a
+
+end = struct
+
+type t =
+| Horizontal
+| Vertical
+
+let h = Horizontal
+let v = Vertical
+
+let elim x dir =
+let f = (
+  match dir with
+  | Horizontal -> x#h
+  | Vertical -> x#v
+) in
+f ()
+
+end
 
 module NCSqObject : sig
 
@@ -39,5 +70,97 @@ let gr2 = shift-graphics (Length.neg c, offset) gr1 in
 of-graphics pds [gr2]
 
 let of-math ctx pds offset m = of-inline-text ctx pds offset {${#m}}
+
+end
+
+module NCSqArrow : sig
+
+type t
+
+val of-style :
+context ->
+NCSqDirection.t ->
+length * length ->              % paddings around labels
+graphics list ->                % labels
+NCSqArrowStyle.t -> t
+
+val direction : t -> NCSqDirection.t
+val min-len : t -> length
+val face : t -> Interval.t
+val draw : length -> t -> graphics list
+
+end = struct
+
+type direction = NCSqDirection.t
+type interval = Interval.t
+
+type t = (|
+  direction : direction;
+  min-len : length;
+  face : interval;
+  draw : length -> graphics list;
+|)
+
+let direction arr = arr#direction
+let min-len arr = arr#min-len
+let face arr = arr#face
+let draw len arr = arr#draw len
+
+let of-style ctx dir (pdl, pdr) label-l style =
+let rc = List.(
+  label-l
+  |> map get-graphics-bbox
+  |> map Rect.of-rect
+  |> fold-right Rect.union Rect.zero
+) in
+let s = NCSqArrowStyle.destruct style ctx in
+let ct fc2 len = (
+  let c2 = Interval.center fc2 in
+  let c1 = Interval.(center (of-interval (s#tail-padding, len -' s#head-padding))) in
+  c1 -' c2
+) in
+let (fc1, fc2, draw) = NCSqDirection.elim (|
+  h = fun _ -> (
+    let fc1 = Rect.interval-v rc in
+    let fc2 = Rect.interval-h rc in
+    let draw len = (
+      let gr-l1 = List.(
+        label-l
+        |> map (shift-graphics (ct fc2 len, 0pt))
+      ) in
+      let gr-l2 = s#draw (0pt, 0pt) (len, 0pt) in
+      List.concat [gr-l1; gr-l2]
+    ) in
+    (fc1, fc2, draw)
+  );
+  v = fun _ -> (
+    let fc1 = Rect.interval-h rc in
+    let fc2 = Rect.interval-v rc in
+    let draw len = (
+      let gr-l1 = List.(
+        label-l
+        |> map (shift-graphics (0pt, Length.neg (ct fc2 len)))
+      ) in
+      let gr-l2 = s#draw (0pt, 0pt) (0pt, Length.neg len) in
+      List.concat [gr-l1; gr-l2]
+    ) in
+    (fc1, fc2, draw)
+  );
+|) dir in
+(|
+  direction = dir;
+  min-len = (
+    Length.max (Interval.width fc2) s#body-length +'
+    s#tail-padding +' s#head-padding
+  );
+  face = Interval.(
+    fc1
+    |> neg
+    |> union (of-interval (s#body-left, s#body-right))
+    |> expand pdl pdr
+    |> neg
+  );
+  draw = draw;
+|)
 
 end
