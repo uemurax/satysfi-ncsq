@@ -1,0 +1,19 @@
+module Interval : sig
+
+type t
+
+val of-interval : length * length -> t
+val to-interval : t -> length * length
+
+val center : t -> length
+
+end = struct
+
+type t = length * length
+
+let of-interval itv = itv
+let to-interval itv = itv
+
+let center (x0, x1) = (x0 +' x1) *' 0.5
+
+end

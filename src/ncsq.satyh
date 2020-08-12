@@ -9,6 +9,7 @@
 @import: ./base/matrix
 @import: ./ncsq-util
 @import: ./arrows
+@import: ./cells
 
 % Name conventions
 % -l or -ls: list of something

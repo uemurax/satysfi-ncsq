@@ -1,0 +1,21 @@
+module Paddings : sig
+
+type t
+
+val of-paddings :
+length *                        % left
+length *                        % right
+length *                        % top
+length ->                       % bottom
+t
+
+val to-paddings : t -> length * length * length * length
+
+end = struct
+
+type t = length * length * length * length
+
+let of-paddings pds = pds
+let to-paddings pds = pds
+
+end

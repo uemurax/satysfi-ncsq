@@ -1,0 +1,43 @@
+@require: base/list-ext
+@import: ./base/rect
+@import: ./base/paddings
+
+module NCSqObject : sig
+
+type t
+
+val of-graphics : Paddings.t -> graphics list -> t
+val of-inline-text : context -> Paddings.t -> length -> inline-text -> t
+val of-math : context -> Paddings.t -> length -> math -> t
+
+end = struct
+
+type rect = Rect.t
+
+type t = (|
+  bbox : rect;
+  draw : graphics list;
+|)
+
+let of-graphics pds gr-l =
+let rc = List.(
+  gr-l
+  |> map get-graphics-bbox
+  |> map Rect.of-rect
+  |> fold-right Rect.union Rect.zero
+) in (|
+  bbox = Rect.pad pds rc;
+  draw = gr-l;
+|)
+
+let of-inline-text ctx pds offset it =
+let gr1 = draw-text (0pt, 0pt) (read-inline ctx it) in
+let rc = Rect.of-rect (get-graphics-bbox gr1) in
+let itv = Rect.interval-h rc in
+let c = Interval.center itv in
+let gr2 = shift-graphics (Length.neg c, offset) gr1 in
+of-graphics pds [gr2]
+
+let of-math ctx pds offset m = of-inline-text ctx pds offset {${#m}}
+
+end
