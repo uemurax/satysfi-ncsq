@@ -80,15 +80,23 @@ document (|
     Parallel arrows are not supported.
   }
   +code(```
-  +NCSq.cd(open NCSq in [
+  +NCSq.cd(open NCSq in open NCSqArrowStyle in [
     [object {${A}}; arrow ?*?*?:solid right; object {${B}}];
     [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
     [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:tail right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:two-heads right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:hook-l right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:mapsto right; object {${B}}];
   ]);
 ```);
-  +NCSq.cd(open NCSq in [
+  +NCSq.cd(open NCSq in open NCSqArrowStyle in [
     [object {${A}}; arrow ?*?*?:solid right; object {${B}}];
     [object {${A}}; arrow ?*?*?:equal right; object {${B}}];
     [object {${A}}; arrow ?*?*?:dashed right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:tail right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:two-heads right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:hook-l right; object {${B}}];
+    [object {${A}}; arrow ?*?*?:mapsto right; object {${B}}];
   ]);
 >
