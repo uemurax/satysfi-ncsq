@@ -14,6 +14,8 @@ val elim : (|
   v : unit -> 'a;
 |) -> t -> 'a
 
+val flip : t -> t
+
 end = struct
 
 type t =
@@ -31,6 +33,36 @@ let f = (
 ) in
 f ()
 
+let flip = elim (|
+  h = fun _ -> v;
+  v = fun _ -> h;
+|)
+
+end
+
+module NCSqRect : sig
+
+val face : NCSqDirection.t -> Rect.t -> Interval.t
+val front : NCSqDirection.t -> Rect.t -> length
+val back : NCSqDirection.t -> Rect.t -> length
+
+end = struct
+
+let face dir rc = NCSqDirection.elim (|
+  h = fun _ -> Rect.interval-h rc;
+  v = fun _ -> Rect.interval-v rc;
+|) dir
+
+let front dir rc = NCSqDirection.elim (|
+  h = fun _ -> Rect.right rc;
+  v = fun _ -> Rect.bottom rc;
+|) dir
+
+let back dir rc = NCSqDirection.elim (|
+  h = fun _ -> Rect.left rc;
+  v = fun _ -> Rect.top rc;
+|) dir
+
 end
 
 module NCSqObject : sig
@@ -41,6 +73,9 @@ val of-graphics : Paddings.t -> graphics list -> t
 val of-inline-text : context -> Paddings.t -> length -> inline-text -> t
 val of-math : context -> Paddings.t -> length -> math -> t
 
+val bbox : t -> Rect.t
+val draw : t -> graphics list
+
 end = struct
 
 type rect = Rect.t
@@ -49,6 +84,9 @@ type t = (|
   bbox : rect;
   draw : graphics list;
 |)
+
+let bbox obj = obj#bbox
+let draw obj = obj#draw
 
 let of-graphics pds gr-l =
 let rc = List.(
@@ -131,39 +169,31 @@ let rc = List.(
   |> fold-right Rect.union Rect.zero
 ) in
 let s = NCSqArrowStyle.destruct style ctx in
-let ct fc2 len = (
+let fc1 = NCSqRect.face (NCSqDirection.flip dir) rc in
+let fc2 = NCSqRect.face dir rc in
+let draw len = (
   let c2 = Interval.center fc2 in
   let c1 = Interval.(center (of-interval (s#tail-padding, len -' s#head-padding))) in
-  c1 -' c2
-) in
-let (fc1, fc2, draw) = NCSqDirection.elim (|
-  h = fun _ -> (
-    let fc1 = Rect.interval-v rc in
-    let fc2 = Rect.interval-h rc in
-    let draw len = (
+  let c = c1 -' c2 in
+  NCSqDirection.elim (|
+    h = fun _ -> (
       let gr-l1 = List.(
         label-l
-        |> map (shift-graphics (ct fc2 len, 0pt))
+        |> map (shift-graphics (c, 0pt))
       ) in
       let gr-l2 = s#draw (0pt, 0pt) (len, 0pt) in
       List.concat [gr-l1; gr-l2]
-    ) in
-    (fc1, fc2, draw)
-  );
-  v = fun _ -> (
-    let fc1 = Rect.interval-h rc in
-    let fc2 = Rect.interval-v rc in
-    let draw len = (
+    );
+    v = fun _ -> (
       let gr-l1 = List.(
         label-l
-        |> map (shift-graphics (0pt, Length.neg (ct fc2 len)))
+        |> map (shift-graphics (0pt, Length.neg c))
       ) in
       let gr-l2 = s#draw (0pt, 0pt) (0pt, Length.neg len) in
       List.concat [gr-l1; gr-l2]
-    ) in
-    (fc1, fc2, draw)
-  );
-|) dir in
+    );
+  |) dir
+) in
 (|
   direction = dir;
   min-len = (
@@ -194,24 +224,19 @@ let rc gr-l = List.(
 ) in
 let rcl = rc grl-l in
 let rcr = rc grr-l in
+let ct rc = Interval.center (NCSqRect.face dir rc) in
+let cl = ct rcl in
+let cr = ct rcr in
+let frl = NCSqRect.front (NCSqDirection.flip dir) rcl in
+let bkr = NCSqRect.back (NCSqDirection.flip dir) rcr in
 let (gr-l1, gr-l2) = NCSqDirection.elim (|
   h = fun _ -> (
-    let ct rc = Interval.center (Rect.interval-h rc) in
-    let cl = ct rcl in
-    let bl = Rect.bottom rcl in
-    let cr = ct rcr in
-    let tr = Rect.top rcr in
-    List.((map (shift-graphics Length.((neg cl, neg left -' bl))) grl-l,
-           map (shift-graphics Length.((neg cr, neg right -' tr))) grr-l))
+    List.((map (shift-graphics Length.((neg cl, neg left -' frl))) grl-l,
+           map (shift-graphics Length.((neg cr, neg right -' bkr))) grr-l))
   );
   v = fun _ -> (
-    let ct rc = Interval.center (Rect.interval-v rc) in
-    let cl = ct rcl in
-    let rl = Rect.right rcl in
-    let cr = ct rcr in
-    let lr = Rect.left rcr in
-    List.((map (shift-graphics Length.((neg left -' rl, neg cl))) grl-l,
-           map (shift-graphics Length.((neg right -' lr, neg cr))) grr-l))
+    List.((map (shift-graphics Length.((neg left -' frl, neg cl))) grl-l,
+           map (shift-graphics Length.((neg right -' bkr, neg cr))) grr-l))
   );
 |) dir in
 of-style ctx dir (pdout, pdout) (List.concat [gr-l1; gr-l2]) style
