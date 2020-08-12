@@ -65,13 +65,36 @@ let back dir rc = NCSqDirection.elim (|
 
 end
 
+module NCSqInterval : sig
+
+val front : NCSqDirection.t -> Interval.t -> length
+val back : NCSqDirection.t -> Interval.t -> length
+
+end = struct
+
+let front dir = NCSqDirection.elim (|
+  h = fun _ -> Interval.right;
+  v = fun _ -> Interval.left;
+|) dir
+
+let back dir = NCSqDirection.elim (|
+  h = fun _ -> Interval.left;
+  v = fun _ -> Interval.right;
+|) dir
+
+end
+
 module NCSqObject : sig
 
 type t
 
 val of-graphics : Paddings.t -> graphics list -> t
-val of-inline-text : context -> Paddings.t -> length -> inline-text -> t
-val of-math : context -> Paddings.t -> length -> math -> t
+val of-inline-text :
+context ->
+float * float * float * float -> % paddings, relative to font size
+float ->                         % offset, relative to font size
+inline-text -> t
+val of-math : context -> float * float * float * float -> float -> math -> t
 
 val bbox : t -> Rect.t
 val draw : t -> graphics list
@@ -99,7 +122,10 @@ let rc = List.(
   draw = gr-l;
 |)
 
-let of-inline-text ctx pds offset it =
+let of-inline-text ctx pds1 offset1 it =
+let fs = get-font-size ctx in
+let pds = Paddings.relative pds1 fs in
+let offset = fs *' offset1 in
 let gr1 = draw-text (0pt, 0pt) (read-inline ctx it) in
 let rc = Rect.of-rect (get-graphics-bbox gr1) in
 let itv = Rect.interval-h rc in
@@ -132,10 +158,18 @@ NCSqArrowStyle.t -> t
 
 val of-style-with-labels :
 context ->
-inline-text ?->                 % left label
-inline-text ?->                 % right label
+inline-text option ->                 % left label
+inline-text option ->                 % right label
 NCSqDirection.t ->
 float * float ->              % paddings (in, out)
+NCSqArrowStyle.t -> t
+
+val of-style-with-mlabels :
+context ->
+math option ->                        % left label
+math option ->                        % right label
+NCSqDirection.t ->
+float * float ->
 NCSqArrowStyle.t -> t
 
 val direction : t -> NCSqDirection.t
@@ -205,7 +239,6 @@ let draw len = (
     |> neg
     |> union (of-interval (s#body-left, s#body-right))
     |> expand (fs *' pdl) (fs *' pdr)
-    |> neg
   );
   draw = draw;
 |)
@@ -227,21 +260,21 @@ let rcr = rc grr-l in
 let ct rc = Interval.center (NCSqRect.face dir rc) in
 let cl = ct rcl in
 let cr = ct rcr in
-let frl = NCSqRect.front (NCSqDirection.flip dir) rcl in
-let bkr = NCSqRect.back (NCSqDirection.flip dir) rcr in
+let fr rc = NCSqRect.front (NCSqDirection.flip dir) rc in
+let bk rc = NCSqRect.back (NCSqDirection.flip dir) rc in
 let (gr-l1, gr-l2) = NCSqDirection.elim (|
   h = fun _ -> (
-    List.((map (shift-graphics Length.((neg cl, neg left -' frl))) grl-l,
-           map (shift-graphics Length.((neg cr, neg right -' bkr))) grr-l))
+    List.((map (shift-graphics Length.((neg cl, neg left -' fr rcl))) grl-l,
+           map (shift-graphics Length.((neg cr, neg right -' bk rcr))) grr-l))
   );
   v = fun _ -> (
-    List.((map (shift-graphics Length.((neg left -' frl, neg cl))) grl-l,
-           map (shift-graphics Length.((neg right -' bkr, neg cr))) grr-l))
+    List.((map (shift-graphics Length.((neg left -' bk rcl, neg cl))) grl-l,
+           map (shift-graphics Length.((neg right -' fr rcr, neg cr))) grr-l))
   );
 |) dir in
 of-style ctx dir (pdout, pdout) (List.concat [gr-l1; gr-l2]) style
 
-let of-style-with-labels ctx ?:l-o ?:r-o dir pds style =
+let of-style-with-labels ctx l-o r-o dir pds style =
 let gr-l lbl-o = (
   Option.to-list lbl-o
   |> List.map (fun lbl -> draw-text (0pt, 0pt) (read-inline ctx lbl))
@@ -249,5 +282,11 @@ let gr-l lbl-o = (
 let grl-l = gr-l l-o in
 let grr-l = gr-l r-o in
 of-style-with-labels-gr ctx grl-l grr-l dir pds style
+
+let of-style-with-mlabels ctx l-o r-o dir pds style =
+let f m = {${#m}} in
+let l-o1 = Option.map f l-o in
+let r-o1 = Option.map f r-o in
+of-style-with-labels ctx l-o1 r-o1 dir pds style
 
 end

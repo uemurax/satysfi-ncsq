@@ -9,7 +9,16 @@ length *                        % top
 length ->                       % bottom
 t
 
+val relative : float * float * float * float -> length -> t
 val to-paddings : t -> length * length * length * length
+
+val horizontal : t ->
+length *                        % left
+length                          % right
+
+val vertical : t ->
+length *                        % bottom
+length                          % top
 
 end = struct
 
@@ -17,5 +26,10 @@ type t = length * length * length * length
 
 let of-paddings pds = pds
 let to-paddings pds = pds
+
+let relative (l, r, t, b) p = of-paddings (p *' l, p *' r, p *' t, p *' b)
+
+let horizontal (l, r, _, _) = (l, r)
+let vertical (_, _, t, b) = (b, t)
 
 end
