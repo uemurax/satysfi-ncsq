@@ -33,9 +33,9 @@ val \cd-m : [(cell list) list] math-cmd
 % Building cells
 
 val empty : cell
-val object : float * float * float * float ?-> inline-text -> cell
-val arrow : inline-text ?-> inline-text ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
-val arrow-2 : inline-text ?-> float * float * float * float ?-> arrow-direction -> cell
+val object : float * float * float * float ?-> math -> cell
+val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
+val arrow-2 : math ?-> float * float * float * float ?-> arrow-direction -> cell
 val eqarrow : arrow-direction -> cell
 
 % Arrow directions
@@ -526,30 +526,32 @@ let right = (Horizontal, Forwards)
 let up = (Vertical, Backwards)
 let down = (Vertical, Forwards)
 
+let m2it m = {${#m}}
+
 let empty = Empty
 
 let object ?:pds-opt label =
 Object (|
-  label = label;
+  label = m2it label;
   paddings = Option.from (let pd = 0.25 in (pd, pd, pd, pd)) pds-opt;
 |)
 
-let arrow ?:left-label ?: right-label ?:style-opt direction =
+let arrow ?:left-label-o ?: right-label-o ?:style-o direction =
 Arrow (|
   direction = direction;
   style = (
     Option.from
     (NCSqArrowStyle.of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee)
-    style-opt
+    style-o
   );
-  left-label = left-label;
-  right-label = right-label;
+  left-label = Option.map m2it left-label-o;
+  right-label = Option.map m2it right-label-o;
 |)
 
-let arrow-2 ?:label ?:pds-opt direction =
+let arrow-2 ?:label-o ?:pds-o direction =
 Arrow-2 (|
-  label = label;
-  paddings = Option.from (let (pdx, pdy) = (0.5, 0.25) in (pdx, pdx, pdy, pdy)) pds-opt;
+  label = Option.map m2it label-o;
+  paddings = Option.from (let (pdx, pdy) = (0.5, 0.25) in (pdx, pdx, pdy, pdy)) pds-o;
   direction = direction;
 |)
 
