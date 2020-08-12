@@ -1,0 +1,52 @@
+@require: base/list-ext
+@require: base/option-ext
+@import: ./matrix
+
+module NCSqUtil : sig
+
+val zip-with : ('a option -> 'b option -> 'c) -> 'a list -> 'b list -> 'c list
+val zip : 'a -> 'b -> 'a list -> 'b list -> ('a * 'b) list
+val transpose : 'a -> ('a list) list -> ('a list) list
+val angle : (length * length) -> (length * length) -> (float * float) option
+% returns a linear transformation to mirror against a line
+val mirror : (float * float) -> (float * float * float * float)
+
+end = struct
+
+let-rec zip-with f x-l y-l =
+match (x-l, y-l) with
+| ([], _) -> List.map (fun y -> (f None (Some y))) y-l
+| (_, []) -> List.map (fun x -> (f (Some x) None)) x-l
+| (x :: x-l1, y :: y-l1) -> f (Some x) (Some y) :: zip-with f x-l1 y-l1
+
+let transpose fill x-ll =
+List.fold-right
+(zip-with
+ (fun y-o y-l-o ->
+  Option.from fill y-o :: Option.from [] y-l-o))
+[]
+x-ll
+
+let zip x0 y0 =
+zip-with
+(fun x-o y-o ->
+ (Option.from x0 x-o, Option.from y0 y-o))
+
+let angle (x0, y0) (x1, y1) =
+let dx = (x1 -' x0) /' 1pt in
+let dy = (y1 -' y0) /' 1pt in
+let z = RealVector.(norm (of-list [dx; dy])) in
+if Float.is-zero z then None
+else (
+  let r = 1.0 /. z in
+  Some (dx *. r, dy *. r)
+)
+
+let mirror (dx, dy) =
+let x2 = dx *. dx in
+let y2 = dy *. dy in
+let z = x2 -. y2 in
+let xy2 = 2.0 *. dx *. dy in
+(z, xy2, xy2, (Float.neg z))
+
+end

@@ -1,0 +1,75 @@
+@import: ncsq-util
+@import: ncsq
+
+module EasyCD : sig
+
+val \cd : [(math list) list] inline-cmd
+val +cd : [(math list) list] block-cmd
+val \cd-m : [(math list) list] math-cmd
+
+val transpose : (math list) list -> (math list) list
+
+end = struct
+
+% Easy commutative diagrams
+
+let convert-row-odd label-over m-l =
+let-rec aux-odd acc m-l = (
+  match m-l with
+  | [] -> acc
+  | m :: m-l1 -> (
+    aux-even (NCSq.object {${#m}} :: acc) m-l1
+  )
+) and aux-even acc m-l = (
+  match m-l with
+  | [] -> acc
+  | m :: m-l1 -> (
+    let ar = NCSq.(if label-over then arrow ?:{${#m}} right else arrow ?*?:{${#m}} right) in
+    aux-odd (ar :: acc) m-l1
+  )
+) in
+List.(reverse (aux-odd [] m-l))
+
+let convert-row-even m-l =
+let-rec aux-odd (acc, n) m-l = (
+  match m-l with
+  | [] -> acc
+  | m :: m-l1 -> (
+    let label-left = (n >= 0) in
+    let ar = NCSq.(if label-left then arrow ?*?:{${#m}} down else arrow ?:{${#m}} down) in
+    aux-even (ar :: acc, n - 2) m-l1
+  )
+) and aux-even (acc, n) m-l = (
+  match m-l with
+  | [] -> acc
+  | _ :: m-l1 -> (
+    aux-odd (NCSq.empty :: acc, n - 2) m-l1
+  )
+) in
+List.(reverse (aux-odd ([], length m-l) m-l))
+
+let convert m-ll =
+let-rec aux-odd (acc, n) m-ll = (
+  match m-ll with
+  | [] -> acc
+  | m-l :: m-ll1 -> (
+    let c-l = convert-row-odd (n >= 0) m-l in
+    aux-even (c-l :: acc, n - 2) m-ll1
+  )
+) and aux-even (acc, n) m-ll = (
+  match m-ll with
+  | [] -> acc
+  | m-l :: m-ll1 -> (
+    let c-l = convert-row-even m-l in
+    aux-odd (c-l :: acc, n - 2) m-ll1
+  )
+) in
+List.(reverse (aux-odd ([], length m-ll) m-ll))
+
+let-block +cd m-ll = '<+NCSq.cd(convert m-ll);>
+let-inline \cd m-ll = {\NCSq.cd(convert m-ll);}
+let-math \cd-m m-ll = ${\NCSq.cd-m!(convert m-ll)}
+
+let transpose = NCSqUtil.transpose ${}
+
+end

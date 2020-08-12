@@ -35,13 +35,22 @@ All of them receive a rectangular array of cells and draw a diagram.
 ```
 ![Sample diagram](docs/ncsq-sample.png)
 
+For such a simple diagram, `ncsq/easy-cd` package provides simpler syntax.
+```
++EasyCD.cd[
+  ${| A | f | B |};
+  ${| g |   | h |};
+  ${| C | k | D |};
+];
+```
+
 See [docs/ncsq-example.saty](docs/ncsq-example.saty) for details and further examples.
 
 ## Related packages
 
 *   The standard library of SATySFi includes
     [cd](https://github.com/gfngfn/SATySFi/blob/master/lib-satysfi/dist/packages/cd.satyh)
-    package which I follow in arrow style.
+    package.
 *   Our package is similar to Paul Taylor's
     [diagrams](http://www.paultaylor.eu/diagrams/) TeX package in
     syntax (rectangular array of cells) and functionality (automatic
