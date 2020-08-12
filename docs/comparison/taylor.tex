@@ -1,0 +1,120 @@
+\documentclass{article}
+
+\usepackage{diagrams} % Available from http://www.paultaylor.eu/diagrams/
+
+\usepackage{amsmath}
+
+\title{Paul Taylor's {\tt diagrams} package}
+\author{Taichi Uemura}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{verbatim}
+\begin{diagram}
+  A & \rTo^{f} & B \\
+  \dTo^{g} & & \dTo_{h} \\
+  C & \rTo_{k} & D
+\end{diagram}
+\end{verbatim}
+\begin{diagram}
+  A & \rTo^{f} & B \\
+  \dTo^{g} & & \dTo_{h} \\
+  C & \rTo_{k} & D
+\end{diagram}
+\begin{verbatim}
+\begin{diagram}
+  A & \rTo^{g} & B &
+  \rTo^{\text{the longest label I've ever seen}} & C \\
+  \dTo & & \dTo & & \dTo \\
+  \text{LARGE OBJECT} & \rTo_{f} & E & \rTo_{h} & F
+\end{diagram}
+\end{verbatim}
+\begin{diagram}
+  A & \rTo^{g} & B &
+  \rTo^{\text{the longest label I've ever seen}} & C \\
+  \dTo & & \dTo & & \dTo \\
+  \text{LARGE OBJECT} & \rTo_{f} & E & \rTo_{h} & F
+\end{diagram}
+\begin{verbatim}
+\begin{diagram}
+  A & \rTo & B & &
+  \rTo^{\text{Of course, arrows sufficiently stretch}} & & C \\
+  & & \dTo & & & & \dTo \\
+  \dTo & & D & \rTo & E & \rTo & F \\
+  & & \dTo & & \dTo & & \\
+  G & \rTo & H & \rTo_{f} & I & & \dTo \\
+  \dTo & & & & \dTo & & \\
+  J & & \rTo_{\text{even when there's another long label}} & &
+  K & \rTo & L
+\end{diagram}
+\end{verbatim}
+\begin{diagram}
+  A & \rTo & B & &
+  \rTo^{\text{Of course, arrows sufficiently stretch}} & & C \\
+  & & \dTo & & & & \dTo \\
+  \dTo & & D & \rTo & E & \rTo & F \\
+  & & \dTo & & \dTo & & \\
+  G & \rTo & H & \rTo_{f} & I & & \dTo \\
+  \dTo & & & & \dTo & & \\
+  J & & \rTo_{\text{even when there's another long label}} & &
+  K & \rTo & L
+\end{diagram}
+\begin{verbatim}
+\begin{diagram}
+  A' & & \rTo^{f'} & & B' & & \\
+  & \rdTo_{a} & & & \vLine^{h'} & \rdTo^{b} & \\
+  \dTo^{g'} & & A & \rTo^{f} & \HonV & & B \\
+  & & \dTo^{g} & & \dTo & & \\
+  C' & \hLine & \VonH & \rTo^{k'} & D' & & \dTo_{h} \\
+  & \rdTo_{c} & & & & \rdTo_{d} & \\
+  & & C & & \rTo_{k} & & D
+\end{diagram}
+\end{verbatim}
+\begin{diagram}
+  A' & & \rTo^{f'} & & B' & & \\
+  & \rdTo_{a} & & & \vLine^{h'} & \rdTo^{b} & \\
+  \dTo^{g'} & & A & \rTo^{f} & \HonV & & B \\
+  & & \dTo^{g} & & \dTo & & \\
+  C' & \hLine & \VonH & \rTo^{k'} & D' & & \dTo_{h} \\
+  & \rdTo_{c} & & & & \rdTo_{d} & \\
+  & & C & & \rTo_{k} & & D
+\end{diagram}
+\begin{verbatim}
+\begin{diagram}
+  A & \pile{\rTo^{f} \\ \puncture\quad\alpha \\ \rTo_{g}} & B \\
+  \dTo^{h}\dashv\uTo_{k} & & \\
+  C & &
+\end{diagram}
+\end{verbatim}
+\begin{diagram}
+  A & \pile{\rTo^{f} \\ \puncture\quad\alpha \\ \rTo_{g}} & B \\
+  \dTo^{h}\dashv\uTo_{k} & & \\
+  C & &
+\end{diagram}
+\begin{verbatim}
+\begin{diagram}
+  A & \rTo & B \\
+  A & \rEq & B \\
+  A & \rDashto & B \\
+  A & \rDotsto & B \\
+  A & \rEmbed & B \\
+  A & \rOnto & B \\
+  A & \rInto & B \\
+  A & \rMapsto & B
+\end{diagram}
+\end{verbatim}
+\begin{diagram}
+  A & \rTo & B \\
+  A & \rEq & B \\
+  A & \rDashto & B \\
+  A & \rDotsto & B \\
+  A & \rEmbed & B \\
+  A & \rOnto & B \\
+  A & \rInto & B \\
+  A & \rMapsto & B
+\end{diagram}
+
+\end{document}

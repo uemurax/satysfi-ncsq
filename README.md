@@ -48,6 +48,10 @@ See [docs/ncsq-example.saty](docs/ncsq-example.saty) for details and further exa
 
 ## Related packages
 
-The standard library includes
-[cd](https://github.com/gfngfn/SATySFi/blob/master/lib-satysfi/dist/packages/cd.satyh)
-package.
+*   The standard library of SATySFi includes
+    [cd](https://github.com/gfngfn/SATySFi/blob/master/lib-satysfi/dist/packages/cd.satyh)
+    package.
+*   Our package is similar to Paul Taylor's
+    [diagrams](http://www.paultaylor.eu/diagrams/) TeX package in
+    syntax (rectangular array of cells) and functionality (automatic
+    arrow stretching).
