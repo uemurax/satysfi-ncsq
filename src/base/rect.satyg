@@ -20,6 +20,11 @@ val to-rect : t -> (length * length) * (length * length)
 val zero : t
 val union : t -> t -> t
 val pad : Paddings.t -> t -> t
+
+val left : t -> length
+val bottom : t -> length
+val right : t -> length
+val top : t -> length
 val interval-h : t -> Interval.t
 val interval-v : t -> Interval.t
 
@@ -40,6 +45,10 @@ let (l, r, t, b) = Paddings.to-paddings pds in
 let ((x0, y0), (x1, y1)) = to-rect rc in
 of-rect ((x0 -' l, y0 -' b), (x1 +' r, y1 +' t))
 
+let left (p0, _) = Point.x p0
+let bottom (p0, _) = Point.y p0
+let right (_, p1) = Point.x p1
+let top (_, p1) = Point.y p1
 let interval-h (p0, p1) = Interval.of-interval (Point.x p0, Point.x p1)
 let interval-v (p0, p1) = Interval.of-interval (Point.y p0, Point.y p1)
 

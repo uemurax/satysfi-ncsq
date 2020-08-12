@@ -80,8 +80,24 @@ type t
 val of-style :
 context ->
 NCSqDirection.t ->
-length * length ->              % paddings around labels
+float * float ->              % paddings around labels, relative to font size
 graphics list ->                % labels
+NCSqArrowStyle.t -> t
+
+val of-style-with-labels-gr :
+context ->
+graphics list ->                 % left label
+graphics list ->                 % right label
+NCSqDirection.t ->
+float * float ->              % paddings (in, out)
+NCSqArrowStyle.t -> t
+
+val of-style-with-labels :
+context ->
+inline-text ?->                 % left label
+inline-text ?->                 % right label
+NCSqDirection.t ->
+float * float ->              % paddings (in, out)
 NCSqArrowStyle.t -> t
 
 val direction : t -> NCSqDirection.t
@@ -107,6 +123,7 @@ let face arr = arr#face
 let draw len arr = arr#draw len
 
 let of-style ctx dir (pdl, pdr) label-l style =
+let fs = get-font-size ctx in
 let rc = List.(
   label-l
   |> map get-graphics-bbox
@@ -157,10 +174,55 @@ let (fc1, fc2, draw) = NCSqDirection.elim (|
     fc1
     |> neg
     |> union (of-interval (s#body-left, s#body-right))
-    |> expand pdl pdr
+    |> expand (fs *' pdl) (fs *' pdr)
     |> neg
   );
   draw = draw;
 |)
+
+let of-style-with-labels-gr ctx grl-l grr-l dir pds style =
+let fs = get-font-size ctx in
+let (pdin, pdout) = pds in
+let s = NCSqArrowStyle.destruct style ctx in
+let left = s#body-left -' fs *' pdin in
+let right = s#body-right +' fs *' pdin in
+let rc gr-l = List.(
+  gr-l
+  |> map get-graphics-bbox
+  |> map Rect.of-rect
+  |> fold-right Rect.union Rect.zero
+) in
+let rcl = rc grl-l in
+let rcr = rc grr-l in
+let (gr-l1, gr-l2) = NCSqDirection.elim (|
+  h = fun _ -> (
+    let ct rc = Interval.center (Rect.interval-h rc) in
+    let cl = ct rcl in
+    let bl = Rect.bottom rcl in
+    let cr = ct rcr in
+    let tr = Rect.top rcr in
+    List.((map (shift-graphics Length.((neg cl, neg left -' bl))) grl-l,
+           map (shift-graphics Length.((neg cr, neg right -' tr))) grr-l))
+  );
+  v = fun _ -> (
+    let ct rc = Interval.center (Rect.interval-v rc) in
+    let cl = ct rcl in
+    let rl = Rect.right rcl in
+    let cr = ct rcr in
+    let lr = Rect.left rcr in
+    List.((map (shift-graphics Length.((neg left -' rl, neg cl))) grl-l,
+           map (shift-graphics Length.((neg right -' lr, neg cr))) grr-l))
+  );
+|) dir in
+of-style ctx dir (pdout, pdout) (List.concat [gr-l1; gr-l2]) style
+
+let of-style-with-labels ctx ?:l-o ?:r-o dir pds style =
+let gr-l lbl-o = (
+  Option.to-list lbl-o
+  |> List.map (fun lbl -> draw-text (0pt, 0pt) (read-inline ctx lbl))
+) in
+let grl-l = gr-l l-o in
+let grr-l = gr-l r-o in
+of-style-with-labels-gr ctx grl-l grr-l dir pds style
 
 end
