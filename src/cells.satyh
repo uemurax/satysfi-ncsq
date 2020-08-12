@@ -143,34 +143,38 @@ type t
 
 val of-style :
 context ->
-NCSqDirection.t ->
 float * float ->              % paddings around labels, relative to font size
 graphics list ->                % labels
-NCSqArrowStyle.t -> t
+NCSqArrowStyle.t ->
+NCSqDirection.t -> t
 
 val of-style-with-labels-gr :
 context ->
 graphics list ->                 % left label
 graphics list ->                 % right label
-NCSqDirection.t ->
 float * float ->              % paddings (in, out)
-NCSqArrowStyle.t -> t
+NCSqArrowStyle.t ->
+NCSqDirection.t -> t
 
 val of-style-with-labels :
 context ->
 inline-text option ->                 % left label
 inline-text option ->                 % right label
-NCSqDirection.t ->
 float * float ->              % paddings (in, out)
-NCSqArrowStyle.t -> t
+NCSqArrowStyle.t ->
+NCSqDirection.t -> t
 
 val of-style-with-mlabels :
 context ->
 math option ->                        % left label
 math option ->                        % right label
-NCSqDirection.t ->
 float * float ->
-NCSqArrowStyle.t -> t
+NCSqArrowStyle.t ->
+NCSqDirection.t -> t
+
+val of-object : NCSqObject.t -> NCSqDirection.t -> t
+
+val of-list : (NCSqDirection.t -> t) list -> NCSqDirection.t -> t
 
 val direction : t -> NCSqDirection.t
 val min-len : t -> length
@@ -194,7 +198,7 @@ let min-len arr = arr#min-len
 let face arr = arr#face
 let draw len arr = arr#draw len
 
-let of-style ctx dir (pdl, pdr) label-l style =
+let of-style ctx (pdl, pdr) label-l style dir =
 let fs = get-font-size ctx in
 let rc = List.(
   label-l
@@ -243,7 +247,7 @@ let draw len = (
   draw = draw;
 |)
 
-let of-style-with-labels-gr ctx grl-l grr-l dir pds style =
+let of-style-with-labels-gr ctx grl-l grr-l pds style dir =
 let fs = get-font-size ctx in
 let (pdin, pdout) = pds in
 let s = NCSqArrowStyle.destruct style ctx in
@@ -272,21 +276,77 @@ let (gr-l1, gr-l2) = NCSqDirection.elim (|
            map (shift-graphics Length.((neg right -' fr rcr, neg cr))) grr-l))
   );
 |) dir in
-of-style ctx dir (pdout, pdout) (List.concat [gr-l1; gr-l2]) style
+of-style ctx (pdout, pdout) (List.concat [gr-l1; gr-l2]) style dir
 
-let of-style-with-labels ctx l-o r-o dir pds style =
+let of-style-with-labels ctx l-o r-o pds style dir =
 let gr-l lbl-o = (
   Option.to-list lbl-o
   |> List.map (fun lbl -> draw-text (0pt, 0pt) (read-inline ctx lbl))
 ) in
 let grl-l = gr-l l-o in
 let grr-l = gr-l r-o in
-of-style-with-labels-gr ctx grl-l grr-l dir pds style
+of-style-with-labels-gr ctx grl-l grr-l pds style dir
 
-let of-style-with-mlabels ctx l-o r-o dir pds style =
+let of-style-with-mlabels ctx l-o r-o pds style dir =
 let f m = {${#m}} in
 let l-o1 = Option.map f l-o in
 let r-o1 = Option.map f r-o in
-of-style-with-labels ctx l-o1 r-o1 dir pds style
+of-style-with-labels ctx l-o1 r-o1 pds style dir
+
+let of-object obj dir =
+let rc = NCSqObject.bbox obj in
+let itv1 = NCSqRect.face (NCSqDirection.flip dir) rc in
+let itv2 = NCSqRect.face dir rc in
+let gr-l = NCSqObject.draw obj in
+(|
+  direction = dir;
+  min-len = Interval.width itv2;
+  face = Interval.neg itv1;
+  draw = fun len -> (
+    let l2 = len *' 0.5 in
+    NCSqDirection.elim (|
+      h = fun _ -> List.map (shift-graphics (l2, 0pt)) gr-l;
+      v = fun _ -> List.map (shift-graphics (0pt, Length.neg l2)) gr-l;
+    |) dir
+  );
+|)
+
+let of-list arr-f-l dir =
+let arr-l = List.map (fun arr-f -> arr-f dir) arr-f-l in
+let-rec grid-aux (h, ls) arr-l = (
+  match arr-l with
+  | [] -> (
+    let h2 = h *' 0.5 in
+    (Interval.of-interval (Length.neg h2, h2),
+     List.reverse-map (fun x -> x -' h2) ls)
+  )
+  | arr :: arr-l1 -> (
+    let fc = face arr in
+    let h1 = h -' Interval.left fc in
+    let h2 = h1 +' Interval.right fc in
+    grid-aux (h2, h1 :: ls) arr-l1
+  )
+) in
+let (fc, grid) = grid-aux (0pt, []) arr-l in
+(|
+  direction = dir;
+  min-len = List.(
+    arr-l
+    |> map min-len
+    |> fold-right Length.max 0pt
+  );
+  face = fc;
+  draw = fun len -> (
+    let sh = NCSqDirection.elim (|
+      h = fun _ y -> (0pt, Length.neg y);
+      v = fun _ x -> (Length.neg x, 0pt);
+    |) dir in
+    List.(
+      zip arr-l grid
+      |> map (fun (arr, x) -> map (shift-graphics (sh x)) (draw len arr))
+      |> concat
+    )
+  );
+|)
 
 end

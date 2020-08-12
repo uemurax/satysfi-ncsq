@@ -20,6 +20,7 @@
 module NCSq : sig
 
 type cell
+type direction1
 type arrow-direction
 
 val \cd : [(cell list) list] inline-cmd
@@ -33,9 +34,12 @@ val object : float * float * float * float ?-> math -> cell
 val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
 val arrow-2 : math ?-> float * float * float * float ?-> arrow-direction -> cell
 val eqarrow : arrow-direction -> cell
+val stack : direction1 -> cell list -> cell
 
 % Arrow directions
 
+val horizontal : direction1
+val vertical : direction1
 val left : arrow-direction
 val right : arrow-direction
 val up : arrow-direction
@@ -398,11 +402,13 @@ List.concat [obj-l; varr-l; harr-l]
 
 % Commands
 
+type direction1 = NCSqDirection.t
+
 type direction2 =
 | Forwards
 | Backwards
 
-type arrow-direction = NCSqDirection.t * direction2
+type arrow-direction = direction1 * direction2
 
 type object = (|
   label : math;
@@ -427,11 +433,14 @@ type cell =
 | Object of object
 | Arrow of arrow
 | Arrow-2 of arrow-2
+| Stack of direction1 * cell list
 
-let left = (NCSqDirection.h, Backwards)
-let right = (NCSqDirection.h, Forwards)
-let up = (NCSqDirection.v, Backwards)
-let down = (NCSqDirection.v, Forwards)
+let horizontal = NCSqDirection.h
+let vertical = NCSqDirection.v
+let left = (horizontal, Backwards)
+let right = (horizontal, Forwards)
+let up = (vertical, Backwards)
+let down = (vertical, Forwards)
 
 let empty = Empty
 
@@ -460,6 +469,8 @@ Arrow-2 (|
   direction = direction;
 |)
 
+let stack dir cell-l = Stack (dir, cell-l)
+
 let solid = NCSqArrowStyle.solid
 let dashed = NCSqArrowStyle.dashed
 let equal = NCSqArrowStyle.equal
@@ -470,22 +481,14 @@ let label-context ctx = set-font-size (get-font-size ctx *' 0.75) ctx
 
 let shift-y = 0.33
 
-let make-pds ctx (pdl, pdr, pdt, pdb) =
-let h = get-font-size ctx in
-(h *' pdl, h *' pdr, h *' pdt, h *' pdb)
-
-let make-object-raw ctx obj = Object-raw (NCSqObject.of-math ctx obj#paddings (Float.neg shift-y) obj#label)
+let make-object ctx obj = NCSqObject.of-math ctx obj#paddings (Float.neg shift-y) obj#label
 
 let label-ctx ctx =
 let fs = get-font-size ctx in
 ctx
 |> set-font-size (fs *' 0.75)
 
-let make-cell-raw ctx cell =
-match cell with
-| Empty -> Empty-raw
-| Object obj -> make-object-raw ctx obj
-| Arrow arr -> (
+let make-arrow ctx arr = (
   let (dir1, dir2) = arr#direction in
   let (ml, mr, style) = (
     match dir2 with
@@ -493,8 +496,14 @@ match cell with
     | Backwards -> (arr#right-label, arr#left-label, NCSqArrowStyle.invert arr#style)
   ) in
   let dir = Pair.fst arr#direction in
-  Arrow-raw (NCSqArrow.of-style-with-mlabels (label-ctx ctx) ml mr dir (0.3, 0.3) style)
+  NCSqArrow.of-style-with-mlabels (label-ctx ctx) ml mr (0.3, 0.3) style dir
 )
+
+let make-cell-raw ctx cell =
+match cell with
+| Empty -> Empty-raw
+| Object obj -> Object-raw (make-object ctx obj)
+| Arrow arr -> Arrow-raw (make-arrow ctx arr)
 | Arrow-2 arr2 -> (
   let (dir1, dir2) = arr2#direction in
   let m1 = NCSqDirection.elim (|
@@ -522,10 +531,49 @@ match cell with
       |) dir1
     )
   ) in
-  make-object-raw ctx (|
+  Object-raw (make-object ctx (|
     label = m;
     paddings = arr2#paddings;
-  |)
+  |))
+)
+| Stack (dir, cell-l) -> (
+  let-rec aux ls cell-l = (
+    match cell-l with
+    | [] -> NCSqDirection.elim (|
+      h = fun _ -> ls;
+      v = fun _ -> List.reverse ls;
+    |) dir
+    | cell :: cell-l-1 -> (
+      let ls-1 = (
+        let fallback _ = ls in
+        match cell with
+        | Object obj -> NCSqArrow.of-object (make-object (label-ctx ctx) obj) :: ls
+        | Arrow arr1 -> (
+          let arr = make-arrow ctx arr1 in
+          let dir1 = NCSqArrow.direction arr in
+          let same = fallback in
+          let differ _ = (fun _ -> arr) :: ls in
+          NCSqDirection.elim (|
+            h = fun _ -> (
+              NCSqDirection.elim (|
+                h = same;
+                v = differ;
+              |) dir1
+            );
+            v = fun _ -> (
+              NCSqDirection.elim (|
+                h = differ;
+                v = same;
+              |) dir1
+            );
+          |) dir
+        )
+        | _ -> fallback ()
+      ) in
+      aux ls-1 cell-l-1
+    )
+  ) in
+  Arrow-raw (NCSqArrow.of-list (aux [] cell-l) (NCSqDirection.flip dir))
 )
 
 let cd ctx cell-ll =
@@ -572,7 +620,7 @@ NCSqDirection.elim (|
   );
 |) dir1
 
-let invert-cell-vertically cell =
+let-rec invert-cell-vertically cell =
 match cell with
 | Arrow arr ->
 (Arrow (|
@@ -586,6 +634,13 @@ match cell with
   arr-2 with
   direction = invert-direction-vertically arr-2#direction;
 |))
+| Stack (dir, cell-l) -> (
+  let map = NCSqDirection.elim (|
+    h = fun _ -> List.map;
+    v = fun _ -> List.reverse-map;
+  |) dir in
+  Stack (dir, map invert-cell-vertically cell-l)
+)
 | _ -> cell
 
 let invert-v cell-ll = List.map (List.map invert-cell-vertically) (List.reverse cell-ll)
@@ -594,7 +649,7 @@ let transpose-direction dir =
 let (dir1, dir2) = dir in
 (NCSqDirection.flip dir1, dir2)
 
-let transpose-cell cell =
+let-rec transpose-cell cell =
 match cell with
 | Arrow arr ->
 (Arrow (|
@@ -608,6 +663,7 @@ match cell with
   arr-2 with
   direction = transpose-direction arr-2#direction;
 |))
+| Stack (dir, cell-l) -> Stack (NCSqDirection.flip dir, List.map transpose-cell cell-l)
 | _ -> cell
 
 let transpose cell-ll = List.map (List.map transpose-cell) (NCSqUtil.transpose empty cell-ll)
