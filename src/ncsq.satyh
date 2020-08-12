@@ -5,8 +5,8 @@
 @require: base/option-ext
 @require: gr
 @require: math
-@import: ./qp
-@import: ./matrix
+@import: ./base/qp
+@import: ./base/matrix
 @import: ./ncsq-util
 @import: ./arrows
 
