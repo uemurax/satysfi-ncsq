@@ -1,0 +1,33 @@
+@require: base/length
+
+module Point : sig
+
+type t
+
+val of-point : length * length -> t
+val to-point : t -> length * length
+
+val x : t -> length
+val y : t -> length
+
+val zero : t
+val min : t -> t -> t
+val max : t -> t -> t
+
+end = struct
+
+type t = length * length
+
+let of-point pt = pt
+let to-point pt = pt
+
+let x (a, _) = a
+let y (_, b) = b
+
+let zero = (0pt, 0pt)
+
+let binop f (x1, y1) (x2, y2) = (f x1 x2, f y1 y2)
+let min = binop Length.min
+let max = binop Length.max
+
+end

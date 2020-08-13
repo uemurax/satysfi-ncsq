@@ -5,10 +5,11 @@
 @require: base/option-ext
 @require: gr
 @require: math
-@import: ./qp
-@import: ./matrix
+@import: ./base/qp
+@import: ./base/matrix
 @import: ./ncsq-util
 @import: ./arrows
+@import: ./cells
 
 % Name conventions
 % -l or -ls: list of something
@@ -19,6 +20,7 @@
 module NCSq : sig
 
 type cell
+type direction1
 type arrow-direction
 
 val \cd : [(cell list) list] inline-cmd
@@ -32,9 +34,12 @@ val object : float * float * float * float ?-> math -> cell
 val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
 val arrow-2 : math ?-> float * float * float * float ?-> arrow-direction -> cell
 val eqarrow : arrow-direction -> cell
+val stack : direction1 -> cell list -> cell
 
 % Arrow directions
 
+val horizontal : direction1
+val vertical : direction1
 val left : arrow-direction
 val right : arrow-direction
 val up : arrow-direction
@@ -54,189 +59,128 @@ val invert-h : (cell list) list -> (cell list) list
 
 end = struct
 
-type direction1 =
-| Horizontal
-| Vertical
-
-type direction2 =
-| Forwards
-| Backwards
-
-type arrow-direction = direction1 * direction2
-
-type arrow-config = (|
-  padding : length;
-  left : length;
-  right : length;
-  length : length;
-  head-padding : length;
-  tail-padding : length;
-  draw : point -> point -> graphics list;
-|)
-
-type paddings = length * length * length * length
-
 type cell-raw =
 | Empty-raw
-| Object-raw of graphics * paddings
-| Arrow-raw of arrow-config * arrow-direction * graphics list
+| Object-raw of NCSqObject.t
+| Arrow-raw of NCSqArrow.t
 
-% Utilities
+module Cell-raw : sig
 
-let get-grs-bbox gr-l =
-List.fold-right
-(fun gr ((x0, y0), (x1, y1)) ->
- (let ((gx0, gy0), (gx1, gy1)) = get-graphics-bbox gr in
-  ((Length.min x0 gx0, Length.min y0 gy0), (Length.max x1 gx1, Length.max y1 gy1))))
-((0pt, 0pt), (0pt, 0pt))
-gr-l
+val face : NCSqDirection.t -> cell-raw -> Interval.t
+val front : NCSqDirection.t -> cell-raw -> length
+val back : NCSqDirection.t -> cell-raw -> length
 
-% Calculate cell's boundary
+end = struct
 
-let rc-face dir1 rc =
-match (dir1, rc) with
-| (Horizontal, ((x0, _), (x1, _))) -> (x0, x1)
-| (Vertical, ((_, y0), (_, y1))) -> (y0, y1)
-
-let face-union (x0, y0) (x1, y1) = Length.((min x0 x1, max y0 y1))
-
-let pds-face dir1 pds =
-match (dir1, pds) with
-| (Horizontal, (pl, pr, _, _)) -> (pl, pr)
-| (Vertical, (_, _, pt, pb)) -> (pb, pt)
-
-let get-obj-bd dir1 cell =
+let face dir cell =
 match cell with
-| Empty-raw -> (0pt, 0pt)
-| Object-raw (gr, pds) ->
-(let (z0, z1) = rc-face dir1 (get-graphics-bbox gr) in
- let (p0, p1) = pds-face dir1 pds in
- (z0 -' p0, z1 +' p1))
-| Arrow-raw (cfg, dir, gr-l) -> (
-  let (p, q) = (
-    match (dir1, dir) with
-    | (Horizontal, (Vertical, dir2)) -> (
-      let f1 = rc-face Horizontal (get-grs-bbox gr-l) in
-      let f2 = (
-        match dir2 with
-        | Backwards -> (cfg#left, cfg#right)
-        | Forwards -> Length.((neg cfg#right, neg cfg#left))
-      )
-      in face-union f1 f2
-    )
-    | (Vertical, (Horizontal, dir2)) -> (
-      let f1 = rc-face Vertical (get-grs-bbox gr-l) in
-      let f2 = (
-        match dir2 with
-        | Backwards -> (cfg#left, cfg#right)
-        | Forwards -> Length.((neg cfg#right, neg cfg#left))
-      )
-      in face-union f1 f2
-    )
-    | _ -> (0pt, 0pt)
-  ) in
-  (p -' cfg#padding, q +' cfg#padding)
+| Empty-raw -> Interval.zero
+| Object-raw obj -> NCSqRect.face dir (NCSqObject.bbox obj)
+| Arrow-raw arr -> (
+  let differ _ = Interval.neg (NCSqArrow.face arr) in
+  let same _ = Interval.zero in
+  let dir1 = NCSqArrow.direction arr in
+  NCSqDirection.elim (|
+    h = fun _ -> NCSqDirection.elim (|
+      h = same;
+      v = differ;
+    |) dir1;
+    v = fun _ -> NCSqDirection.elim (|
+      h = differ;
+      v = same;
+    |) dir1;
+  |) dir
 )
 
-% bottom and top
-let get-obj-bt cell = get-obj-bd Vertical cell
+let front dir cell = NCSqInterval.front dir (face dir cell)
+let back dir cell = NCSqInterval.back dir (face dir cell)
 
-% left and right
-let get-obj-lr cell = get-obj-bd Horizontal cell
+end
 
-let get-objs-boundary dir1 cell-l =
-List.fold-right
-(fun cell (x, y) ->
- (let (x1, y1) = get-obj-bd dir1 cell in
-  (Length.min x x1, Length.max y y1)))
-(0pt, 0pt)
-cell-l
+let cells-face dir =
+List.fold-right (fun cell itv -> (
+  let itv1 = Cell-raw.face dir cell in
+  Interval.union itv itv1
+)) Interval.zero
 
-let get-objs-bt = get-objs-boundary Vertical
-
-let get-objss-bts = List.map get-objs-bt
-
-let get-objs-lr = get-objs-boundary Horizontal
-
-let get-objss-lrs cell-ll = List.map get-objs-lr (NCSqUtil.transpose Empty-raw cell-ll)
+let cellss-faces dir = List.map (cells-face dir)
+let cellss-bts cell-ll = cellss-faces NCSqDirection.v cell-ll
+let cellss-lrs cell-ll = cellss-faces NCSqDirection.h (NCSqUtil.transpose Empty-raw cell-ll)
 
 % Determine source and target of an arrow
 
 % Find the first object in a list of cells
 let find-object cx-l =
-let-rec aux x-l y-l =
-match y-l with
-| [] -> (x-l, None, [])
-| y :: y-l1 ->
-(match y with
- | (Object-raw _, _) -> (x-l, Some y, y-l1)
- | _ -> aux (y :: x-l) y-l1)
-in
+let-rec aux x-l y-l = (
+  match y-l with
+  | [] -> (x-l, None, [])
+  | y :: y-l1 ->
+  (match y with
+   | (Object-raw _, _) -> (x-l, Some y, y-l1)
+   | _ -> aux (y :: x-l) y-l1)
+) in
 aux [] cx-l
 
 % Find the first virtical/horizontal arrow in a list of cells
-let find-arrow dir1 cx-l0 obx cx-l =
-let-rec aux x-l src y-l z-l =
-match z-l with
-| [] -> (x-l, src, y-l, None, [])
-| z :: z-l1 ->
-(match z with
- | (Object-raw _, _) -> aux (List.append y-l (src :: x-l)) z [] z-l1
- | (Arrow-raw (_, dir, _), _) ->
- (match (dir1, dir) with
-  | (Horizontal, (Horizontal, _)) -> (x-l, src, y-l, Some z, z-l1)
-  | (Vertical, (Vertical, _)) -> (x-l, src, y-l, Some z, z-l1)
-  | _ -> aux x-l src (z :: y-l) z-l1)
- | _ -> aux x-l src (z :: y-l) z-l1)
-in
+let find-arrow dir cx-l0 obx cx-l =
+let-rec aux x-l src y-l z-l = (
+  match z-l with
+  | [] -> (x-l, src, y-l, None, [])
+  | z :: z-l1 -> (
+    let fallback _ = aux x-l src (z :: y-l) z-l1 in
+    match z with
+    | (Object-raw _, _) -> aux (List.append y-l (src :: x-l)) z [] z-l1
+    | (Arrow-raw arr, _) -> (
+      let same _ = (x-l, src, y-l, Some z, z-l1) in
+      let differ = fallback in
+      let dir1 = NCSqArrow.direction arr in
+      NCSqDirection.elim (|
+        h = fun _ -> NCSqDirection.elim (|
+          h = same;
+          v = differ;
+        |) dir1;
+        v = fun _ -> NCSqDirection.elim (|
+          h = differ;
+          v = same;
+        |) dir1;
+      |) dir
+    )
+    | _ -> fallback ()
+  )
+)in
 aux cx-l0 obx [] cx-l
 
-let find-varrow = find-arrow Vertical
+let find-varrow = find-arrow NCSqDirection.v
 
-let find-harrow = find-arrow Horizontal
+let find-harrow = find-arrow NCSqDirection.h
 
 % Adjust boundaries of cells
 
-let d-sum z-l =
-List.fold-right
-(fun (_, ((x, y), _)) l ->
- l +' (y -' x))
-0pt z-l
+let d-sum =
+List.fold-right (fun (_, (itv, _)) l -> (
+  l +' Interval.width itv
+)) 0pt
 
-let bd-front dir1 bd =
-match (dir1, bd) with
-| (Horizontal, (_, r)) -> r
-| (Vertical, (b, _)) -> b
-
-let bd-back dir1 bd =
-match (dir1, bd) with
-| (Horizontal, (l, _)) -> l
-| (Vertical, (_, t)) -> t
-
-let make-qp-1-1 x-ls src y-ls arr z-ls tgt w-ls =
-let (ar, (bd, fs)) = arr in
-match ar with
-| Arrow-raw (cfg, (dir1, _), gr-ls) -> (
-  let (z0, z1) = rc-face dir1 (get-grs-bbox gr-ls) in
-  let head = cfg#head-padding in
-  let tail = cfg#tail-padding in
-  let body = Length.max (z1 -' z0) cfg#length in
-  let al = body +' head +' tail in
-  let (b0, b1) = bd in
-  let cl = b1 -' b0 in
+let make-qp-1-1 x-ls src y-ls cx z-ls tgt w-ls =
+let (cell, (bd, fs)) = cx in
+let fallback _ = (None, cx) in
+match cell with
+| Arrow-raw arr -> (
+  let al = NCSqArrow.min-len arr in
+  let cl = Interval.width bd in
   let yl = d-sum y-ls in
   let zl = d-sum z-ls in
   let (s, (sbd, _)) = src in
   let (t, (tbd, _)) = tgt in
-  let sl = Length.abs (bd-front dir1 (get-obj-bd dir1 s) -' bd-front dir1 sbd) in
-  let tl = Length.abs (bd-back dir1 (get-obj-bd dir1 t) -' bd-back dir1 tbd) in
+  let dir = NCSqArrow.direction arr in
+  let sl = Length.abs (Cell-raw.front dir s -' NCSqInterval.front dir sbd) in
+  let tl = Length.abs (Cell-raw.back dir  t -' NCSqInterval.back dir tbd) in
   let d = al -' yl -' cl -' zl -' sl -' tl in
   if 0pt <' d then (
-    let (tc, sc) =
-    match dir1 with
-    | Horizontal -> ((1.0, 0.0), (0.0, 1.0))
-    | Vertical -> ((0.0, 1.0), (1.0, 0.0))
-    in
+    let (tc, sc) = NCSqDirection.elim (|
+      h = fun _ -> ((1.0, 0.0), (0.0, 1.0));
+      v = fun _ -> ((0.0, 1.0), (1.0, 0.0));
+    |) dir in
     let f0 _ = (0.0, 0.0) in
     let f1 _ = (1.0, 1.0) in
     let cstr = List.(
@@ -250,13 +194,13 @@ match ar with
     ) in
     let (fsp, fsq) = fs in
     let dd = d *' 0.55 in
-    (Some (cstr, d), (ar, (bd, (fsp +' dd, fsq +' dd))))
-  ) else (None, arr)
+    (Some (cstr, d), (cell, (bd, (fsp +' dd, fsq +' dd))))
+  ) else fallback ()
 )
-| _ -> (None, arr)
+| _ -> fallback ()
 
 let make-qp-1 dir1 cell-l (cstr-l, pq-l) =
-let cpq-l = NCSqUtil.zip Empty-raw ((0pt, 0pt), (0pt, 0pt)) cell-l pq-l in
+let cpq-l = NCSqUtil.zip Empty-raw (Interval.zero, (0pt, 0pt)) cell-l pq-l in
 let (x-l, src, y-l) = find-object cpq-l in
 match src with
 | None -> (cstr-l, pq-l)
@@ -297,7 +241,7 @@ match src with
 )
 
 let make-qp dir1 cell-ll pq-l =
-let pq-l1 = NCSqUtil.zip (0pt, 0pt) (0pt, 0pt) pq-l [] in
+let pq-l1 = NCSqUtil.zip Interval.zero (0pt, 0pt) pq-l [] in
 let (cstr-l, pq-l2) = List.fold-right (make-qp-1 dir1) ([], pq-l1) cell-ll in
 (cstr-l, List.map Pair.snd pq-l2)
 
@@ -323,40 +267,37 @@ let mx = RealMatrix.of-list n (List.append bs a2) in
 let y = QP.solve mx v x in
 part-2 (List.map f-to-len (RealVector.to-list y))
 
-let bd-enlarge (p, q) (dp, dq) = (p -' dp, q +' dq)
-
-let adjust-cellss-boundaries dir1 cell-ll pq-l =
+let adjust-cellss-faces dir1 cell-ll pq-l =
 let problem = make-qp dir1 cell-ll pq-l in
 match problem with
 | ([], _) -> pq-l
 | _ -> (
   let pq-l1 = solve-qp problem in
   NCSqUtil.zip-with (fun pq-o1 pq-o2 -> (
-    let pq1 = Option.from (0pt, 0pt) pq-o1 in
-    let pq2 = Option.from (0pt, 0pt) pq-o2 in
-    bd-enlarge pq1 pq2
+    let pq1 = Option.from Interval.zero pq-o1 in
+    let (x, y) = Option.from (0pt, 0pt) pq-o2 in
+    Interval.expand x y pq1
   )) pq-l pq-l1
 )
 
-let adjust-cellss-bts cell-ll = adjust-cellss-boundaries Vertical (NCSqUtil.transpose Empty-raw cell-ll)
+let adjust-cellss-bts cell-ll = adjust-cellss-faces NCSqDirection.v (NCSqUtil.transpose Empty-raw cell-ll)
 
-let adjust-cellss-lrs = adjust-cellss-boundaries Horizontal
+let adjust-cellss-lrs = adjust-cellss-faces NCSqDirection.h
 
 % Draw cells
 
 let make-grid dir1 bd-l =
-let (x-l, _) =
-List.fold-right
-(fun bd (x-l, x) ->
- (let x1 = x -' bd-front dir1 bd in
-  (x1 :: x-l, x1 +' bd-back dir1 bd)))
-([], 0pt)
-bd-l in
+let (x-l, _) = (
+  List.fold-right (fun bd (x-l, x) -> (
+    (let x1 = x -' NCSqInterval.front dir1 bd in
+     (x1 :: x-l, x1 +' NCSqInterval.back dir1 bd))
+  )) ([], 0pt) bd-l
+) in
 x-l
 
-let make-vgrid = make-grid Vertical
+let make-vgrid = make-grid NCSqDirection.v
 
-let make-hgrid = make-grid Horizontal
+let make-hgrid = make-grid NCSqDirection.h
 
 let draw-objects vgrid hgrid cell-ll =
 let gr-lll =
@@ -369,37 +310,46 @@ NCSqUtil.zip-with
    (let x = Option.from 0pt x-o in
     let cell = Option.from Empty-raw cell-o in
     match cell with
-    | Object-raw (gr, _) -> [shift-graphics (x, y) gr]
+    | Object-raw obj -> List.(
+      NCSqObject.draw obj
+      |> map (shift-graphics (x, y))
+    )
     | _ -> []))
   hgrid cell-l))
 vgrid cell-ll in
 List.concat (List.concat gr-lll)
 
-let arrow-from-to-c dir1 dir2 z s-front t-back head tail =
-let (from, to, t, h) =
-(match dir2 with
- | Forwards -> (s-front, t-back, tail, 0pt -' head)
- | Backwards -> (t-back, s-front, 0pt -' tail, head))
-in
-match dir1 with
-| Horizontal -> ((from, z), (to, z), (((from +' t) +' (to +' h)) *' 0.5, z))
-| Vertical -> ((z, from), (z, to), (z, ((from -' t) +' (to -' h)) *' 0.5))
-
-let draw-arrow dir1 z src arr tgt =
-match arr with
-| (Arrow-raw (cfg, dir, gr-l), _) ->
-(match (dir1, dir) with
- | (Horizontal, (Vertical, _)) -> []
- | (Vertical, (Horizontal, _)) -> []
- | (_, (_, dir2)) ->
- (let (s, sc) = src in
-  let (t, tc) = tgt in
-  let s-front = sc +' bd-front dir1 (get-obj-bd dir1 s) in
-  let t-back = tc +' bd-back dir1 (get-obj-bd dir1 t) in
-  let (from, to, c) = arrow-from-to-c dir1 dir2 z s-front t-back cfg#head-padding cfg#tail-padding in
-  let ga = cfg#draw from to in
-  List.append ga (List.map (shift-graphics c) gr-l)))
-| _ -> []
+let draw-arrow dir z src cx tgt =
+let (cell, _) = cx in
+let fallback _ = [] in
+match cell with
+| Arrow-raw arr -> (
+  let differ = fallback in
+  let same _ = (
+    let (s, sc) = src in
+    let (t, tc) = tgt in
+    let s-front = sc +' Cell-raw.front dir s in
+    let t-back = tc +' Cell-raw.back dir t in
+    let gr-l = NCSqArrow.draw (Length.abs (t-back -' s-front)) arr in
+    let sh = NCSqDirection.elim (|
+      h = fun _ -> (s-front, z);
+      v = fun _ -> (z, s-front);
+    |) dir in
+    List.map (shift-graphics sh) gr-l
+  ) in
+  let dir1 = NCSqArrow.direction arr in
+  NCSqDirection.elim (|
+    h = fun _ -> NCSqDirection.elim (|
+      h = same;
+      v = differ;
+    |) dir1;
+    v = fun _ -> NCSqDirection.elim (|
+      h = differ;
+      v = same;
+    |) dir1;
+  |) dir
+)
+| _ -> fallback ()
 
 let draw-arrows dir1 vgrid hgrid cell-ll =
 let gr-ll =
@@ -428,14 +378,14 @@ NCSqUtil.zip-with
 hgrid cell-ll in
 List.concat gr-ll
 
-let draw-varrows vgrid hgrid cell-ll = draw-arrows Vertical vgrid hgrid (NCSqUtil.transpose Empty-raw cell-ll)
+let draw-varrows vgrid hgrid cell-ll = draw-arrows NCSqDirection.v vgrid hgrid (NCSqUtil.transpose Empty-raw cell-ll)
 
-let draw-harrows vgrid hgrid = draw-arrows Horizontal hgrid vgrid
+let draw-harrows vgrid hgrid = draw-arrows NCSqDirection.h hgrid vgrid
 
 let draw-diagram cell-ll =
-let bt-l0 = get-objss-bts cell-ll in
+let bt-l0 = cellss-bts cell-ll in
 let bt-l = adjust-cellss-bts cell-ll bt-l0 in
-let lr-l0 = get-objss-lrs cell-ll in
+let lr-l0 = cellss-lrs cell-ll in
 let lr-l = adjust-cellss-lrs cell-ll lr-l0 in
 let vgrid = make-vgrid bt-l in
 let hgrid = make-hgrid lr-l in
@@ -446,20 +396,28 @@ List.concat [obj-l; varr-l; harr-l]
 
 % Commands
 
+type direction1 = NCSqDirection.t
+
+type direction2 =
+| Forwards
+| Backwards
+
+type arrow-direction = direction1 * direction2
+
 type object = (|
-  label : inline-text;
+  label : math;
   paddings : float * float * float * float;
 |)
 
 type arrow = (|
   direction : arrow-direction;
   style : NCSqArrowStyle.t;
-  left-label : inline-text option;
-  right-label : inline-text option;
+  left-label : math option;
+  right-label : math option;
 |)
 
 type arrow-2 = (|
-  label : inline-text option;
+  label : math option;
   paddings : float * float * float * float;
   direction : arrow-direction;
 |)
@@ -469,19 +427,20 @@ type cell =
 | Object of object
 | Arrow of arrow
 | Arrow-2 of arrow-2
+| Stack of direction1 * cell list
 
-let left = (Horizontal, Backwards)
-let right = (Horizontal, Forwards)
-let up = (Vertical, Backwards)
-let down = (Vertical, Forwards)
-
-let m2it m = {${#m}}
+let horizontal = NCSqDirection.h
+let vertical = NCSqDirection.v
+let left = (horizontal, Backwards)
+let right = (horizontal, Forwards)
+let up = (vertical, Backwards)
+let down = (vertical, Forwards)
 
 let empty = Empty
 
 let object ?:pds-opt label =
 Object (|
-  label = m2it label;
+  label = label;
   paddings = Option.from (let pd = 0.25 in (pd, pd, pd, pd)) pds-opt;
 |)
 
@@ -493,16 +452,18 @@ Arrow (|
     (NCSqArrowStyle.of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.vee)
     style-o
   );
-  left-label = Option.map m2it left-label-o;
-  right-label = Option.map m2it right-label-o;
+  left-label = left-label-o;
+  right-label = right-label-o;
 |)
 
 let arrow-2 ?:label-o ?:pds-o direction =
 Arrow-2 (|
-  label = Option.map m2it label-o;
+  label = label-o;
   paddings = Option.from (let (pdx, pdy) = (0.5, 0.25) in (pdx, pdx, pdy, pdy)) pds-o;
   direction = direction;
 |)
+
+let stack dir cell-l = Stack (dir, cell-l)
 
 let solid = NCSqArrowStyle.solid
 let dashed = NCSqArrowStyle.dashed
@@ -512,88 +473,115 @@ let eqarrow direction = arrow ?* ?* ?:(equal) direction
 
 let label-context ctx = set-font-size (get-font-size ctx *' 0.75) ctx
 
-let shift-y ctx =
-let h = get-font-size ctx in
-h *' 0.33
+let shift-y = 0.33
 
-let make-pds ctx (pdl, pdr, pdt, pdb) =
-let h = get-font-size ctx in
-(h *' pdl, h *' pdr, h *' pdt, h *' pdb)
+let make-object ctx obj = NCSqObject.of-math ctx obj#paddings (Float.neg shift-y) obj#label
+
+let label-ctx ctx =
+let fs = get-font-size ctx in
+ctx
+|> set-font-size (fs *' 0.75)
+
+let make-arrow ctx arr = (
+  let (dir1, dir2) = arr#direction in
+  let (ml, mr, style) = (
+    match dir2 with
+    | Forwards -> (arr#left-label, arr#right-label, arr#style)
+    | Backwards -> (arr#right-label, arr#left-label, NCSqArrowStyle.invert arr#style)
+  ) in
+  let dir = Pair.fst arr#direction in
+  NCSqArrow.of-style-with-mlabels (label-ctx ctx) ml mr (0.3, 0.3) style dir
+)
 
 let make-cell-raw ctx cell =
 match cell with
 | Empty -> Empty-raw
-| Object obj ->
-(let gr = draw-text (0pt, 0pt) (read-inline ctx obj#label) in
- let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
- let pds = make-pds ctx obj#paddings in
- Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' shift-y ctx) gr, pds))
-| Arrow arr ->
-(let style = NCSqArrowStyle.destruct arr#style ctx in
- let label-ctx = label-context ctx in
- let draw-label l = draw-text (0pt, 0pt) (read-inline label-ctx l) in
- let grl = Option.map draw-label arr#left-label in
- let grr = Option.map draw-label arr#right-label in
- let pd0 = (get-font-size label-ctx) *' 0.3 in
- let pdl = pd0 -' style#body-left in
- let pdr = pd0 +' style#body-right in
- let shift-gr f gr =
- (let rc = get-graphics-bbox gr in
-  shift-graphics (f rc) gr)
- in
- let dir = arr#direction in
- let (gr0, gr1) = (
-   match dir with
-   | (Horizontal, dir2) -> (
-     let hyu pd ((x0, y0), (x1, _)) = ((0pt -' (x0 +' x1) *' 0.5), pd -' y0) in
-     let hyb pd ((x0, _), (x1, y1)) = ((0pt -' (x0 +' x1) *' 0.5), (0pt -' pd) -' y1) in
-     match dir2 with
-     | Forwards -> (Option.map (shift-gr (hyu pdl)) grl, Option.map (shift-gr (hyb pdr)) grr)
-     | Backwards -> (Option.map (shift-gr (hyb pdl)) grl, Option.map (shift-gr (hyu pdr)) grr)
-   )
-   | (Vertical, dir2) -> (
-     let hxl pd ((_, y0), (x1, y1)) = ((0pt -' pd) -' x1, 0pt -' (y0 +' y1) *' 0.5) in
-     let hxr pd ((x0, y0), (_, y1)) = (pd -' x0, 0pt -' (y0 +' y1) *' 0.5) in
-     match dir2 with
-     | Forwards -> (Option.map (shift-gr (hxr pdl)) grl, Option.map (shift-gr (hxl pdr)) grr)
-     | Backwards -> (Option.map (shift-gr (hxl pdl)) grl, Option.map (shift-gr (hxr pdr)) grr)
-   )
- ) in
- Arrow-raw ((|
-   padding = pd0;
-   left = style#body-left;
-   right = style#body-right;
-   length = style#body-length;
-   head-padding = style#head-padding;
-   tail-padding = style#tail-padding;
-   draw = style#draw;
- |), dir, List.concat [Option.to-list gr0; Option.to-list gr1]))
-| Arrow-2 arr2 ->
-(let m1 =
- (match arr2#direction with
-  | (Horizontal, Backwards) -> ${\Leftarrow}
-  | (Horizontal, Forwards) -> ${\Rightarrow}
-  | (Vertical, Backwards) -> ${\Uparrow}
-  | (Vertical, Forwards) -> ${\Downarrow})
- in
- let m =
- (match arr2#label with
-  | None -> m1
-  | Some l ->
-  (let m2 = text-in-math MathOrd (fun ctx -> read-inline (label-context ctx) l) in
-   match arr2#direction with
-   | (Horizontal, _) -> math-upper m1 m2
-   | (Vertical, _) -> ${\mathord{#m1} #m2}))
- in
- let gr = draw-text (0pt, 0pt) (embed-math ctx m) in
- let ((x0, y0), (x1, y1)) = get-graphics-bbox gr in
- let pds = make-pds ctx arr2#paddings in
- Object-raw (shift-graphics (0pt -' (x1 +' x0) *' 0.5, 0pt -' shift-y ctx) gr, pds))
+| Object obj -> Object-raw (make-object ctx obj)
+| Arrow arr -> Arrow-raw (make-arrow ctx arr)
+| Arrow-2 arr2 -> (
+  let (dir1, dir2) = arr2#direction in
+  let m1 = NCSqDirection.elim (|
+    h = fun _ -> (
+      match dir2 with
+      | Backwards -> ${\Leftarrow}
+      | Forwards -> ${\Rightarrow}
+    );
+    v = fun _ -> (
+      match dir2 with
+      | Backwards -> ${\Uparrow}
+      | Forwards -> ${\Downarrow}
+    );
+  |) dir1 in
+  let m = (
+    match arr2#label with
+    | None -> m1
+    | Some l1 -> (
+      let l = text-in-math MathOrd (
+        fun ctx -> read-inline (label-ctx ctx) {${#l1}}
+      ) in
+      NCSqDirection.elim (|
+        h = fun _ -> ${\upper{#m1}{#l}};
+        v = fun _ -> ${\mathord{#m1} #l};
+      |) dir1
+    )
+  ) in
+  Object-raw (make-object ctx (|
+    label = m;
+    paddings = arr2#paddings;
+  |))
+)
+| Stack (dir, cell-l) -> (
+  let-rec aux ls cell-l = (
+    match cell-l with
+    | [] -> NCSqDirection.elim (|
+      h = fun _ -> ls;
+      v = fun _ -> List.reverse ls;
+    |) dir
+    | cell :: cell-l-1 -> (
+      let ls-1 = (
+        let fallback _ = ls in
+        match cell with
+        | Object obj -> NCSqArrow.of-object (make-object (label-ctx ctx) obj) :: ls
+        | Arrow arr1 -> (
+          let arr = make-arrow ctx arr1 in
+          let dir1 = NCSqArrow.direction arr in
+          let same = fallback in
+          let differ _ = (fun _ -> arr) :: ls in
+          NCSqDirection.elim (|
+            h = fun _ -> (
+              NCSqDirection.elim (|
+                h = same;
+                v = differ;
+              |) dir1
+            );
+            v = fun _ -> (
+              NCSqDirection.elim (|
+                h = differ;
+                v = same;
+              |) dir1
+            );
+          |) dir
+        )
+        | _ -> fallback ()
+      ) in
+      aux ls-1 cell-l-1
+    )
+  ) in
+  Arrow-raw (NCSqArrow.of-list (aux [] cell-l) (NCSqDirection.flip dir))
+)
 
 let cd ctx cell-ll =
+let fs = get-font-size ctx in
 let gr-l = draw-diagram (List.map (List.map (make-cell-raw ctx)) cell-ll) in
-let ((x0, y0), (x1, y1)) = get-grs-bbox gr-l in
-let ym = (y0 +' y1) *' 0.5 -' shift-y ctx in
+let rc = List.(
+  gr-l
+  |> map get-graphics-bbox
+  |> map Rect.of-rect
+  |> fold-right Rect.union Rect.zero
+) in
+let yc = Interval.center (Rect.interval-v rc) in
+let ym = yc -' fs *' shift-y in
+let ((x0, y0), (x1, y1)) = Rect.to-rect rc in
 let w = x1 -' x0 in
 let h = y1 -' ym in
 let d = ym -' y0 in
@@ -613,12 +601,20 @@ text-in-math MathOrd (fun ctx -> cd ctx cell-ll)
 % Utilities
 
 let invert-direction-vertically dir =
-match dir with
-| (Vertical, Backwards) -> (Vertical, Forwards)
-| (Vertical, Forwards) -> (Vertical, Backwards)
-| _ -> dir
+let (dir1, dir2) = dir in
+NCSqDirection.elim (|
+  h = fun _ -> dir;
+  v = fun _ -> (
+    let d2 = (
+      match dir2 with
+      | Backwards -> Forwards
+      | Forwards ->  Backwards
+    ) in
+    (NCSqDirection.v, d2)
+  );
+|) dir1
 
-let invert-cell-vertically cell =
+let-rec invert-cell-vertically cell =
 match cell with
 | Arrow arr ->
 (Arrow (|
@@ -632,16 +628,22 @@ match cell with
   arr-2 with
   direction = invert-direction-vertically arr-2#direction;
 |))
+| Stack (dir, cell-l) -> (
+  let map = NCSqDirection.elim (|
+    h = fun _ -> List.map;
+    v = fun _ -> List.reverse-map;
+  |) dir in
+  Stack (dir, map invert-cell-vertically cell-l)
+)
 | _ -> cell
 
 let invert-v cell-ll = List.map (List.map invert-cell-vertically) (List.reverse cell-ll)
 
 let transpose-direction dir =
-match dir with
-| (Horizontal, dir2) -> (Vertical, dir2)
-| (Vertical, dir1) -> (Horizontal, dir1)
+let (dir1, dir2) = dir in
+(NCSqDirection.flip dir1, dir2)
 
-let transpose-cell cell =
+let-rec transpose-cell cell =
 match cell with
 | Arrow arr ->
 (Arrow (|
@@ -655,6 +657,7 @@ match cell with
   arr-2 with
   direction = transpose-direction arr-2#direction;
 |))
+| Stack (dir, cell-l) -> Stack (NCSqDirection.flip dir, List.map transpose-cell cell-l)
 | _ -> cell
 
 let transpose cell-ll = List.map (List.map transpose-cell) (NCSqUtil.transpose empty cell-ll)

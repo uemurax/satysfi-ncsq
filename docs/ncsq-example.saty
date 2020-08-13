@@ -4,7 +4,11 @@
 @import: ../src/easy-cd
 
 let cellss1 = open NCSq in [
-  [object ${A}; arrow ?:${f} right; object ${B}];
+  [object ${A};
+   stack vertical [
+     arrow ?:${f_{1}} right;
+     arrow ?:${f_{2}} left;
+   ]; object ${B}];
   [arrow ?*?:${g} down; arrow-2 ?:${\alpha} down;
    arrow ?:${h} down];
   [object ${C}; arrow ?*?:${k} right; object ${D}];
@@ -308,6 +312,55 @@ arrow ?:left-label ?:right-label direction
         ];
       }
     >
+    +section{Parallel arrows}<
+      +p{
+        \code(`NCSq`); module provides another function \code(`stack`); for building parallel arrows.
+        \d-code(```
+stack direction cells
+```);%
+        \code(`direction`); can be \code(`horizontal`); or \code(`vertical`);.
+        \code(`cells`); is a list of cells.
+        \d-code(```
+        \NCSq.cd(open NCSq in [
+          [object ${A};
+           stack vertical [
+             arrow ?:${f} right;
+             arrow ?*?:${g} right;
+           ];
+           object ${B}];
+        ]);
+```);%
+        \NCSq.cd(open NCSq in [
+          [object ${A};
+           stack vertical [
+             arrow ?:${f} right;
+             arrow ?*?:${g} right;
+           ];
+           object ${B}];
+        ]);%
+        \d-code(```
+        \NCSq.cd(open NCSq in [
+          [object ${C}];
+          [stack horizontal [
+            arrow ?*?:${f} down;
+            object ${\dashv};
+            arrow ?*?:${g} up;
+          ]];
+          [object ${D}];
+        ]);
+```);%
+        \NCSq.cd(open NCSq in [
+          [object ${C}];
+          [stack horizontal [
+            arrow ?*?:${f} down;
+            object ${\dashv};
+            arrow ?*?:${g} up;
+          ]];
+          [object ${D}];
+        ]);%
+        In a horizontal (vertical) stack, only objects and vertical (horizontal, respectively) arrows are used, and other cells are ignored.
+      }
+    >
   >
   +chapter{Changing styles}<
     +p{
@@ -497,9 +550,13 @@ NCSqArrowStyle.of-bth body tail head
     +p{
       \code(`invert-v`); inverts a diagram vertically.
       \d-code(```
-% In preanble
+% In preamble
 let cellss1 = open NCSq in [
-  [object ${A}; arrow ?:${f} right; object ${B}];
+  [object ${A};
+   stack vertical [
+     arrow ?:${f_{1}} right;
+     arrow ?:${f_{2}} left;
+   ]; object ${B}];
   [arrow ?*?:${g} down; arrow-2 ?:${\alpha} down;
    arrow ?:${h} down];
   [object ${C}; arrow ?*?:${k} right; object ${D}];

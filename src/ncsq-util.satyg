@@ -1,6 +1,6 @@
 @require: base/list-ext
 @require: base/option-ext
-@import: ./matrix
+@import: ./base/matrix
 
 module NCSqUtil : sig
 

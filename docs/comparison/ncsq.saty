@@ -78,9 +78,26 @@ document (|
   +p{
     Diagonal arrows and crossed arrows are not supported.
   }
-  +p{
-    Parallel arrows are not supported.
-  }
+  +code(```
+  +NCSq.cd(open NCSq in [
+    [object ${A}; stack vertical [
+       arrow ?:${f} right; object ${\alpha}; arrow ?*?:${g} right;
+     ]; object ${B}];
+    [stack horizontal [
+      arrow ?*?:${h} down; object ${\dashv}; arrow ?*?:${k} up;
+    ]];
+    [object ${C}];
+  ]);
+```);
+  +NCSq.cd(open NCSq in [
+    [object ${A}; stack vertical [
+       arrow ?:${f} right; object ${\alpha}; arrow ?*?:${g} right;
+     ]; object ${B}];
+    [stack horizontal [
+      arrow ?*?:${h} down; object ${\dashv}; arrow ?*?:${k} up;
+    ]];
+    [object ${C}];
+  ]);
   +code(```
   +NCSq.cd(open NCSq in open NCSqArrowStyle in [
     [object ${A}; arrow ?*?*?:solid right; object ${B}];
