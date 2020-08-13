@@ -59,8 +59,6 @@ val invert-h : (cell list) list -> (cell list) list
 
 end = struct
 
-% Utilities
-
 type cell-raw =
 | Empty-raw
 | Object-raw of NCSqObject.t
@@ -71,10 +69,6 @@ module Cell-raw : sig
 val face : NCSqDirection.t -> cell-raw -> Interval.t
 val front : NCSqDirection.t -> cell-raw -> length
 val back : NCSqDirection.t -> cell-raw -> length
-val cells-face : NCSqDirection.t -> cell-raw list -> Interval.t
-val cellss-faces : NCSqDirection.t -> (cell-raw list) list -> Interval.t list
-val cellss-bts : (cell-raw list) list -> Interval.t list
-val cellss-lrs : (cell-raw list) list -> Interval.t list
 
 end = struct
 
@@ -101,17 +95,17 @@ match cell with
 let front dir cell = NCSqInterval.front dir (face dir cell)
 let back dir cell = NCSqInterval.back dir (face dir cell)
 
+end
+
 let cells-face dir =
 List.fold-right (fun cell itv -> (
-  let itv1 = face dir cell in
+  let itv1 = Cell-raw.face dir cell in
   Interval.union itv itv1
 )) Interval.zero
 
 let cellss-faces dir = List.map (cells-face dir)
 let cellss-bts cell-ll = cellss-faces NCSqDirection.v cell-ll
 let cellss-lrs cell-ll = cellss-faces NCSqDirection.h (NCSqUtil.transpose Empty-raw cell-ll)
-
-end
 
 % Determine source and target of an arrow
 
@@ -389,9 +383,9 @@ let draw-varrows vgrid hgrid cell-ll = draw-arrows NCSqDirection.v vgrid hgrid (
 let draw-harrows vgrid hgrid = draw-arrows NCSqDirection.h hgrid vgrid
 
 let draw-diagram cell-ll =
-let bt-l0 = Cell-raw.cellss-bts cell-ll in
+let bt-l0 = cellss-bts cell-ll in
 let bt-l = adjust-cellss-bts cell-ll bt-l0 in
-let lr-l0 = Cell-raw.cellss-lrs cell-ll in
+let lr-l0 = cellss-lrs cell-ll in
 let lr-l = adjust-cellss-lrs cell-ll lr-l0 in
 let vgrid = make-vgrid bt-l in
 let hgrid = make-hgrid lr-l in
