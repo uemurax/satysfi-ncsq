@@ -11,11 +11,13 @@ val zero : t
 val union : t -> t -> t
 val expand : length -> length -> t -> t
 val neg : t -> t
+val shift : length -> t -> t
 
 val center : t -> length
 val width : t -> length
 val left : t -> length
 val right : t -> length
+val abs : t -> length
 
 end = struct
 
@@ -28,10 +30,12 @@ let zero = (0pt, 0pt)
 let union (x0, x1) (y0, y1) = Length.((min x0 y0, max x1 y1))
 let expand l r (x0, x1) = (x0 -' l, x1 +' r)
 let neg (x0, x1) = Length.((neg x1, neg x0))
+let shift p (x0, x1) = (x0 +' p, x1 +' p)
 
 let center (x0, x1) = (x0 +' x1) *' 0.5
 let width (x0, x1) = Length.abs (x1 -' x0)
 let left (x0, _) = x0
 let right (_, x1) = x1
+let abs (x0, x1) = Length.(max (abs x0) (abs x1))
 
 end

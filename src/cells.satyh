@@ -1,4 +1,6 @@
 @require: base/list-ext
+@import: ./base/point
+@import: ./base/interval
 @import: ./base/rect
 @import: ./base/paddings
 @import: ./arrows
@@ -219,7 +221,7 @@ let draw len = (
         label-l
         |> map (shift-graphics (c, 0pt))
       ) in
-      let gr-l2 = s#draw (0pt, 0pt) (len, 0pt) in
+      let gr-l2 = s#draw Point.zero (Point.of-x len) in
       List.concat [gr-l1; gr-l2]
     );
     v = fun _ -> (
@@ -227,7 +229,7 @@ let draw len = (
         label-l
         |> map (shift-graphics (0pt, Length.neg c))
       ) in
-      let gr-l2 = s#draw (0pt, 0pt) (0pt, Length.neg len) in
+      let gr-l2 = s#draw Point.zero (Point.of-y (Length.neg len)) in
       List.concat [gr-l1; gr-l2]
     );
   |) dir
@@ -241,7 +243,7 @@ let draw len = (
   face = Interval.(
     fc1
     |> neg
-    |> union (of-interval (s#body-left, s#body-right))
+    |> union s#body-itv
     |> expand (fs *' pdl) (fs *' pdr)
   );
   draw = draw;
@@ -251,8 +253,10 @@ let of-style-with-labels-gr ctx grl-l grr-l pds style dir =
 let fs = get-font-size ctx in
 let (pdin, pdout) = pds in
 let s = NCSqArrowStyle.destruct style ctx in
-let left = s#body-left -' fs *' pdin in
-let right = s#body-right +' fs *' pdin in
+let pdin1 = fs *' pdin in
+let itv = Interval.expand pdin1 pdin1 s#body-itv in
+let left = Interval.left itv in
+let right = Interval.right itv in
 let rc gr-l = List.(
   gr-l
   |> map get-graphics-bbox

@@ -1,4 +1,5 @@
 @require: base/length
+@require: base/float
 
 module Point : sig
 
@@ -6,6 +7,9 @@ type t
 
 val of-point : length * length -> t
 val to-point : t -> length * length
+val of-arg : length -> float -> t
+val of-x : length -> t
+val of-y : length -> t
 
 val x : t -> length
 val y : t -> length
@@ -13,6 +17,17 @@ val y : t -> length
 val zero : t
 val min : t -> t -> t
 val max : t -> t -> t
+val (+) : t -> t -> t
+val (-) : t -> t -> t
+val mid : t -> t -> t
+
+val neg-x : t -> t
+val neg-y : t -> t
+val neg : t -> t
+
+val is-zero : t -> bool
+
+val arg : t -> float option
 
 end = struct
 
@@ -20,6 +35,13 @@ type t = length * length
 
 let of-point pt = pt
 let to-point pt = pt
+let of-x x = (x, 0pt)
+let of-y y = (0pt, y)
+
+let of-arg l t =
+let x = Float.cos t in
+let y = Float.sin t in
+of-point (l *' x, l *' y)
 
 let x (a, _) = a
 let y (_, b) = b
@@ -29,5 +51,18 @@ let zero = (0pt, 0pt)
 let binop f (x1, y1) (x2, y2) = (f x1 x2, f y1 y2)
 let min = binop Length.min
 let max = binop Length.max
+let (+) = binop (+')
+let (-) = binop (-')
+let mid = binop (fun x y -> (x +' y) *' 0.5)
+
+let neg-x (x, y) = (Length.neg x, y)
+let neg-y (x, y) = (x, Length.neg y)
+let neg pt = neg-x (neg-y pt)
+
+let is-zero (x, y) = Length.(x == 0pt && y == 0pt)
+
+let arg (x, y) =
+if is-zero (x, y) then None
+else Some (Float.atan2 (y /' 1pt) (x /' 1pt))
 
 end

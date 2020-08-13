@@ -4,7 +4,8 @@
 @require: base/length
 @require: base/float
 @require: gr
-@import: ./ncsq-util
+@import: ./base/point
+@import: ./base/interval
 
 module NCSqConst : sig
 
@@ -32,6 +33,20 @@ let pd-base = 0.67
 
 end
 
+module NCSqGraphics : sig
+
+val draw-rotated : (path -> graphics) -> path -> float -> graphics list
+
+end = struct
+
+let draw-rotated strokef curve s =
+let dx = Float.cos s in
+let dy = Float.sin s in
+let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
+[strokef curve1]
+
+end
+
 module NCSqArrowBody : sig
 
 type t
@@ -55,10 +70,8 @@ val multiple : int -> float -> t -> t
 
 val destruct : t -> context -> (|
   metadata : (|
-    mid-left : length;
-    mid-right : length;
-    end-left : length;
-    end-right : length;
+    mid-itv : Interval.t;
+    end-itv : Interval.t;
     min-len : length;
   |);
   draw : (
@@ -72,19 +85,20 @@ val destruct : t -> context -> (|
       depth : length -> length;
       padding : length;
     |) ->
-    point ->                    % from
-    point ->                    % to
+    Point.t ->                    % from
+    Point.t ->                    % to
     graphics list
   );
 |)
 
 end = struct
 
+type point = Point.t
+type interval = Interval.t
+
 type metadata = (|
-  mid-left : length;
-  mid-right : length;
-  end-left : length;
-  end-right : length;
+  mid-itv : interval;
+  end-itv : interval;
   min-len : length;
 |)
 
@@ -107,10 +121,8 @@ let destruct body = body
 
 let none _ = (|
   metadata = (|
-    mid-left = 0pt;
-    mid-right = 0pt;
-    end-left = 0pt;
-    end-right = 0pt;
+    mid-itv = Interval.zero;
+    end-itv = Interval.zero;
     min-len = 0pt;
   |);
   draw = fun _ _ _ _ -> [];
@@ -123,10 +135,8 @@ let m1 = b1#metadata in
 let m2 = b2#metadata in
 (|
   metadata = (|
-    mid-left = Length.min m1#mid-left m2#mid-left;
-    mid-right = Length.max m1#mid-right m2#mid-right;
-    end-left = Length.min m1#end-left m2#end-left;
-    end-right = Length.max m1#end-right m2#end-right;
+    mid-itv = Interval.union m1#mid-itv m2#mid-itv;
+    end-itv = Interval.union m1#end-itv m2#end-itv;
     min-len = Length.max m1#min-len m2#min-len;
   |);
   draw = fun tail head from to -> (
@@ -142,20 +152,17 @@ let m = b#metadata in
 (|
   metadata = (|
     m with
-    mid-left = m#mid-left +' p;
-    mid-right = m#mid-right +' p;
-    end-left = m#end-left +' p;
-    end-right = m#end-right +' p
+    mid-itv = Interval.shift p m#mid-itv;
+    end-itv = Interval.shift p m#end-itv;
   |);
   draw = fun tail head from to -> (
-    match NCSqUtil.angle from to with
+    match Point.(arg (to - from)) with
     | None -> []
-    | Some (dx, dy) -> (
-      let (x0, y0) = from in
-      let (x1, y1) = to in
-      let (s, t) = (p *' dy, Length.neg (p *' dx)) in
-      let z = (x0 +' s, y0 +' t) in
-      let w = (x1 +' s, y1 +' t) in
+    | Some t -> (
+      let t1 = t -. Float.pi *. 0.5 in
+      let d = Point.of-arg p t1 in
+      let z = Point.(from + d) in
+      let w = Point.(to + d) in
       let tail1 = (|
         tail with
         depth = fun q -> tail#depth (q +' p)
@@ -172,9 +179,7 @@ let m = b#metadata in
 let multiple n pd body ctx =
 let b = body ctx in
 let m = b#metadata in
-let left = Length.(min m#end-left m#mid-left) in
-let right = Length.(max m#end-right m#mid-right) in
-let w = Length.abs (right -' left) in
+let w = Interval.(width (union m#mid-itv m#end-itv)) in
 let d = w +' get-font-size ctx *' pd in
 let-rec aux acc p n = (
   if n <= 0 then acc
@@ -188,24 +193,18 @@ let-rec aux acc p n = (
 aux none (d *' Float.(0.5 *. of-int (n - 1))) n ctx
 
 let line-end-points from to t0 h0 =
-NCSqUtil.angle from to
-|> Option.map (fun (dx, dy) -> (
-  let (x0, y0) = from in
-  let (x1, y1) = to in
-  let a0 = x0 +' t0 *' dx in
-  let b0 = y0 +' t0 *' dy in
-  let a1 = x1 -' h0 *' dx in
-  let b1 = y1 -' h0 *' dy in
-  ((a0, b0), (a1, b1))
+Point.(arg (to - from))
+|> Option.map (fun s -> (
+  let a = Point.(from + of-arg t0 s) in
+  let b = Point.(to - of-arg h0 s) in
+  (a, b)
 ))
 
 let line strokef =
 (|
   metadata = (|
-    end-left = 0pt;
-    end-right = 0pt;
-    mid-left = 0pt;
-    mid-right = 0pt;
+    end-itv = Interval.zero;
+    mid-itv = Interval.zero;
     min-len = 0pt;
   |);
   draw = fun tail head from to -> (
@@ -214,7 +213,7 @@ let line strokef =
     match line-end-points from to t h with
     | None -> []
     | Some (z0, z1) -> (
-      let curve = Gr.line z0 z1 in
+      let curve = Gr.line (Point.to-point z0) (Point.to-point z1) in
       [strokef t h curve]
     )
   );
@@ -249,7 +248,7 @@ let b = body ctx in
 let bm = b#metadata in
 let fs = get-font-size ctx in
 let w0 = fs *' NCSqConst.vee-min-width in
-let w1 = Length.(max (neg bm#mid-left) bm#mid-right) in
+let w1 = Interval.abs bm#mid-itv in
 let w2 = Length.max w0 w1 in
 let w3 = w2 +' fs *' NCSqConst.vee-ext in
 let lw = fs *' NCSqConst.line-width in
@@ -257,27 +256,21 @@ let color = get-text-color ctx in
 (|
   metadata = (|
     bm with
-    mid-left = Length.neg w3;
-    mid-right = w3;
+    mid-itv = Interval.of-interval (Length.neg w3, w3);
     min-len = Length.max bm#min-len lw;
   |);
   draw = fun tail head from to -> (
     let gr-l1 = b#draw tail head from to in
     let gr-l2 = (
-      match NCSqUtil.angle from to with
+      match Point.(arg (to - from)) with
       | None -> []
-      | Some (dx, dy) -> (
-        let (x0, y0) = from in
-        let (x1, y1) = to in
-        let tp = tail#padding in
-        let hp = head#padding in
-        let (a0, b0) = (x0 +' tp *' dx, y0 +' tp *' dy) in
-        let (a1, b1) = (x1 -' hp *' dx, y1 -' hp *' dy) in
-        let (a2, b2) = ((a0 +' a1) *' 0.5, (b0 +' b1) *' 0.5) in
-        let (wx, wy) = (w3 *' dy, w3 *' dx) in
-        let c1 = (a2 -' wx, b2 +' wy) in
-        let c2 = (a2 +' wx, b2 -' wy) in
-        let gr = stroke lw color (Gr.line c1 c2) in
+      | Some s -> (
+        let c = Point.(mid (from + of-arg tail#padding s)
+                       (to - of-arg head#padding s)) in
+        let d = Point.of-arg w3 (s +. Float.pi *. 0.5) in
+        let c1 = Point.(c + d) in
+        let c2 = Point.(c - d) in
+        let gr = stroke lw color (Gr.line (Point.to-point c1) (Point.to-point c2)) in
         [gr]
       )
     ) in
@@ -314,10 +307,8 @@ val duplicate : bool -> int -> float -> t -> t
 val destruct : t -> context -> (
   (|
     % metadata of body
-    mid-left : length;
-    mid-right : length;
-    end-left : length;
-    end-right : length;
+    mid-itv : Interval.t;
+    end-itv : Interval.t;
     min-len : length;
   |) ->
   (|
@@ -325,17 +316,15 @@ val destruct : t -> context -> (
       padding : length;
       depth : length -> length;
     |);
-    draw : float * float -> graphics list;
+    draw : float -> graphics list;
   |)
 )
 
 end = struct
 
 type body-metadata = (|
-  mid-left : length;
-  mid-right : length;
-  end-left : length;
-  end-right : length;
+  mid-itv : Interval.t;
+  end-itv : Interval.t;
   min-len : length;
 |)
 
@@ -346,7 +335,7 @@ type metadata = (|
 
 type t = context -> body-metadata -> (|
   metadata: metadata;
-  draw : float * float -> graphics list;
+  draw : float -> graphics list;
 |)
 
 let destruct head = head
@@ -374,9 +363,9 @@ let np = Length.neg pd in
       else fun q -> m#depth q +' pd
     );
   |);
-  draw = fun (dx, dy) -> (
-    h#draw (dx, dy)
-    |> List.map (shift-graphics (np *' dx, np *' dy))
+  draw = fun s -> (
+    h#draw s
+    |> List.map (shift-graphics Point.(to-point (of-arg np s)))
   );
 |)
 
@@ -390,9 +379,9 @@ let m2 = h2#metadata in
     padding = Length.(max m1#padding m2#padding);
     depth = fun p -> Length.(max (m1#depth p) (m2#depth p));
   |);
-  draw = fun (dx, dy) -> (
-    let gr-l1 = h1#draw (dx, dy) in
-    let gr-l2 = h2#draw (dx, dy) in
+  draw = fun s -> (
+    let gr-l1 = h1#draw s in
+    let gr-l2 = h2#draw s in
     List.concat [gr-l1; gr-l2]
   );
 |)
@@ -409,7 +398,7 @@ let vee ctx body =
 let w0 = get-font-size ctx in
 let color = get-text-color ctx in
 let d0 = w0 *' NCSqConst.vee-min-width in
-let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
+let d1 = Length.(max (Interval.abs body#end-itv) d0) in
 let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let nd = Length.neg d in
@@ -420,10 +409,7 @@ let lw = w0 *' NCSqConst.line-width in
     padding = w0 *' NCSqConst.pd-base +' d;
     depth = Length.abs;
   |);
-  draw = fun (dx, dy) -> (
-    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
-    [stroke lw color curve1]
-  );
+  draw = NCSqGraphics.draw-rotated (stroke lw color) curve;
 |)
 
 let vee-shift = NCSqConst.vee-min-width *. 1.5
@@ -438,7 +424,7 @@ let triangle ctx body =
 let fs = get-font-size ctx in
 let color = get-text-color ctx in
 let d0 = fs *' NCSqConst.tri-min-width in
-let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
+let d1 = Length.(max (Interval.abs body#end-itv) d0) in
 let d2 = fs *' NCSqConst.tri-ext in
 let d = d1 +' d2 in
 let h = d *' sqrt3 in
@@ -450,18 +436,14 @@ let lw = fs *' NCSqConst.line-width in
     padding = fs *' NCSqConst.pd-base +' h;
     depth = fun _ -> h;
   |);
-  draw = fun (dx, dy) -> (
-    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
-    [stroke lw color curve1]
-  );
+  draw = NCSqGraphics.draw-rotated (stroke lw color) curve;
 |)
 
 let harpoon-l-1 ctx body =
 let fs = get-font-size ctx in
-let r = body#end-right in
-let l = body#end-left in
+let r = Interval.right body#end-itv in
 let d0 = fs *' NCSqConst.vee-min-width in
-let d1 = Length.(max (r -' l) d0) in
+let d1 = Length.(max (Interval.width body#end-itv) d0) in
 let d2 = fs *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let nd = Length.neg d in
@@ -470,10 +452,9 @@ let nd = Length.neg d in
     padding = fs *' NCSqConst.pd-base +' d;
     depth = fun p -> r -' p;
   |);
-  curve = fun (dx, dy) -> (
+  curve = (
     Gr.line (0pt, 0pt) (nd, d)
     |> shift-path (0pt, Length.neg r)
-    |> linear-transform-path dx (Float.neg dy) dy dx
   );
 |)
 
@@ -483,17 +464,13 @@ let color = get-text-color ctx in
 let lw = get-font-size ctx *' NCSqConst.line-width in
 (|
   metadata = h1#metadata;
-  draw = fun (dx, dy) -> (
-    let curve = h1#curve (dx, dy) in
-    [stroke lw color curve]
-  );
+  draw = NCSqGraphics.draw-rotated (stroke lw color) h1#curve;
 |)
 
 let harpoon-r ctx body =
 let h1 = harpoon-l-1 ctx (|
   body with
-  end-left = Length.neg body#end-right;
-  end-right = Length.neg body#end-left;
+  end-itv = Interval.neg body#end-itv;
 |) in
 let m1 = h1#metadata in
 let color = get-text-color ctx in
@@ -503,13 +480,9 @@ let lw = get-font-size ctx *' NCSqConst.line-width in
     m1 with
     depth = fun p -> m1#depth (Length.neg p);
   |);
-  draw = fun (dx, dy) -> (
-    let curve = (
-      let (a, b, c, d) = NCSqUtil.mirror (dx, dy) in
-      h1#curve (dx, dy)
-      |> linear-transform-path a b c d
-    ) in
-    [stroke lw color curve]
+  draw = (
+    let curve1 = linear-transform-path 1.0 0.0 0.0 (Float.neg 1.0) h1#curve in
+    NCSqGraphics.draw-rotated (stroke lw color) curve1
   );
 |)
 
@@ -545,10 +518,8 @@ val duplicate : bool -> int -> float -> t -> t
 val destruct : t -> context -> (
   (|
     % metadata of body
-    mid-left : length;
-    mid-right : length;
-    end-left : length;
-    end-right : length;
+    mid-itv : Interval.t;
+    end-itv : Interval.t;
     min-len : length;
   |) ->
   (|
@@ -556,17 +527,17 @@ val destruct : t -> context -> (
       padding : length;
       depth : length -> length;
     |);
-    draw : float * float -> graphics list;
+    draw : float -> graphics list;
   |)
 )
 
 end = struct
 
+type interval = Interval.t
+
 type body-metadata = (|
-  mid-left : length;
-  mid-right : length;
-  end-left : length;
-  end-right : length;
+  mid-itv : interval;
+  end-itv : interval;
   min-len : length;
 |)
 
@@ -577,7 +548,7 @@ type metadata = (|
 
 type t = context -> body-metadata -> (|
   metadata : metadata;
-  draw : float * float -> graphics list;
+  draw : float -> graphics list;
 |)
 
 let destruct tail = tail
@@ -596,7 +567,7 @@ let vee ctx body =
 let w0 = get-font-size ctx in
 let color = get-text-color ctx in
 let d0 = w0 *' NCSqConst.vee-min-width in
-let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
+let d1 = Length.(max (Interval.abs body#end-itv) d0) in
 let d2 = w0 *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let curve = Gr.poly-line (0pt, d) [(d, 0pt); (0pt, Length.neg d)] in
@@ -606,10 +577,7 @@ let lw = w0 *' NCSqConst.line-width in
     padding = w0 *' NCSqConst.pd-base +' d;
     depth = fun x -> d -' (Length.abs x);
   |);
-  draw = fun (dx, dy) -> (
-    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
-    [stroke lw color curve1]
-  );
+  draw = NCSqGraphics.draw-rotated (stroke lw color) curve;
 |)
 
 % curve from (r, -r) to (r, r) via (0, 0)
@@ -633,13 +601,12 @@ let xx = rr *. (1.0 -. Float.sqrt(1.0 -. s *. s)) in
 let hook-l-1 ctx body =
 let fs = get-font-size ctx in
 let w0 = fs *' NCSqConst.hook-min-width in
-let w1 = body#end-right -' body#end-left in
+let w1 = Interval.width body#end-itv in
 let w2 = fs *' NCSqConst.hook-ext in
 let w = (Length.(max w0 w1) +' w2) in
 let r = w *' 0.5 in
-let path = hook-path r in
 let curve = hook-path r in
-let centre = body#end-right -' r in
+let centre = Interval.right body#end-itv -' r in
 (|
   metadata = (|
     padding = fs *' NCSqConst.pd-base +' r;
@@ -650,10 +617,9 @@ let centre = body#end-right -' r in
       else r
     );
   |);
-  curve = fun (dx, dy) -> (
+  curve = (
     curve
     |> shift-path (0pt, 0pt -' centre)
-    |> linear-transform-path dx (Float.neg dy) dy dx
   );
 |)
 
@@ -663,17 +629,13 @@ let lw = get-font-size ctx *' NCSqConst.line-width in
 let color = get-text-color ctx in
 (|
   metadata = h1#metadata;
-  draw = fun (dx, dy) -> (
-    let cv = h1#curve (dx, dy) in
-    [stroke lw color cv]
-  );
+  draw = NCSqGraphics.draw-rotated (stroke lw color) h1#curve;
 |)
 
 let hook-r ctx body =
 let h1 = hook-l-1 ctx (|
   body with
-  end-left = Length.neg body#end-right;
-  end-right = Length.neg body#end-left;
+  end-itv = Interval.neg body#end-itv;
 |) in
 let lw = get-font-size ctx *' NCSqConst.line-width in
 let color = get-text-color ctx in
@@ -682,13 +644,9 @@ let color = get-text-color ctx in
     h1#metadata with
     depth = fun y -> (h1#metadata#depth (Length.neg y));
   |);
-  draw = fun (dx, dy) -> (
-    let (a, b, c, d) = NCSqUtil.mirror (dx, dy) in
-    let cv = (
-      h1#curve (dx, dy)
-      |> linear-transform-path a b c d
-    ) in
-    [stroke lw color cv]
+  draw = (
+    let curve1 = linear-transform-path 1.0 0.0 0.0 (Float.neg 1.0) h1#curve in
+    NCSqGraphics.draw-rotated (stroke lw color) curve1
   );
 |)
 
@@ -704,9 +662,9 @@ let pd = get-font-size ctx *' p in
       else fun q -> m#depth q +' pd
     );
   |);
-  draw = fun (dx, dy) -> (
-    t#draw (dx, dy)
-    |> List.map (shift-graphics (pd *' dx, pd *' dy))
+  draw = fun s -> (
+    t#draw s
+    |> List.map (shift-graphics Point.(to-point (of-arg pd s)))
   );
 |)
 
@@ -720,9 +678,9 @@ let m2 = t2#metadata in
     padding = Length.(max m1#padding m2#padding);
     depth = fun p -> Length.(max (m1#depth p) (m2#depth p));
   |);
-  draw = fun (dx, dy) -> (
-    let gr-l1 = t1#draw (dx, dy) in
-    let gr-l2 = t2#draw (dx, dy) in
+  draw = fun s -> (
+    let gr-l1 = t1#draw s in
+    let gr-l2 = t2#draw s in
     List.concat [gr-l1; gr-l2]
   );
 |)
@@ -749,7 +707,7 @@ let vdash ctx body =
 let fs = get-font-size ctx in
 let color = get-text-color ctx in
 let d0 = fs *' NCSqConst.vee-min-width in
-let d1 = Length.(max (max (abs body#end-left) (abs body#end-right)) d0) in
+let d1 = Length.(max (Interval.abs body#end-itv) d0) in
 let d2 = fs *' NCSqConst.vee-ext in
 let d = d1 +' d2 in
 let curve = Gr.line (0pt, d) (0pt, Length.neg d) in
@@ -759,10 +717,7 @@ let lw = fs *' NCSqConst.line-width in
     padding = fs *' NCSqConst.pd-base;
     depth = fun _ -> 0pt;
   |);
-  draw = fun (dx, dy) -> (
-    let curve1 = linear-transform-path dx (Float.neg dy) dy dx curve in
-    [stroke lw color curve1]
-  );
+  draw = NCSqGraphics.draw-rotated (stroke lw color) curve;
 |)
 
 end
@@ -800,23 +755,23 @@ val of-bth : NCSqArrowBody.t -> NCSqArrowTail.t -> NCSqArrowHead.t -> t
 val invert : t -> t
 
 val destruct : t -> context -> (|
-  body-left : length;
-  body-right : length;
+  body-itv : Interval.t;
   body-length : length;
   tail-padding : length;
   head-padding : length;
-  draw : point -> point -> graphics list
+  draw : Point.t -> Point.t -> graphics list
 |)
 
 end = struct
 
+type point = Point.t
+type interval = Interval.t
 type body = NCSqArrowBody.t
 type tail = NCSqArrowTail.t
 type head = NCSqArrowHead.t
 
 type t = context -> (|
-  body-left : length;
-  body-right : length;
+  body-itv : interval;
   body-length : length;
   tail-padding : length;
   head-padding : length;
@@ -829,8 +784,7 @@ let invert style ctx =
 let s = style ctx in
 (|
   s with
-  body-left = s#body-right;
-  body-right = s#body-left;
+  body-itv = Interval.neg s#body-itv;
   tail-padding = s#head-padding;
   head-padding = s#tail-padding;
   draw = fun from to -> s#draw to from;
@@ -842,18 +796,17 @@ let bm = b#metadata in
 let t = NCSqArrowTail.destruct tail ctx bm in
 let h = NCSqArrowHead.destruct head ctx bm in
 (|
-  body-left = bm#mid-left;
-  body-right = bm#mid-right;
+  body-itv = bm#mid-itv;
   body-length = bm#min-len;
   tail-padding = t#metadata#padding;
   head-padding = h#metadata#padding;
   draw = fun from to -> (
-    match NCSqUtil.angle from to with
+    match Point.(arg (to - from)) with
     | None -> []
-    | Some a -> (
-      let grs-tail = List.map (shift-graphics from) (t#draw a) in
+    | Some s -> (
+      let grs-tail = List.map (shift-graphics (Point.to-point from)) (t#draw s) in
       let grs-body = b#draw t#metadata h#metadata from to in
-      let grs-head = List.map (shift-graphics to) (h#draw a) in
+      let grs-head = List.map (shift-graphics (Point.to-point to)) (h#draw s) in
       List.concat [grs-tail; grs-body; grs-head]
     )
   );
