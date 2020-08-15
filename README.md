@@ -6,7 +6,11 @@ rectangular diagrams.
 
 ## Features
 
+*   Draw a rectangular diagram by specifying a matrix of cells.
+    The layout of the source code is closed to the intended diagram.
 *   Arrows automatically stretch to match long labels and large objects.
+*   A variety of styles of arrow head, tail and body in arbitrary combination.
+*   Parallel arrows.
 
 ## Install
 
@@ -24,7 +28,7 @@ In preamble:
 ```
 @require: ncsq/ncsq
 ```
-`NCSq` module provides a block command `+cd`, an inline command `\cd`, and a math command `\cd-m`.
+The `NCSq` module provides a block command `+cd`, an inline command `\cd`, and a math command `\cd-m`.
 All of them receive a rectangular array of cells and draw a diagram.
 ```
 +NCSq.cd(open NCSq in [
@@ -35,7 +39,7 @@ All of them receive a rectangular array of cells and draw a diagram.
 ```
 ![Sample diagram](docs/ncsq-sample.png)
 
-For such a simple diagram, `ncsq/easy-cd` package provides simpler syntax.
+For such a simple diagram, a helper package `ncsq/easy-cd` provides simpler syntax.
 ```
 +EasyCD.cd[
   ${| A | f | B |};
