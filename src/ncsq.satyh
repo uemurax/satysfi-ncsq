@@ -6,7 +6,7 @@
 @require: gr
 @require: math
 @import: ./base/qp
-@import: ./base/matrix
+@import: ./base/real-matrix
 @import: ./base/interval
 @import: ./base/rect
 @import: ./ncsq-util
