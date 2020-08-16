@@ -1,0 +1,20 @@
+@import: ./rect
+@import: ./point
+
+module GraphicsList : sig
+
+val bbox : graphics list -> Rect.t
+val shift : Point.t -> graphics list -> graphics list
+
+end = struct
+
+let bbox gr-l = List.(
+  gr-l
+  |> map get-graphics-bbox
+  |> map Rect.of-rect
+  |> fold-right Rect.union Rect.zero
+)
+
+let shift pt = List.map (shift-graphics (Point.to-point pt))
+
+end

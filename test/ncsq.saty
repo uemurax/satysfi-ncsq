@@ -1,0 +1,25 @@
+@require: stdjareport
+@import: ../src/backend
+@import: ../src/frontend
+
+let dg1 = NCSqFrontend.([
+  [empty; empty; empty];
+  [empty; empty; empty];
+  [empty];
+])
+
+in
+
+document (|
+  title = {NCSq test};
+  author = {Taichi Uemura};
+|) '<
+  +p{
+    A diagram of empty cells.
+    \NCSqFrontend.cd(dg1);
+  }
+>
+
+% Local Variables:
+% satysfi-program-options: ("-b" "--debug-show-bbox" "--debug-show-block-bbox")
+% End:

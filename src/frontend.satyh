@@ -1,0 +1,53 @@
+@import: ./backend
+@import: ./base/matrix
+@import: ./base/graphics
+@import: ./base/rect
+@import: ./base/point
+
+module NCSqFrontend : sig
+
+type cell
+
+val empty : cell
+
+val cd : context -> (cell list) list -> inline-boxes
+val +cd : [(cell list) list] block-cmd
+val \cd : [(cell list) list] inline-cmd
+
+end = struct
+
+type cell =
+| Empty
+
+let empty = Empty
+
+let shift-y = 0.33
+
+let make-cell-raw ctx cell =
+match cell with
+| Empty -> NCSqCellRaw.empty cell
+
+let cd ctx cell-ll =
+let cell-raw-ll = List.(map (map (make-cell-raw ctx)) cell-ll) in
+let c-mx = Matrix.of-list-of-rows (make-cell-raw ctx empty) cell-raw-ll in
+let gr-l = NCSqBackend.draw-cellss-auto c-mx in
+let rc = GraphicsList.bbox gr-l in
+let ih = Rect.interval-h rc in
+let iv = Rect.interval-v rc in
+let w = Interval.width ih in
+let yc = Interval.center iv in
+let fs = get-font-size ctx in
+let ym = yc -' fs *' shift-y in
+let h = Interval.right iv -' ym in
+let d = ym -' Interval.left iv in
+let p0 = Point.of-point (Interval.left ih, ym) in
+inline-graphics w h d
+(fun p -> GraphicsList.shift Point.(of-point p - p0) gr-l)
+
+let-block ctx +cd cell-ll =
+line-break true true ctx (inline-fil ++ cd ctx cell-ll ++ inline-fil)
+
+let-inline ctx \cd cell-ll =
+inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cell-ll);>)
+
+end

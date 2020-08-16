@@ -1,0 +1,59 @@
+@require: base/list-ext
+@require: base/int
+
+module Matrix : sig
+
+type 'a t
+
+val zip : 'a t -> 'b t -> ('a * 'b) t
+val map : ('a -> 'b) -> 'a t -> 'b t
+
+val of-list-of-rows : 'a -> ('a list) list -> 'a t
+val to-list-of-rows : 'a t -> ('a list) list
+val outer-product :
+'a list ->                      % row vector
+'b list ->                      % column vector
+('a * 'b) t
+
+end = struct
+
+type 'a t = int *               % number of columns
+('a list) list                  % list of rows
+
+let zip (m, x-ll) (n, y-ll) =
+let z-ll = List.(
+  zip x-ll y-ll
+  |> map (fun (x-l, y-l) -> zip x-l y-l)
+) in
+(Int.min m n, z-ll)
+
+let map f (n, x-ll) = (n, List.(map (map f) x-ll))
+
+let fill-end x0 n x-l =
+let-rec aux acc n x-l = (
+  match x-l with
+  | [] -> (
+    if n <= 0 then List.reverse acc
+    else List.(reverse-append acc (repeat n x0))
+  )
+  | x :: x-l1 -> aux (x :: acc) (n - 1) x-l1
+) in
+aux [] n x-l
+
+let of-list-of-rows x0 x-ll =
+let n = List.fold-right (fun x-l -> Int.max (List.length x-l)) 0 x-ll in
+let y-ll = List.map (fill-end x0 n) x-ll in
+(n, y-ll)
+
+let to-list-of-rows (_, x-ll) = x-ll
+
+let outer-product x-l y-l =
+let z-ll = List.(
+  y-l
+  |> map (fun y -> (
+    map (fun x -> (x, y)) x-l
+  ))
+) in
+(List.length x-l, z-ll)
+
+end

@@ -1,0 +1,156 @@
+@require: base/list-ext
+@require: base/fn
+@import: ./base/zipper
+@import: ./base/point
+@import: ./base/interval
+@import: ./base/matrix
+@import: ./base/real-matrix
+@import: ./base/qp
+
+module NCSqConstraints : sig
+
+type t
+
+val nil : (|
+  num-rows : int;
+  num-columns : int;
+|) -> t
+val union : t -> t -> t
+
+val solve : t -> (|
+  horiz : Interval.t list;
+  vert : Interval.t list;
+|)
+
+end = struct
+
+type constr = (float * float) list * length
+type interval = Interval.t
+type t = (|
+  horiz : constr list * interval list;
+  vert : constr list * interval list;
+|)
+
+let nil-1 n = ([], List.repeat n Interval.zero)
+let nil s = (|
+  horiz = nil-1 s#num-columns;
+  vert = nil-1 s#num-rows;
+|)
+
+let union-1 (c-l1, i-l1) (c-l2, i-l2) =
+List.((append c-l1 c-l2, map (fun (i1, i2) -> Interval.union i1 i2) (zip i-l1 i-l2)))
+
+let union c1 c2 = (|
+  horiz = union-1 c1#horiz c2#horiz;
+  vert = union-1 c1#vert c2#vert;
+|)
+
+let unpair ls = List.(concat (map (fun (x, y) -> [x; y]) ls))
+
+let-rec pair ls =
+match ls with
+| x :: y :: ls-1 -> (x, y) :: pair ls-1
+| _ -> []
+
+let l2f x = x /' 1pt
+let f2l x = 1pt *' x
+
+let solve-1 (c-l, i-l) =
+let v0-l = unpair (List.map Interval.to-interval i-l) in
+let n = List.length v0-l in
+let v0 = RealVector.of-list (List.map l2f v0-l) in
+let (a-l1, b-l1) = List.unzip c-l in
+let a-l2 = List.map unpair a-l1 in
+let a = RealMatrix.of-list-list n a-l2 in
+let u = RealVector.of-list (List.map l2f b-l1) in
+let v = QP.solve a u v0 in
+List.map Interval.of-interval (pair (List.map f2l (RealVector.to-list v)))
+
+let solve c = (|
+  horiz = solve-1 c#horiz;
+  vert = solve-1 c#vert;
+|)
+
+end
+
+module NCSqCellRaw : sig
+
+type 'a t
+
+val draw : ('a t  * Point.t) MatrixZipper.t -> graphics list
+val constraints : ('a t) MatrixZipper.t -> NCSqConstraints.t
+val data : 'a t -> 'a
+
+val empty : 'a -> 'a t
+
+end = struct
+
+type point = Point.t
+type 'a mzipper = 'a MatrixZipper.t
+type constr = NCSqConstraints.t
+
+type 'a t =
+| Cell of (|
+  data : 'a;
+  draw : ('a t * point) mzipper -> graphics list;
+  constraints : ('a t) mzipper -> constr;
+|)
+
+let data (Cell c) = c#data
+
+let draw cp-mz =
+match MatrixZipper.cursor cp-mz with
+| (Cell c, _) -> c#draw cp-mz
+
+let constraints c-mz =
+match MatrixZipper.cursor c-mz with
+| Cell c -> c#constraints c-mz
+
+let empty x = Cell (|
+  data = x;
+  draw = fun _ -> [];
+  constraints = Fn.compose NCSqConstraints.nil MatrixZipper.size;
+|)
+
+end
+
+module NCSqBackend : sig
+
+val draw-cellss-auto : ('a NCSqCellRaw.t) Matrix.t -> graphics list
+
+end = struct
+
+let cellss-constraints c-mz =
+MatrixZipper.fold (fun cstr c-mz -> (
+  NCSqConstraints.union cstr (NCSqCellRaw.constraints c-mz)
+)) (NCSqConstraints.nil (MatrixZipper.size c-mz)) c-mz
+
+let cellss-draw =
+MatrixZipper.fold (fun gr-l c-mz -> (
+  List.append gr-l (NCSqCellRaw.draw c-mz)
+)) []
+
+let make-grid itv-l =
+let (x-l, _) = (
+  List.fold-left (fun (x-l, x) itv -> (
+    (let x1 = x -' Interval.left itv in
+     (x1 :: x-l, x1 +' Interval.right itv))
+  )) ([], 0pt) itv-l
+) in
+List.reverse x-l
+
+let draw-cellss-auto c-mx =
+let fallback = [] in
+MatrixZipper.of-matrix c-mx
+|> Option.map-or fallback (fun c-mz -> (
+  let cstr = cellss-constraints c-mz in
+  let a = NCSqConstraints.solve cstr in
+  let hgrid = make-grid a#horiz in
+  let vgrid = make-grid a#vert in
+  let grid = Matrix.(map Point.of-point (outer-product hgrid vgrid)) in
+  let cp-mx = Matrix.zip c-mx grid in
+  MatrixZipper.of-matrix cp-mx
+  |> Option.map-or fallback cellss-draw
+))
+
+end
