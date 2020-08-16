@@ -8,6 +8,12 @@ let dg1 = NCSqFrontend.([
   [empty];
 ])
 
+let dg2 = NCSqFrontend.([
+  [object ${A}; empty; object ${B}; empty; object ${C}];
+  [empty; empty; empty];
+  [object ${D}; empty; empty; object ${E}];
+])
+
 in
 
 document (|
@@ -16,7 +22,9 @@ document (|
 |) '<
   +p{
     A diagram of empty cells.
-    \NCSqFrontend.cd(dg1);
+    \NCSqFrontend.cd(dg1);%
+    A diagram of objects.
+    \NCSqFrontend.cd(dg2);%
   }
 >
 

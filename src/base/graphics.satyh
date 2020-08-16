@@ -8,11 +8,14 @@ val shift : Point.t -> graphics list -> graphics list
 
 end = struct
 
-let bbox gr-l = List.(
-  gr-l
+let bbox gr-l =
+match gr-l with
+| [] -> Rect.zero
+| gr :: gr-l1 -> List.(
+  gr-l1
   |> map get-graphics-bbox
   |> map Rect.of-rect
-  |> fold-right Rect.union Rect.zero
+  |> fold-right Rect.union Rect.(of-rect (get-graphics-bbox gr))
 )
 
 let shift pt = List.map (shift-graphics (Point.to-point pt))

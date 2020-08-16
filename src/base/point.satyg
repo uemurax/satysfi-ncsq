@@ -21,6 +21,8 @@ val (+) : t -> t -> t
 val (-) : t -> t -> t
 val mid : t -> t -> t
 
+val shift-y : length -> t -> t
+
 val neg-x : t -> t
 val neg-y : t -> t
 val neg : t -> t
@@ -54,6 +56,8 @@ let max = binop Length.max
 let (+) = binop (+')
 let (-) = binop (-')
 let mid = binop (fun x y -> (x +' y) *' 0.5)
+
+let shift-y dy (x, y) = (x, y +' dy)
 
 let neg-x (x, y) = (Length.neg x, y)
 let neg-y (x, y) = (x, Length.neg y)

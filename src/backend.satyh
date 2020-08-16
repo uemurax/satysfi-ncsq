@@ -1,11 +1,14 @@
 @require: base/list-ext
 @require: base/fn
+@require: base/float
 @import: ./base/zipper
 @import: ./base/point
 @import: ./base/interval
 @import: ./base/matrix
 @import: ./base/real-matrix
 @import: ./base/qp
+@import: ./base/rect
+@import: ./base/graphics
 
 module NCSqConstraints : sig
 
@@ -21,6 +24,8 @@ val solve : t -> (|
   horiz : Interval.t list;
   vert : Interval.t list;
 |)
+
+val of-rect : Rect.t -> 'a MatrixZipper.t -> t
 
 end = struct
 
@@ -43,6 +48,38 @@ List.((append c-l1 c-l2, map (fun (i1, i2) -> Interval.union i1 i2) (zip i-l1 i-
 let union c1 c2 = (|
   horiz = union-1 c1#horiz c2#horiz;
   vert = union-1 c1#vert c2#vert;
+|)
+
+let of-interval itv lz =
+let a-lz = ListZipper.map (fun _ -> (0.0, 0.0)) lz in
+let i-l = ListZipper.(
+  lz
+  |> map (fun _ -> Interval.zero)
+  |> replace itv
+  |> to-list
+) in
+let a-l1 = ListZipper.(
+  a-lz
+  |> replace (Float.neg 1.0, 0.0)
+  |> to-list
+) in
+let b1 = Length.neg (Interval.left itv) in
+let a-l2 = ListZipper.(
+  a-lz
+  |> replace (0.0, 1.0)
+  |> to-list
+) in
+let b2 = Interval.right itv in
+([(a-l1, b1); (a-l2, b2)], i-l)
+
+let of-rect rc mz =
+let h-z = MatrixZipper.cursor-row mz in
+let ih = Rect.interval-h rc in
+let v-z = MatrixZipper.cursor-column mz in
+let iv = Rect.interval-v rc in
+(|
+  horiz = of-interval ih h-z;
+  vert = of-interval iv v-z;
 |)
 
 let unpair ls = List.(concat (map (fun (x, y) -> [x; y]) ls))
@@ -82,6 +119,7 @@ val constraints : ('a t) MatrixZipper.t -> NCSqConstraints.t
 val data : 'a t -> 'a
 
 val empty : 'a -> 'a t
+val const : 'a -> Rect.t -> graphics list -> 'a t
 
 end = struct
 
@@ -110,6 +148,15 @@ let empty x = Cell (|
   data = x;
   draw = fun _ -> [];
   constraints = Fn.compose NCSqConstraints.nil MatrixZipper.size;
+|)
+
+let const x rc gr-l = Cell (|
+  data = x;
+  draw = fun cp-mz -> (
+    let (_, pt) = MatrixZipper.cursor cp-mz in
+    GraphicsList.shift pt gr-l
+  );
+  constraints = NCSqConstraints.of-rect rc;
 |)
 
 end

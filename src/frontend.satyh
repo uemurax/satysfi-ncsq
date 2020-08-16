@@ -1,14 +1,17 @@
+@require: base/option-ext
 @import: ./backend
 @import: ./base/matrix
 @import: ./base/graphics
 @import: ./base/rect
 @import: ./base/point
+@import: ./base/paddings
 
 module NCSqFrontend : sig
 
 type cell
 
 val empty : cell
+val object : float * float * float * float ?-> math -> cell
 
 val cd : context -> (cell list) list -> inline-boxes
 val +cd : [(cell list) list] block-cmd
@@ -18,16 +21,43 @@ end = struct
 
 type cell =
 | Empty
+| Object of (|
+  paddings : float * float * float * float;
+  label : inline-text;
+|)
+
+let shift-y = 0.33
 
 let empty = Empty
 
-let shift-y = 0.33
+let object ?:pds-o m =
+let pds = Option.from (let pd = 0.25 in (pd, pd, pd, pd)) pds-o in
+let it = {${#m}} in
+Object (|
+  paddings = pds;
+  label = it;
+|)
 
 let make-cell-raw ctx cell =
 match cell with
 | Empty -> NCSqCellRaw.empty cell
+| Object obj -> (
+  let fs = get-font-size ctx in
+  let pds = Paddings.relative obj#paddings fs in
+  let gr = draw-text (0pt, 0pt) (read-inline ctx obj#label) in
+  let rc = Rect.of-rect (get-graphics-bbox gr) in
+  let c0 = Rect.center rc in
+  let dy = fs *' 0.33 in
+  let nc = Point.(neg (shift-y (Length.neg dy) c0)) in
+  NCSqCellRaw.const cell Rect.(
+    rc
+    |> shift nc
+    |> pad pds
+  ) GraphicsList.(shift nc [gr])
+)
 
-let cd ctx cell-ll =
+let cd ctx cell-ll0 =
+let cell-ll = List.reverse cell-ll0 in
 let cell-raw-ll = List.(map (map (make-cell-raw ctx)) cell-ll) in
 let c-mx = Matrix.of-list-of-rows (make-cell-raw ctx empty) cell-raw-ll in
 let gr-l = NCSqBackend.draw-cellss-auto c-mx in

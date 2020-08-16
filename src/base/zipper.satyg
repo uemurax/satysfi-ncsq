@@ -9,6 +9,7 @@ type 'a t
 
 val cursor : 'a t -> 'a
 val length : 'a t -> int
+val replace : 'a -> 'a t -> 'a t
 
 val go-forward : 'a t -> ('a t) option
 val go-begin : 'a t -> 'a t
@@ -19,6 +20,7 @@ val map-o : ('a -> 'b option) -> 'a t -> ('b t) option
 val distribute-o : ('a option) t -> ('a t) option
 
 val of-list : 'a list -> ('a t) option
+val to-list : 'a t -> 'a list
 
 end = struct
 
@@ -27,6 +29,13 @@ type 'a t = 'a list * 'a * 'a list
 let cursor (_, x, _) = x
 let length (l-l, x, r-l) = List.(length l-l + 1 + length r-l)
 let reverse (l-l, x, r-l) = (r-l, x, l-l)
+let replace x (l-l, _, r-l) = (l-l, x, r-l)
+
+let to-list (l-l, x, r-l) = List.(
+  r-l
+  |> cons x
+  |> reverse-append l-l
+)
 
 let go-forward (l-l, x, r-l) =
 match r-l with
@@ -76,6 +85,7 @@ type 'a t
 
 val cursor : 'a t -> 'a
 val cursor-row : 'a t -> 'a ListZipper.t
+val cursor-column : 'a t -> 'a ListZipper.t
 val size : 'a t -> (|
   num-rows : int;
   num-columns : int;
@@ -92,7 +102,13 @@ end = struct
 type 'a lzipper = 'a ListZipper.t
 type 'a t = ('a lzipper) lzipper % zipper of row zippers
 
-let cursor-row = ListZipper.cursor
+let op-o-col f = ListZipper.(map-o f)
+let op-col f = ListZipper.(map f)
+let op-o-row f = f
+let op-row f = f
+
+let cursor-row z = op-row ListZipper.cursor z
+let cursor-column z = op-col ListZipper.cursor z
 let cursor mz = ListZipper.cursor (cursor-row mz)
 
 let num-rows = ListZipper.length
@@ -103,10 +119,6 @@ let size mz = (|
   num-rows = num-rows mz;
 |)
 
-let op-o-col f = ListZipper.(map-o f)
-let op-col f = ListZipper.(map f)
-let op-o-row f = f
-let op-row f = f
 let go-forward-col = op-o-col ListZipper.go-forward
 let go-begin-col = op-col ListZipper.go-begin
 let go-forward-row = op-o-row ListZipper.go-forward
