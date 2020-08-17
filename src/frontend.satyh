@@ -6,6 +6,7 @@
 @import: ./base/rect
 @import: ./base/point
 @import: ./base/paddings
+@import: ./arrows
 
 module NCSqFrontend : sig
 
@@ -20,7 +21,7 @@ val \cd : [(cell list) list] inline-cmd
 % cells
 val empty : cell
 val object : float * float * float * float ?-> math -> cell
-val arrow : direction -> cell
+val arrow : NCSqArrowStyle.t ?-> direction -> cell
 
 % directions
 val left : direction
@@ -31,6 +32,11 @@ val rd : int * int -> direction
 val ru : int * int -> direction
 val ld : int * int -> direction
 val lu : int * int -> direction
+
+% arrow styles
+val solid : NCSqArrowStyle.t
+val dashed : NCSqArrowStyle.t
+val equal : NCSqArrowStyle.t
 
 end = struct
 
@@ -48,6 +54,10 @@ let ru (nh, nv) = (|horiz = nh; vert = nv|)
 let ld (nh, nv) = (|horiz = Int.neg nh; vert = Int.neg nv|)
 let lu (nh, nv) = (|horiz = Int.neg nh; vert = nv|)
 
+let solid = NCSqArrowStyle.solid
+let dashed = NCSqArrowStyle.dashed
+let equal = NCSqArrowStyle.equal
+
 type cell =
 | Empty
 | Object of (|
@@ -56,6 +66,7 @@ type cell =
 |)
 | Arrow of (|
   direction : direction;
+  style : NCSqArrowStyle.t;
 |)
 
 let is-object cell =
@@ -75,9 +86,10 @@ Object (|
   label = it;
 |)
 
-let arrow dir =
+let arrow ?:style-o dir =
 Arrow (|
   direction = dir;
+  style = Option.from solid style-o;
 |)
 
 let make-cell-raw ctx cell =
@@ -99,25 +111,28 @@ match cell with
 )
 | Arrow arr -> (
   let fs = get-font-size ctx in
-  let tail = fs *' 0.8 in
-  let head = fs *' 1.0 in
+  let style = NCSqArrowStyle.destruct arr#style ctx in
+  let tail = style#tail-padding in
+  let head = style#head-padding in
+  let b2 = style#body-length *' 0.5 in
+  let itv0 = Interval.of-interval (Length.neg b2, b2) in
+  let itv = style#body-itv in
   let is-source c = is-object (NCSqCellRaw.data c) in
   let is-target = is-source in
   let dir = arr#direction in
-  let ih = Interval.of-interval (
-    if dir#horiz == 0 then (0pt, 0pt)
-    else if dir#horiz < 0 then Length.((neg head, tail))
-    else Length.((neg tail, head))
+  let ih = (
+    if dir#horiz == 0 then (
+      if dir#vert >= 0 then itv else Interval.neg itv
+    ) else if dir#horiz < 0 then Interval.expand head tail itv0
+    else Interval.expand tail head itv0
   ) in
-  let iv = Interval.of-interval (
-    if dir#vert == 0 then (0pt, 0pt)
-    else if dir#vert < 0 then Length.((neg head, tail))
-    else Length.((neg tail, head))
+  let iv = (
+    if dir#vert == 0 then (
+      if dir#horiz >= 0 then Interval.neg itv else itv
+    ) else if dir#vert < 0 then Interval.expand head tail itv0
+    else Interval.expand tail head itv0
   ) in
-  let draw from to = (
-    Gr.arrow (fs *' 0.05) (get-text-color ctx) (fs *' 0.5) (fs *' 0.43) (fs *' 0.167)
-    (Point.to-point from) (Point.to-point to)
-  ) in
+  let draw = style#draw in
   NCSqCellRaw.edge (|
     data = cell;
     is-source = is-source;

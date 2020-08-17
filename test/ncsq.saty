@@ -32,6 +32,12 @@ let dg5 = NCSqFrontend.([
   [object ${D}; arrow right; empty; empty; object ${E}];
 ])
 
+let dg6 = NCSqFrontend.(open NCSqArrowStyle in [
+  [object ${A}; arrow right; object ${B}];
+  [arrow ?:tail down; arrow ?:dashed (ru (1, 1)); arrow ?:two-heads down];
+  [object ${C}; arrow right; object ${D}];
+])
+
 in
 
 document (|
@@ -49,6 +55,8 @@ document (|
     \NCSqFrontend.cd(dg4);%
     Another diagonal arrow.
     \NCSqFrontend.cd(dg5);%
+    Changing arrow styles.
+    \NCSqFrontend.cd(dg6);%
   }
 >
 
