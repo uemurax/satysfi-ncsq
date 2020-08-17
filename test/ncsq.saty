@@ -71,6 +71,7 @@ let dg11 = NCSqFrontend.([
   [object ${A}];
   [stack horizontal [
     arrow ?:${f} up;
+    object ${\dashv};
     arrow ?:${g} down;
   ]];
   [object ${B}];

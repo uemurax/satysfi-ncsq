@@ -63,6 +63,11 @@ let solid = NCSqArrowStyle.solid
 let dashed = NCSqArrowStyle.dashed
 let equal = NCSqArrowStyle.equal
 
+type object = (|
+  paddings : float * float * float * float;
+  label : inline-text;
+|)
+
 type arrow = (|
   direction : arrow-direction;
   style : NCSqArrowStyle.t;
@@ -83,10 +88,7 @@ type stack-direction-2 =
 
 type cell =
 | Empty
-| Object of (|
-  paddings : float * float * float * float;
-  label : inline-text;
-|)
+| Object of object
 | Arrow of arrow
 | Stack of (|
   direction : stack-direction;
@@ -126,6 +128,45 @@ let stack dir cell-l = Stack (|
 
 let label-ctx ctx = ctx |> set-font-size (get-font-size ctx *' 0.75)
 
+module ObjectRaw : sig
+
+type t
+
+val bbox : t -> Rect.t
+val draw : t -> graphics list
+val of-object : context -> object -> t
+
+end = struct
+
+type rect = Rect.t
+
+type t = (|
+  bbox : rect;
+  draw : graphics list;
+|)
+
+let bbox obj = obj#bbox
+let draw obj = obj#draw
+
+let of-object ctx obj =
+let fs = get-font-size ctx in
+let pds = Paddings.relative obj#paddings fs in
+let gr = draw-text (0pt, 0pt) (read-inline ctx obj#label) in
+let rc = Rect.of-rect (get-graphics-bbox gr) in
+let c0 = Rect.center rc in
+let dy = fs *' 0.33 in
+let nc = Point.(neg (shift-y (Length.neg dy) c0)) in
+(|
+  bbox = Rect.(
+    rc
+    |> shift nc
+    |> pad pds
+  );
+  draw = GraphicsList.(shift nc [gr]);
+|)
+
+end
+
 module ArrowRaw : sig
 
 type t
@@ -135,6 +176,7 @@ val draw : Point.t -> Point.t -> t -> graphics list
 
 val of-arrow : context -> arrow -> t
 val of-stack : stack-direction -> (t * stack-direction-2) list -> t
+val of-object : ObjectRaw.t -> t
 
 end = struct
 
@@ -297,24 +339,24 @@ let draw from0 to0 = List.(
   draw = draw;
 |)
 
+let of-object obj =
+let draw from to = (
+  let c = Point.mid from to in
+  GraphicsList.shift c (ObjectRaw.draw obj)
+) in
+(|
+  bbox = ObjectRaw.bbox obj;
+  draw = draw;
+|)
+
 end
 
 let make-cell-raw ctx cell =
 match cell with
 | Empty -> NCSqCellRaw.empty cell
 | Object obj -> (
-  let fs = get-font-size ctx in
-  let pds = Paddings.relative obj#paddings fs in
-  let gr = draw-text (0pt, 0pt) (read-inline ctx obj#label) in
-  let rc = Rect.of-rect (get-graphics-bbox gr) in
-  let c0 = Rect.center rc in
-  let dy = fs *' 0.33 in
-  let nc = Point.(neg (shift-y (Length.neg dy) c0)) in
-  NCSqCellRaw.const cell Rect.(
-    rc
-    |> shift nc
-    |> pad pds
-  ) GraphicsList.(shift nc [gr])
+  let obj1 = ObjectRaw.of-object ctx obj in
+  NCSqCellRaw.const cell (ObjectRaw.bbox obj1) (ObjectRaw.draw obj1)
 )
 | Arrow arr -> (
   let arr1 = ArrowRaw.of-arrow ctx arr in
@@ -351,6 +393,11 @@ match cell with
           let arr1 = ArrowRaw.of-arrow ctx arr in
           aux ((arr1, dir2) :: acc) cell-l1
         ) else fallback ()
+      )
+      | Object obj -> (
+        let obj1 = ObjectRaw.of-object (label-ctx ctx) obj in
+        let arr = ArrowRaw.of-object obj1 in
+        aux ((arr, Forwards) :: acc) cell-l1
       )
       | _ -> fallback ()
     )
