@@ -1,5 +1,6 @@
 @require: base/length
 @require: base/float
+@import: ./real-matrix
 
 module Point : sig
 
@@ -30,6 +31,7 @@ val neg : t -> t
 val is-zero : t -> bool
 
 val arg : t -> float option
+val abs : t -> length
 
 end = struct
 
@@ -68,5 +70,8 @@ let is-zero (x, y) = Length.(x == 0pt && y == 0pt)
 let arg (x, y) =
 if is-zero (x, y) then None
 else Some (Float.atan2 (y /' 1pt) (x /' 1pt))
+
+let abs (x, y) =
+1pt *' RealVector.(norm (of-list [x /' 1pt; y /' 1pt]))
 
 end

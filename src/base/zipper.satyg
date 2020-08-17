@@ -13,6 +13,7 @@ val replace : 'a -> 'a t -> 'a t
 
 val go-forward : 'a t -> ('a t) option
 val go-begin : 'a t -> 'a t
+val move : int -> 'a t -> ('a t) option
 
 val reverse : 'a t -> 'a t
 val map : ('a -> 'b) -> 'a t -> 'b t
@@ -21,6 +22,7 @@ val distribute-o : ('a option) t -> ('a t) option
 
 val of-list : 'a list -> ('a t) option
 val to-list : 'a t -> 'a list
+val singleton : 'a -> 'a t
 
 end = struct
 
@@ -48,6 +50,20 @@ let-rec go-end z = Option.(
 )
 
 let go-begin z = reverse (go-end (reverse z))
+
+let-rec move-pos n z =
+if n <= 0 then Option.some z
+else (
+  go-forward z
+  |> Option.and-then (move-pos (n - 1))
+)
+
+let move n z =
+if n < 0 then (
+  reverse z
+  |> move-pos (Int.neg n)
+  |> Option.map reverse
+) else move-pos n z
 
 let map f (l-l, x, r-l) = List.((map f l-l, f x, map f r-l))
 
@@ -77,6 +93,8 @@ match x-l with
 | [] -> Option.none
 | x :: x-l1 -> Option.some ([], x, x-l1)
 
+let singleton x = ([], x, [])
+
 end
 
 module MatrixZipper : sig
@@ -92,10 +110,13 @@ val size : 'a t -> (|
 |)
 
 val go-forward : 'a t -> ('a t) option
+val move : (|horiz : int; vert : int;|) -> 'a t -> ('a t) option
 
+val search : ('a -> bool) -> (|horiz : int; vert : int;|) -> 'a t -> ('a t * (|horiz : int; vert : int;|)) option
 val fold : ('b -> 'a t -> 'b) -> 'b -> 'a t -> 'b
 
 val of-matrix : 'a Matrix.t -> ('a t) option
+val singleton : 'a -> 'a t
 
 end = struct
 
@@ -131,6 +152,33 @@ let go-forward mz = Option.(
   ))
 )
 
+let move-horiz n mz = op-o-col (ListZipper.move n) mz
+let move-vert n mz = op-o-row (ListZipper.move n) mz
+
+let move dir mz = (
+  mz
+  |> move-horiz dir#horiz
+  |> Option.and-then (move-vert dir#vert)
+)
+
+let search f dir mz =
+let-rec aux d mz = (
+  let x = cursor mz in
+  if f x then Option.some (mz, d)
+  else (
+    mz
+    |> move dir
+    |> Option.and-then (aux (|
+      horiz = d#horiz + dir#horiz;
+      vert = d#vert + dir#vert;
+    |))
+  )
+) in
+aux (|
+  horiz = 0;
+  vert = 0;
+|) mz
+
 let-rec fold f x mz =
 let y = f x mz in
 go-forward mz
@@ -142,5 +190,7 @@ let of-list-list x-ll = ListZipper.(
 )
 
 let of-matrix mx = of-list-list (Matrix.to-list-of-rows mx)
+
+let singleton x = ListZipper.(singleton (singleton x))
 
 end

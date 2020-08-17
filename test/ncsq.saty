@@ -14,6 +14,24 @@ let dg2 = NCSqFrontend.([
   [object ${D}; empty; empty; object ${E}];
 ])
 
+let dg3 = NCSqFrontend.([
+  [object ${A}; arrow right; object ${B}];
+  [arrow down; empty; arrow down];
+  [object ${C}; arrow right; object ${D}];
+])
+
+let dg4 = NCSqFrontend.([
+  [object ${A}; arrow right; object ${B}];
+  [empty; arrow (rd (1, 1)); arrow down];
+  [empty; empty; object ${C}];
+])
+
+let dg5 = NCSqFrontend.([
+  [object ${A}; arrow right; object ${B}; arrow right; object ${C}];
+  [arrow down; empty; arrow (ru (2, 1)); empty; arrow down];
+  [object ${D}; arrow right; empty; empty; object ${E}];
+])
+
 in
 
 document (|
@@ -25,6 +43,12 @@ document (|
     \NCSqFrontend.cd(dg1);%
     A diagram of objects.
     \NCSqFrontend.cd(dg2);%
+    A diagram of objects and arrows.
+    \NCSqFrontend.cd(dg3);%
+    A diagonal arrow.
+    \NCSqFrontend.cd(dg4);%
+    Another diagonal arrow.
+    \NCSqFrontend.cd(dg5);%
   }
 >
 

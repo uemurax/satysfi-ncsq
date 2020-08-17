@@ -16,6 +16,10 @@ val of-rect :
 ) -> t
 
 val to-rect : t -> (length * length) * (length * length)
+val of-intervals : (|
+  horiz : Interval.t;
+  vert : Interval.t
+|) -> t
 
 val zero : t
 val union : t -> t -> t
@@ -29,6 +33,11 @@ val top : t -> length
 val interval-h : t -> Interval.t
 val interval-v : t -> Interval.t
 val center : t -> Point.t
+val width : t -> length
+val height : t -> length
+
+% Intersection of a rectangle and a ray from the center of the rectangle
+val ray-intersection : float -> t -> Point.t
 
 end = struct
 
@@ -38,6 +47,11 @@ type t = point * point
 
 let of-rect (p0, p1) = Point.((of-point p0, of-point p1))
 let to-rect (p0, p1) = Point.((to-point p0, to-point p1))
+
+let of-intervals rec =
+let (l, r) = Interval.to-interval rec#horiz in
+let (b, t) = Interval.to-interval rec#vert in
+of-rect ((l, b), (r, t))
 
 let zero = Point.((zero, zero))
 let union (p0, p1) (q0, q1) = Point.((min p0 q0, max p1 q1))
@@ -55,5 +69,34 @@ let top (_, p1) = Point.y p1
 let interval-h (p0, p1) = Interval.of-interval (Point.x p0, Point.x p1)
 let interval-v (p0, p1) = Interval.of-interval (Point.y p0, Point.y p1)
 let center rc = Point.of-point Interval.((center (interval-h rc), center (interval-v rc)))
+let width rc = Interval.width (interval-h rc)
+let height rc = Interval.width (interval-v rc)
+
+let ray-intersection a rc =
+let c = center rc in
+let nc = Point.neg c in
+let rc1 = shift nc rc in
+let ((l, b), (r, t)) = to-rect rc1 in
+let cs = Float.cos a in
+let pt = (
+  if Float.(abs cs < 0.0000000001) then (
+    if Float.(Float.sin a > 0.0) then (0pt, t)
+    else (0pt, b)
+  ) else (
+    let tn = Float.tan a in
+    if Float.(cs > 0.0) then (
+      let rtn = r *' tn in
+      if Length.(rtn < b) then (r *' cs, b)
+      else if Length.(rtn < t) then (r, rtn)
+      else (r *' cs, t)
+    ) else (
+      let ltn = l *' tn in
+      if Length.(ltn < b) then (Length.neg l *' cs, b)
+      else if Length.(ltn < t) then (l, ltn)
+      else (Length.neg l *' cs, t)
+    )
+  )
+) in
+Point.(c + of-point pt)
 
 end

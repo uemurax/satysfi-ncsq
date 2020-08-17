@@ -25,7 +25,18 @@ val solve : t -> (|
   vert : Interval.t list;
 |)
 
+val of-interval-h : Interval.t -> 'a MatrixZipper.t -> t
+val of-interval-v : Interval.t -> 'a MatrixZipper.t -> t
 val of-rect : Rect.t -> 'a MatrixZipper.t -> t
+val of-region-h : int -> int -> length -> 'a MatrixZipper.t -> t
+val of-region-v : int -> int -> length -> 'a MatrixZipper.t -> t
+val of-region : (|
+  horiz : int;
+  vert : int;
+|) -> (|
+  horiz : int;
+  vert : int;
+|) -> length -> length -> 'a MatrixZipper.t -> t
 
 end = struct
 
@@ -72,15 +83,81 @@ let a-l2 = ListZipper.(
 let b2 = Interval.right itv in
 ([(a-l1, b1); (a-l2, b2)], i-l)
 
-let of-rect rc mz =
-let h-z = MatrixZipper.cursor-row mz in
-let ih = Rect.interval-h rc in
-let v-z = MatrixZipper.cursor-column mz in
-let iv = Rect.interval-v rc in
+let of-interval-h itv mz =
+let h-lz = MatrixZipper.cursor-row mz in
+let v-lz = MatrixZipper.cursor-column mz in
 (|
-  horiz = of-interval ih h-z;
-  vert = of-interval iv v-z;
+  horiz = of-interval itv h-lz;
+  vert = nil-1 (ListZipper.length v-lz);
 |)
+
+let of-interval-v itv mz =
+let h-lz = MatrixZipper.cursor-row mz in
+let v-lz = MatrixZipper.cursor-column mz in
+(|
+  horiz = nil-1 (ListZipper.length h-lz);
+  vert = of-interval itv v-lz;
+|)
+
+let of-rect rc mz =
+let ih = Rect.interval-h rc in
+let iv = Rect.interval-v rc in
+union (of-interval-h ih mz) (of-interval-v iv mz)
+
+let-rec replace-n x n lz =
+if n <= 0 then Option.some lz
+else (
+  lz
+  |> ListZipper.replace x
+  |> ListZipper.go-forward
+  |> Option.and-then (replace-n x (n - 1))
+)
+
+let of-region-1 from to width lz =
+let fallback _ = nil-1 (ListZipper.length lz) in
+let f-lz = ListZipper.map (fun _ -> (0.0, 0.0)) lz in
+ListZipper.move from f-lz
+|> Option.map-or-else fallback (fun src-lz -> (
+  src-lz
+  |> ListZipper.replace (0.0, 1.0)
+  |> ListZipper.go-forward
+  |> Option.map-or-else fallback (fun src-lz1 -> (
+    src-lz1
+    |> replace-n (Float.neg 1.0, 1.0) ((Int.neg from - 1) + to)
+    |> Option.map-or-else fallback (fun tgt-lz -> (
+      let a-l = ListZipper.(tgt-lz |> replace (Float.neg 1.0, 0.0) |> to-list) in
+      let b = width in
+      let i-l = ListZipper.(
+        lz
+        |> map (fun _ -> Interval.zero)
+        |> replace (Interval.of-interval (0pt, width))
+        |> to-list
+      ) in
+      ([(a-l, b)], i-l)
+    ))
+  ))
+))
+
+let of-region-h from to width mz =
+let h-lz = MatrixZipper.cursor-row mz in
+let v-lz = MatrixZipper.cursor-column mz in
+(|
+  horiz = of-region-1 from to width h-lz;
+  vert = nil-1 (ListZipper.length v-lz);
+|)
+
+let of-region-v from to height mz =
+let h-lz = MatrixZipper.cursor-row mz in
+let v-lz = MatrixZipper.cursor-column mz in
+(|
+  horiz = nil-1 (ListZipper.length h-lz);
+  vert = of-region-1 from to height v-lz;
+|)
+
+let of-region from to width height mz =
+union
+(of-region-h from#horiz to#horiz width mz)
+(of-region-v from#vert to#vert height mz)
 
 let unpair ls = List.(concat (map (fun (x, y) -> [x; y]) ls))
 
@@ -117,9 +194,21 @@ type 'a t
 val draw : ('a t  * Point.t) MatrixZipper.t -> graphics list
 val constraints : ('a t) MatrixZipper.t -> NCSqConstraints.t
 val data : 'a t -> 'a
+val natural-bbox : 'a t -> Rect.t
 
 val empty : 'a -> 'a t
 val const : 'a -> Rect.t -> graphics list -> 'a t
+val edge : (|
+  data : 'a;
+  is-source : 'a t -> bool;
+  is-target : 'a t -> bool;
+  direction : (|
+    horiz : int;
+    vert : int;
+  |);
+  bbox : Rect.t;
+  draw : Point.t -> Point.t -> graphics list;
+|) -> 'a t
 
 end = struct
 
@@ -144,6 +233,16 @@ let constraints c-mz =
 match MatrixZipper.cursor c-mz with
 | Cell c -> c#constraints c-mz
 
+let natural-bbox c =
+let cstr = constraints (MatrixZipper.singleton c) in
+let res = NCSqConstraints.solve cstr in
+let ih = Option.unwrap (List.head res#horiz) in
+let iv = Option.unwrap (List.head res#vert) in
+Rect.of-intervals (|
+  horiz = ih;
+  vert = iv;
+|)
+
 let empty x = Cell (|
   data = x;
   draw = fun _ -> [];
@@ -157,6 +256,77 @@ let const x rc gr-l = Cell (|
     GraphicsList.shift pt gr-l
   );
   constraints = NCSqConstraints.of-rect rc;
+|)
+
+let edge rec =
+let dir = rec#direction in
+let ndir = (|
+  horiz = Int.neg dir#horiz;
+  vert = Int.neg dir#vert;
+|) in
+Cell (|
+  data = rec#data;
+  draw = fun cp-mz -> (
+    let is-source (c, _) = rec#is-source c in
+    let is-target (c, _) = rec#is-target c in
+    let fallback _ = [] in
+    MatrixZipper.search is-target dir cp-mz
+    |> Option.map-or-else fallback (fun (tgt-mz, _) -> (
+      MatrixZipper.search is-source ndir cp-mz
+      |> Option.map-or-else fallback (fun (src-mz, _) -> (
+        let (src, sp) = MatrixZipper.cursor src-mz in
+        let (tgt, tp) = MatrixZipper.cursor tgt-mz in
+        Point.(arg (tp - sp))
+        |> Option.map-or-else fallback (fun a -> (
+          let rcs = natural-bbox src |> Rect.shift sp in
+          let rct = natural-bbox tgt |> Rect.shift tp in
+          let from = Rect.ray-intersection a rcs in
+          let to = Rect.ray-intersection Float.(a +. pi) rct in
+          rec#draw from to
+        ))
+      ))
+    ))
+  );
+  constraints = fun c-mz -> (
+    let is-source = rec#is-source in
+    let is-target = rec#is-target in
+    let fallback _ = NCSqConstraints.nil (MatrixZipper.size c-mz) in
+    MatrixZipper.search is-target dir c-mz
+    |> Option.map-or-else fallback (fun (tgt-mz, dirt) -> (
+      MatrixZipper.search is-source ndir c-mz
+      |> Option.map-or-else fallback (fun (src-mz, dirs) -> (
+        let rcs = natural-bbox (MatrixZipper.cursor src-mz) in
+        let rct = natural-bbox (MatrixZipper.cursor tgt-mz) in
+        let ch = (
+          if dirs#horiz < dirt#horiz then (
+            NCSqConstraints.of-region-h dirs#horiz dirt#horiz
+            Rect.(width rec#bbox +' (right rcs -' left rct))
+            c-mz
+          ) else if dirs#horiz == dirt#horiz then (
+            NCSqConstraints.of-interval-h Rect.(interval-h rec#bbox) c-mz
+          ) else (
+            NCSqConstraints.of-region-h dirt#horiz dirs#horiz
+            Rect.(width rec#bbox +' (right rct -' left rcs))
+            c-mz
+          )
+        ) in
+        let cv = (
+          if dirs#vert < dirt#vert then (
+            NCSqConstraints.of-region-v dirs#vert dirt#vert
+            Rect.(height rec#bbox +' (top rcs -' bottom rct))
+            c-mz
+          ) else if dirs#vert == dirt#vert then (
+            NCSqConstraints.of-interval-v Rect.(interval-v rec#bbox) c-mz
+          ) else (
+            NCSqConstraints.of-region-v dirt#vert dirs#vert
+            Rect.(height rec#bbox +' (top rct -' bottom rcs))
+            c-mz
+          )
+        ) in
+        NCSqConstraints.union ch cv
+      ))
+    ))
+  );
 |)
 
 end

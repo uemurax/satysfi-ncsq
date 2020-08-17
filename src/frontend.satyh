@@ -1,4 +1,5 @@
 @require: base/option-ext
+@require: gr
 @import: ./backend
 @import: ./base/matrix
 @import: ./base/graphics
@@ -9,15 +10,43 @@
 module NCSqFrontend : sig
 
 type cell
+type direction
 
-val empty : cell
-val object : float * float * float * float ?-> math -> cell
-
+% commands
 val cd : context -> (cell list) list -> inline-boxes
 val +cd : [(cell list) list] block-cmd
 val \cd : [(cell list) list] inline-cmd
 
+% cells
+val empty : cell
+val object : float * float * float * float ?-> math -> cell
+val arrow : direction -> cell
+
+% directions
+val left : direction
+val right : direction
+val up : direction
+val down : direction
+val rd : int * int -> direction
+val ru : int * int -> direction
+val ld : int * int -> direction
+val lu : int * int -> direction
+
 end = struct
+
+type direction = (|
+  horiz : int;
+  vert : int;
+|)
+
+let left = (|horiz = -1; vert = 0|)
+let right = (|horiz = 1; vert = 0|)
+let up = (|horiz = 0; vert = 1|)
+let down = (|horiz = 0; vert = -1|)
+let rd (nh, nv) = (|horiz = nh; vert = Int.neg nv|)
+let ru (nh, nv) = (|horiz = nh; vert = nv|)
+let ld (nh, nv) = (|horiz = Int.neg nh; vert = Int.neg nv|)
+let lu (nh, nv) = (|horiz = Int.neg nh; vert = nv|)
 
 type cell =
 | Empty
@@ -25,6 +54,14 @@ type cell =
   paddings : float * float * float * float;
   label : inline-text;
 |)
+| Arrow of (|
+  direction : direction;
+|)
+
+let is-object cell =
+match cell with
+| Object _ -> true
+| _ -> false
 
 let shift-y = 0.33
 
@@ -36,6 +73,11 @@ let it = {${#m}} in
 Object (|
   paddings = pds;
   label = it;
+|)
+
+let arrow dir =
+Arrow (|
+  direction = dir;
 |)
 
 let make-cell-raw ctx cell =
@@ -54,6 +96,36 @@ match cell with
     |> shift nc
     |> pad pds
   ) GraphicsList.(shift nc [gr])
+)
+| Arrow arr -> (
+  let fs = get-font-size ctx in
+  let tail = fs *' 0.8 in
+  let head = fs *' 1.0 in
+  let is-source c = is-object (NCSqCellRaw.data c) in
+  let is-target = is-source in
+  let dir = arr#direction in
+  let ih = Interval.of-interval (
+    if dir#horiz == 0 then (0pt, 0pt)
+    else if dir#horiz < 0 then Length.((neg head, tail))
+    else Length.((neg tail, head))
+  ) in
+  let iv = Interval.of-interval (
+    if dir#vert == 0 then (0pt, 0pt)
+    else if dir#vert < 0 then Length.((neg head, tail))
+    else Length.((neg tail, head))
+  ) in
+  let draw from to = (
+    Gr.arrow (fs *' 0.05) (get-text-color ctx) (fs *' 0.5) (fs *' 0.43) (fs *' 0.167)
+    (Point.to-point from) (Point.to-point to)
+  ) in
+  NCSqCellRaw.edge (|
+    data = cell;
+    is-source = is-source;
+    is-target = is-target;
+    direction = arr#direction;
+    bbox = Rect.of-intervals (|horiz = ih; vert = iv|);
+    draw = draw;
+  |)
 )
 
 let cd ctx cell-ll0 =
