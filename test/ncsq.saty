@@ -86,6 +86,22 @@ let dg12 = NCSqFrontend.([
   [object ${C}; arrow ?*?:${k} right; object ${D}];
 ])
 
+let dg13 = NCSqFrontend.([
+  [object ${A}; arrow right; object ${B}];
+  [arrow down; empty; arrow down];
+  [object ${C}; arrow right; object ${D}];
+  [arrow down; empty; arrow down];
+  [object ${E}; arrow right; object ${F}];
+])
+
+let dg14 = NCSqFrontend.([
+  [object ${A}; arrow right; object ${B}];
+  [arrow down; empty; arrow down];
+  [object ${C'}; arrow right; object ${D'}];
+  [arrow down; empty; arrow down];
+  [object ${E}; arrow right; object ${F}];
+])
+
 in
 
 document (|
@@ -122,6 +138,14 @@ document (|
     \NCSqFrontend.cd(NCSqFrontend.invert-h dg12);%
     Transpose.
     \NCSqFrontend.cd(NCSqFrontend.transpose dg12);%
+    Math command.
+    \eqn(${
+      \paren{
+        \NCSqFrontend.cd-m!(dg13)
+      } = \paren{
+        \NCSqFrontend.cd-m!(dg14)
+      }
+    });%
   }
 >
 

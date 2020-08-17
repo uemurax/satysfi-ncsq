@@ -18,6 +18,7 @@ type stack-direction
 val cd : context -> (cell list) list -> inline-boxes
 val +cd : [(cell list) list] block-cmd
 val \cd : [(cell list) list] inline-cmd
+val \cd-m : [(cell list) list] math-cmd
 
 % cells
 val empty : cell
@@ -448,6 +449,9 @@ line-break true true ctx (inline-fil ++ cd ctx cell-ll ++ inline-fil)
 
 let-inline ctx \cd cell-ll =
 inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cell-ll);>)
+
+let-math \cd-m cell-ll =
+text-in-math MathOrd (fun ctx -> cd ctx cell-ll)
 
 let invert-direction-vertically dir =
 (|
