@@ -47,9 +47,9 @@ let dg7 = NCSqFrontend.([
 let dg8 = NCSqFrontend.([
   [object ${A}; arrow right; object ${B}; arrow ?:${\text!{looooooooooooooooooooooooooooooooooong label}} right; empty; empty; object ${C}];
   [arrow ?*?:${\frac{\frac{\frac{a}{b}}{\frac{c}{d}}}{\frac{\frac{e}{f}}{\frac{g}{h}}}} down; empty; arrow down; empty; empty; empty; arrow down];
-  [empty; empty; object ${D}; arrow right; object ${E}; arrow right; object ${F}];
+  [empty; empty; object ${D}; arrow right; object ${\text!{HUGE OBJECT}}; arrow right; object ${F}];
   [empty; empty; arrow down; empty; arrow down; empty; arrow down];
-  [object ${G}; arrow right; object ${H}; arrow ?:${\text!{short label}} right; object ${I}; empty; empty];
+  [object ${G}; arrow right; object ${\text!{LARGE OBJECT}}; arrow ?:${\text!{short label}} right; object ${I}; empty; empty];
   [arrow down; empty; empty; empty; arrow down; empty; empty];
   [object ${J}; arrow ?*?:${\text!{another looooooooooooooooooooooooooooooooong label}} right; empty; empty; object ${K}; arrow right; object ${L}];
 ])
