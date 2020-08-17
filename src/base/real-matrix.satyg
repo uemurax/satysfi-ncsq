@@ -544,10 +544,10 @@ let-rec aux (z2-l, z1-l) (ut, a, lt) = (
     let (u, a1) = RealMatrix.uncons-column a in
     let (v, lt1) = LowerTriangle.uncons-column lt in
     let ((c, s), (u1, v1)) = RealVector.make-rotation (u, v) in
-    let (v1, a2) = RealMatrix.uncons-row a1 in
+    let (v2, a2) = RealMatrix.uncons-row a1 in
     let (x, u2) = RealVector.uncons u1 in
     let a3 = RealMatrix.(cons-column v1 (cons-column u2 a2)) in
-    let ut1 = UpperTriangle.append-column-rev v1 x ut in
+    let ut1 = UpperTriangle.append-column-rev v2 x ut in
     let (zz2, zz1) = RealVector.rotate (c, s) (z2, z1) in
     aux (zz1 :: zz2 :: z2-l1, z1-l1) (ut1, a3, lt1))
   | _ -> (z2-l, ut)
