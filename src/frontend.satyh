@@ -25,6 +25,8 @@ val empty : cell
 val object : float * float * float * float ?-> math -> cell
 val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
 val stack : stack-direction -> cell list -> cell
+% a point is invisible but can be the source or the target of an arrow.
+val point : cell
 
 % directions
 val left : arrow-direction
@@ -116,6 +118,11 @@ let it = {${#m}} in
 Object (|
   paddings = pds;
   label = it;
+|)
+
+let point = Object (|
+  paddings = (0.0, 0.0, 0.0, 0.0);
+  label = {};
 |)
 
 let arrow ?:ml-o ?:mr-o ?:style-o dir =

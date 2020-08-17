@@ -102,6 +102,14 @@ let dg14 = NCSqFrontend.([
   [object ${E}; arrow right; object ${F}];
 ])
 
+let dg15 = NCSqFrontend.(open NCSqArrowStyle in [
+  [object ${A}; empty; arrow ?:${f} right; empty; object ${B}];
+  [empty; empty; point; empty; empty];
+  [arrow ?*?:${g} down; empty; arrow ?:${\text!{loooooooooooooooooooooong label}}?*?:solid-2 down; empty; arrow ?:${h} down];
+  [empty; empty; point; empty; empty];
+  [object ${C}; empty; arrow ?*?:${k} right; empty; object ${D}];
+])
+
 in
 
 document (|
@@ -146,6 +154,8 @@ document (|
         \NCSqFrontend.cd-m!(dg14)
       }
     });%
+    2-arrows.
+    \NCSqFrontend.cd(dg15);%
   }
 >
 
