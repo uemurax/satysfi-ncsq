@@ -14,6 +14,8 @@ val outer-product :
 'a list ->                      % row vector
 'b list ->                      % column vector
 ('a * 'b) t
+val transpose : 'a t -> 'a t
+val map : ('a -> 'b) -> 'a t -> 'b t
 
 end = struct
 
@@ -55,5 +57,15 @@ let z-ll = List.(
   ))
 ) in
 (List.length x-l, z-ll)
+
+let-rec transpose (n, x-ll) =
+match x-ll with
+| [] -> (0, List.repeat n [])
+| x-l :: x-ll1 -> (
+  let (m, y-ll) = transpose (n, x-ll1) in
+  (m + 1, List.(map (fun (x, y-l) -> x :: y-l) (zip x-l y-ll)))
+)
+
+let map f (n, x-ll) = (n, List.(map (map f) x-ll))
 
 end

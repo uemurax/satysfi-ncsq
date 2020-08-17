@@ -43,6 +43,11 @@ val solid : NCSqArrowStyle.t
 val dashed : NCSqArrowStyle.t
 val equal : NCSqArrowStyle.t
 
+% utilities
+val invert-v : (cell list) list -> (cell list) list
+val invert-h : (cell list) list -> (cell list) list
+val transpose : (cell list) list -> (cell list) list
+
 end = struct
 
 type arrow-direction = (|
@@ -443,5 +448,71 @@ line-break true true ctx (inline-fil ++ cd ctx cell-ll ++ inline-fil)
 
 let-inline ctx \cd cell-ll =
 inline-fil ++ embed-block-breakable ctx (read-block ctx '<+cd(cell-ll);>)
+
+let invert-direction-vertically dir =
+(|
+  horiz = dir#horiz;
+  vert = Int.neg dir#vert;
+|)
+
+let-rec invert-cell-vertically cell =
+match cell with
+| Arrow arr -> Arrow (|
+  arr with
+  left-label-o = arr#right-label-o;
+  right-label-o = arr#left-label-o;
+  direction = invert-direction-vertically arr#direction;
+|)
+| Stack stk -> (
+  let map = (
+    match stk#direction with
+    | Horizontal -> List.map
+    | Vertical -> List.reverse-map
+  ) in
+  Stack (|
+    stk with
+    cell-l = map invert-cell-vertically stk#cell-l;
+  |)
+)
+| _ -> cell
+
+let invert-v cell-ll = List.map (List.map invert-cell-vertically) (List.reverse cell-ll)
+
+let transpose-direction dir =
+(|
+  horiz = Int.neg dir#vert;
+  vert = Int.neg dir#horiz;
+|)
+
+let-rec transpose-cell cell =
+match cell with
+| Arrow arr -> Arrow (|
+  arr with
+  left-label-o = arr#right-label-o;
+  right-label-o = arr#left-label-o;
+  direction = transpose-direction arr#direction;
+|)
+| Stack stk -> (
+  let dir1 = (
+    match stk#direction with
+    | Horizontal -> Vertical
+    | Vertical -> Horizontal
+  ) in
+  Stack (|
+    direction = dir1;
+    cell-l = List.map transpose-cell stk#cell-l
+  |)
+)
+| _ -> cell
+
+let transpose cell-ll = Matrix.(
+  cell-ll
+  |> of-list-of-rows empty
+  |> transpose
+  |> map transpose-cell
+  |> to-list-of-rows
+)
+
+let invert-h cell-ll = transpose (invert-v (transpose cell-ll))
 
 end

@@ -77,6 +77,15 @@ let dg11 = NCSqFrontend.([
   [object ${B}];
 ])
 
+let dg12 = NCSqFrontend.([
+  [object ${A}; stack vertical [
+    arrow ?:${f_{1}} right;
+    arrow ?:${f_{2}} left;
+  ]; object ${B}];
+  [arrow ?*?:${g} down; arrow ?*?:${h} (ru (1, 1)); arrow down];
+  [object ${C}; arrow ?*?:${k} right; object ${D}];
+])
+
 in
 
 document (|
@@ -105,6 +114,14 @@ document (|
     Stacks.
     \NCSqFrontend.cd(dg10);%
     \NCSqFrontend.cd(dg11);%
+    Diagram transformation.
+    \NCSqFrontend.cd(dg12);%
+    Invert vertically.
+    \NCSqFrontend.cd(NCSqFrontend.invert-v dg12);%
+    Invert horizontally.
+    \NCSqFrontend.cd(NCSqFrontend.invert-h dg12);%
+    Transpose.
+    \NCSqFrontend.cd(NCSqFrontend.transpose dg12);%
   }
 >
 
