@@ -6,15 +6,8 @@ module Rect : sig
 
 type t
 
-val of-rect :
-(
-  length *                      % left
-  length                        % bottom
-) * (
-  length *                      % right
-  length                        % top
-) -> t
-
+val of-rect : (length * length) * (length * length) -> t
+val of-points : Point.t -> Point.t -> t
 val to-rect : t -> (length * length) * (length * length)
 val of-intervals : (|
   horiz : Interval.t;
@@ -45,7 +38,9 @@ type point = Point.t
 
 type t = point * point
 
-let of-rect (p0, p1) = Point.((of-point p0, of-point p1))
+let of-rect ((x0, y0), (x1, y1)) =
+Point.(Length.((of-point (min x0 x1, min y0 y1), of-point (max x0 x1, max y0 y1))))
+let of-points p0 p1 = of-rect Point.((to-point p0, to-point p1))
 let to-rect (p0, p1) = Point.((to-point p0, to-point p1))
 
 let of-intervals rec =
