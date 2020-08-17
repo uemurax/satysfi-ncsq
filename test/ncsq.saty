@@ -60,6 +60,22 @@ let dg9 = NCSqFrontend.(open NCSqArrowStyle in [
   [object ${B}; arrow ?*?:${g} right; object ${Y}];
 ])
 
+let dg10 = NCSqFrontend.([
+  [object ${A}; stack vertical [
+    arrow ?:${f} right;
+    arrow ?*?:${g} right;
+  ]; object ${B}];
+])
+
+let dg11 = NCSqFrontend.([
+  [object ${A}];
+  [stack horizontal [
+    arrow ?:${f} up;
+    arrow ?:${g} down;
+  ]];
+  [object ${B}];
+])
+
 in
 
 document (|
@@ -85,6 +101,9 @@ document (|
     \NCSqFrontend.cd(dg8);%
     Diagonal arrows with labels.
     \NCSqFrontend.cd(dg9);%
+    Stacks.
+    \NCSqFrontend.cd(dg10);%
+    \NCSqFrontend.cd(dg11);%
   }
 >
 

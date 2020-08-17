@@ -11,7 +11,8 @@
 module NCSqFrontend : sig
 
 type cell
-type direction
+type arrow-direction
+type stack-direction
 
 % commands
 val cd : context -> (cell list) list -> inline-boxes
@@ -21,17 +22,21 @@ val \cd : [(cell list) list] inline-cmd
 % cells
 val empty : cell
 val object : float * float * float * float ?-> math -> cell
-val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> direction -> cell
+val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
+val stack : stack-direction -> cell list -> cell
 
 % directions
-val left : direction
-val right : direction
-val up : direction
-val down : direction
-val rd : int * int -> direction
-val ru : int * int -> direction
-val ld : int * int -> direction
-val lu : int * int -> direction
+val left : arrow-direction
+val right : arrow-direction
+val up : arrow-direction
+val down : arrow-direction
+val rd : int * int -> arrow-direction
+val ru : int * int -> arrow-direction
+val ld : int * int -> arrow-direction
+val lu : int * int -> arrow-direction
+
+val horizontal : stack-direction
+val vertical : stack-direction
 
 % arrow styles
 val solid : NCSqArrowStyle.t
@@ -40,7 +45,7 @@ val equal : NCSqArrowStyle.t
 
 end = struct
 
-type direction = (|
+type arrow-direction = (|
   horiz : int;
   vert : int;
 |)
@@ -59,11 +64,22 @@ let dashed = NCSqArrowStyle.dashed
 let equal = NCSqArrowStyle.equal
 
 type arrow = (|
-  direction : direction;
+  direction : arrow-direction;
   style : NCSqArrowStyle.t;
   left-label-o : inline-text option;
   right-label-o : inline-text option;
 |)
+
+type stack-direction =
+| Horizontal
+| Vertical
+
+let horizontal = Horizontal
+let vertical = Vertical
+
+type stack-direction-2 =
+| Forwards
+| Backwards
 
 type cell =
 | Empty
@@ -72,6 +88,10 @@ type cell =
   label : inline-text;
 |)
 | Arrow of arrow
+| Stack of (|
+  direction : stack-direction;
+  cell-l : cell list;
+|)
 
 let is-object cell =
 match cell with
@@ -99,6 +119,11 @@ Arrow (|
   right-label-o = Option.map m2it mr-o;
 |)
 
+let stack dir cell-l = Stack (|
+  direction = dir;
+  cell-l = cell-l;
+|)
+
 let label-ctx ctx = ctx |> set-font-size (get-font-size ctx *' 0.75)
 
 module ArrowRaw : sig
@@ -109,6 +134,7 @@ val bbox : t -> Rect.t
 val draw : Point.t -> Point.t -> t -> graphics list
 
 val of-arrow : context -> arrow -> t
+val of-stack : stack-direction -> (t * stack-direction-2) list -> t
 
 end = struct
 
@@ -225,6 +251,52 @@ let draw from to = (
   draw = draw;
 |)
 
+let of-stack dir arr-l =
+let get-itv = (
+  match dir with
+  | Horizontal -> Rect.interval-h
+  | Vertical -> Rect.interval-v
+) in
+let pt = (
+  match dir with
+  | Horizontal -> Point.of-x
+  | Vertical -> Point.of-y
+) in
+let-rec aux (ax-l, y) arr-l = (
+  match arr-l with
+  | [] -> (List.reverse ax-l, y)
+  | (arr, dir2) :: arr-l1 -> (
+    let itv = get-itv arr#bbox in
+    let x1 = y -' Interval.left itv in
+    let y1 = x1 +' Interval.right itv in
+    aux (((arr, dir2), x1) :: ax-l, y1) arr-l1
+  )
+) in
+let (ax-l1, y) = aux ([], 0pt) arr-l in
+let c = y *' 0.5 in
+let ax-l = List.map (fun (arr, x) -> (arr, x -' c)) ax-l1 in
+let bbox = List.(
+  ax-l
+  |> map (fun ((arr, _), x) -> Rect.shift (pt x) arr#bbox)
+  |> fold-right Rect.union Rect.zero
+) in
+let draw from0 to0 = List.(
+  ax-l
+  |> map (fun ((arr, dir2), x) -> (
+    let (from, to) = (
+      match dir2 with
+      | Forwards -> (from0, to0)
+      | Backwards -> (to0, from0)
+    ) in
+    GraphicsList.shift (pt x) (arr#draw from to)
+  ))
+  |> concat
+) in
+(|
+  bbox = bbox;
+  draw = draw;
+|)
+
 end
 
 let make-cell-raw ctx cell =
@@ -247,14 +319,57 @@ match cell with
 | Arrow arr -> (
   let arr1 = ArrowRaw.of-arrow ctx arr in
   let is-source c = is-object (NCSqCellRaw.data c) in
-  let is-target = is-source in
   NCSqCellRaw.edge (|
     data = cell;
     is-source = is-source;
-    is-target = is-target;
+    is-target = is-source;
     direction = arr#direction;
     bbox = ArrowRaw.bbox arr1;
     draw = fun from to -> ArrowRaw.draw from to arr1;
+  |)
+)
+| Stack stk -> (
+  let-rec aux acc cell-l = (
+    match cell-l with
+    | [] -> (
+      match stk#direction with
+      | Horizontal -> List.reverse acc
+      | Vertical -> acc
+    )
+    | cell :: cell-l1 -> (
+      let fallback _ = aux acc cell-l1 in
+      match cell with
+      | Arrow arr -> (
+        let dir = arr#direction in
+        let (b, b2) = (
+          match stk#direction with
+          | Horizontal -> (dir#horiz == 0, dir#vert <= 0)
+          | Vertical -> (dir#vert == 0, dir#horiz >= 0)
+        ) in
+        let dir2 = if b2 then Forwards else Backwards in
+        if b then (
+          let arr1 = ArrowRaw.of-arrow ctx arr in
+          aux ((arr1, dir2) :: acc) cell-l1
+        ) else fallback ()
+      )
+      | _ -> fallback ()
+    )
+  ) in
+  let arr-l = aux [] stk#cell-l in
+  let arr = ArrowRaw.of-stack stk#direction arr-l in
+  let is-source c = is-object (NCSqCellRaw.data c) in
+  let dir = (
+    match stk#direction with
+    | Horizontal -> down
+    | Vertical -> right
+  ) in
+  NCSqCellRaw.edge (|
+    data = cell;
+    is-source = is-source;
+    is-target = is-source;
+    direction = dir;
+    bbox = ArrowRaw.bbox arr;
+    draw = fun from to -> ArrowRaw.draw from to arr;
   |)
 )
 
