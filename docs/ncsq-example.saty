@@ -561,6 +561,7 @@ crossing ?:padding ?:style direction
         \code(`direction`); can be \code(`horizontal`); or \code(`vertical`);.
         Like \code(`point`);, it draws nothing and can be the source and the target of an arrow.
         The difference is that \code(`crossing direction`); has paddings in the direction orthogonal to \code(`direction`);.
+        The intended usage is as follows.
         \d-code(```
         \NCSq.cd(open NCSq in open NCSqArrowStyle in [
           [empty; empty; object ${A}];
@@ -579,6 +580,12 @@ crossing ?:padding ?:style direction
           [empty; empty; arrow down];
           [empty; empty; object ${C}];
         ]);%
+        The central cell \code(`crossing horizontal`); here is the target of the horizontal line with label ${g}, the source of the right arrow, the target of the vertical line with label ${f}, and the source of the down arrow.
+        Because the central cell does not have horizontal paddings, the horizontal line and the right arrow look like a single horizontal arrow.
+        On the other hand, since the central cell does have vertical paddings, the vertical line and the down arrow are separated.
+        Therefore, the whole diagram looks like the right arrow is crossing over the down arrow.
+      }
+      +p{
         The optional argument \code(`style`); tells the cell the width of the crossing arrow.
         \d-code(```
         \NCSq.cd(
@@ -612,6 +619,8 @@ crossing ?:padding ?:style direction
             [empty; empty; object ${C}];
           ]
         );%
+      }
+      +p{
         A cube is a good example of a diagram with crossed arrows.
         \d-code(```
         \NCSq.cd(open NCSq in open NCSqArrowStyle in [
@@ -653,6 +662,83 @@ crossing ?:padding ?:style direction
           [empty; empty; object ${C}; empty;
            arrow ?*?:${k} right; empty; object ${D}];
         ]);%
+      }
+      +p{
+        Now it's time to state the snake lemma.
+        \d-code(```
+        \NCSq.cd(
+          open NCSq in open NCSqArrowStyle in
+          let-math \ker = math-char MathOp `ker` in
+          let-math \coker = math-char MathOp `coker` in
+          [
+            [empty; empty; empty; object ${\ker a};
+             arrow right; object ${\ker b}; arrow right;
+             object ${\ker c}; arrow ?*?*?:line right;
+             empty; point];
+            [empty; empty; empty; arrow down;
+             empty; arrow down; empty; arrow down;
+             empty; empty; arrow ?:${\partial}?*?:line down];
+            [empty; empty; empty; object ${A'};
+             arrow ?:${f'} right; object ${B'};
+             arrow ?:${g'} right; object ${C'};
+             arrow right; object ${0}];
+            [empty; empty; empty; arrow ?*?:${a}?:line down;
+             empty; arrow ?:${b}?*?:line down; empty;
+             arrow ?:${c}?*?:line down];
+            [point; arrow ?*?*?:line left; empty;
+             crossing horizontal; arrow ?*?*?:line left;
+             crossing horizontal; arrow ?*?*?:line left;
+             crossing horizontal; arrow ?*?*?:line left;
+             empty; point];
+            [empty; empty; empty; arrow down;
+             empty; arrow down; empty; arrow down];
+            [arrow ?*?*?:line down; object ${0}; arrow right;
+             object ${A}; arrow ?*?:${f} right; object ${B};
+             arrow ?*?:${g} right; object ${C}];
+            [empty; empty; empty; arrow down; empty;
+             arrow down; empty; arrow down];
+            [point; arrow right; empty; object ${\coker a};
+             arrow right; object ${\coker b};
+             arrow right; object ${\coker c};];
+          ]
+        );
+```);%
+        \NCSq.cd(
+          open NCSq in open NCSqArrowStyle in
+          let-math \ker = math-char MathOp `ker` in
+          let-math \coker = math-char MathOp `coker` in
+          [
+            [empty; empty; empty; object ${\ker a};
+             arrow right; object ${\ker b}; arrow right;
+             object ${\ker c}; arrow ?*?*?:line right;
+             empty; point];
+            [empty; empty; empty; arrow down;
+             empty; arrow down; empty; arrow down;
+             empty; empty; arrow ?:${\partial}?*?:line down];
+            [empty; empty; empty; object ${A'};
+             arrow ?:${f'} right; object ${B'};
+             arrow ?:${g'} right; object ${C'};
+             arrow right; object ${0}];
+            [empty; empty; empty; arrow ?*?:${a}?:line down;
+             empty; arrow ?:${b}?*?:line down; empty;
+             arrow ?:${c}?*?:line down];
+            [point; arrow ?*?*?:line left; empty;
+             crossing horizontal; arrow ?*?*?:line left;
+             crossing horizontal; arrow ?*?*?:line left;
+             crossing horizontal; arrow ?*?*?:line left;
+             empty; point];
+            [empty; empty; empty; arrow down;
+             empty; arrow down; empty; arrow down];
+            [arrow ?*?*?:line down; object ${0}; arrow right;
+             object ${A}; arrow ?*?:${f} right; object ${B};
+             arrow ?*?:${g} right; object ${C}];
+            [empty; empty; empty; arrow down; empty;
+             arrow down; empty; arrow down];
+            [point; arrow right; empty; object ${\coker a};
+             arrow right; object ${\coker b};
+             arrow right; object ${\coker c};];
+          ]
+        );%
       }
     >
   >
