@@ -3,15 +3,22 @@
 @import: ../src/ncsq
 @import: ../src/easy-cd
 
-let cellss1 = open NCSq in [
-  [object ${A};
-   stack vertical [
-     arrow ?:${f_{1}} right;
-     arrow ?:${f_{2}} left;
-   ]; object ${B}];
-  [arrow ?*?:${g} down; empty;
-   arrow ?:${h} down];
-  [object ${C}; arrow ?*?:${k} right; object ${D}];
+let cellss1 = open NCSq in open NCSqArrowStyle in [
+  [object ${A}; stack vertical [
+    arrow ?:${a_{1}} right;
+    arrow ?:${a_{2}} left;
+  ]; object ${B}];
+  [arrow ?*?:${b} down; empty;
+   arrow ?:${c}?*?:line down; arrow ?:${d} (rd (1, 1))];
+  [object ${C}; arrow ?*?*?:line right;
+   crossing horizontal; arrow ?:${e} right; object ${D}];
+  [empty; empty; empty; point; empty];
+  [empty; arrow ?*?:${f} (rd (1, 2)); arrow down;
+   arrow ?:${\alpha}?*?:solid-2 down;
+   arrow ?:${g} down];
+  [empty; empty; empty; point; empty];
+  [empty; empty; object ${E};
+   arrow ?*?:${h} right; object ${F}];
 ]
 
 in
@@ -634,40 +641,54 @@ crossing ?:padding ?:style direction
       The \code(`invert-v`); function inverts a diagram vertically.
       \d-code(```
 % In preamble
-let cellss1 = open NCSq in [
-  [object ${A};
-   stack vertical [
-     arrow ?:${f_{1}} right;
-     arrow ?:${f_{2}} left;
-   ]; object ${B}];
-  [arrow ?*?:${g} down; empty;
-   arrow ?:${h} down];
-  [object ${C}; arrow ?*?:${k} right; object ${D}];
+let cellss1 = open NCSq in open NCSqArrowStyle in [
+  [object ${A}; stack vertical [
+    arrow ?:${a_{1}} right;
+    arrow ?:${a_{2}} left;
+  ]; object ${B}];
+  [arrow ?*?:${b} down; empty;
+   arrow ?:${c}?*?:line down; arrow ?:${d} (rd (1, 1))];
+  [object ${C}; arrow ?*?*?:line right;
+   crossing horizontal; arrow ?:${e} right; object ${D}];
+  [empty; empty; empty; point; empty];
+  [empty; arrow ?*?:${f} (rd (1, 2)); arrow down;
+   arrow ?:${\alpha}?*?:solid-2 down;
+   arrow ?:${g} down];
+  [empty; empty; empty; point; empty];
+  [empty; empty; object ${E};
+   arrow ?*?:${h} right; object ${F}];
 ]
-in
-```);
+```);%
       \d-code(```
-      \NCSq.cd(cellss1);
-```);
-      \NCSq.cd(cellss1);
-      \d-code(```
-\NCSq.cd(NCSq.invert-v(cellss1));
-```);
-      \NCSq.cd(NCSq.invert-v(cellss1));
+      \math-list(
+        ${| \NCSq.cd-m!(cellss1) | \NCSq.cd-m!(NCSq.invert-v cellss1) |}
+      );
+```);%
+      \math-list(
+        ${| \NCSq.cd-m!(cellss1) | \NCSq.cd-m!(NCSq.invert-v cellss1) |}
+      );%
     }
     +p{
       The \code(`transpose`); function flips a diagram over its diagonal.
       \d-code(```
-      \NCSq.cd(NCSq.transpose(cellss1));
-```);
-      \NCSq.cd(NCSq.transpose(cellss1));
+      \math-list(
+        ${| \NCSq.cd-m!(cellss1) | \NCSq.cd-m!(NCSq.transpose cellss1) |}
+      );
+```);%
+      \math-list(
+        ${| \NCSq.cd-m!(cellss1) | \NCSq.cd-m!(NCSq.transpose cellss1) |}
+      );%
     }
     +p{
       Using the functions \code(`invert-v`); and \code(`transpose`);, one can invert a diagram horizontally, but why not preconfigure a function \code(`invert-h`);.
       \d-code(```
-      \NCSq.cd(NCSq.invert-h(cellss1));
-```);
-      \NCSq.cd(NCSq.invert-h(cellss1));
+      \math-list(
+        ${| \NCSq.cd-m!(cellss1) | \NCSq.cd-m!(NCSq.invert-h cellss1) |}
+      );
+```);%
+      \math-list(
+        ${| \NCSq.cd-m!(cellss1) | \NCSq.cd-m!(NCSq.invert-h cellss1) |}
+      );%
     }
     +p{
       The \code(`EasyCD`); module also provides the \code(`transpose`); function.

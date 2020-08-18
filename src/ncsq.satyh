@@ -529,6 +529,11 @@ let transpose-direction dir =
   vert = Int.neg dir#horiz;
 |)
 
+let flip-direction dir =
+match dir with
+| Horizontal -> Vertical
+| Vertical -> Horizontal
+
 let-rec transpose-cell cell =
 match cell with
 | Arrow arr -> Arrow (|
@@ -537,17 +542,14 @@ match cell with
   right-label-o = arr#left-label-o;
   direction = transpose-direction arr#direction;
 |)
-| Stack stk -> (
-  let dir1 = (
-    match stk#direction with
-    | Horizontal -> Vertical
-    | Vertical -> Horizontal
-  ) in
-  Stack (|
-    direction = dir1;
-    cell-l = List.map transpose-cell stk#cell-l
-  |)
-)
+| Stack stk -> Stack (|
+  direction = flip-direction stk#direction;
+  cell-l = List.map transpose-cell stk#cell-l;
+|)
+| Crossing crs -> Crossing (|
+  crs with
+  direction = flip-direction crs#direction;
+|)
 | _ -> cell
 
 let transpose cell-ll = Matrix.(
