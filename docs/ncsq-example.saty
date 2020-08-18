@@ -582,6 +582,47 @@ crossing ?:padding ?:style direction
             [empty; empty; object ${C}];
           ]
         );%
+        A cube is a good example of a diagram with crossed arrows.
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object ${A'}; empty; arrow ?:${f'} right;
+           empty; object ${B'}; empty; empty];
+          [empty; arrow ?*?:${a} (rd (1, 1)); empty;
+           empty; arrow ?*?:${h'}?:line down;
+           arrow ?:${b} (rd (1, 1)); empty];
+          [arrow ?*?:${g'} down; empty; object ${A};
+           arrow ?:${f}?*?:line right; crossing horizontal;
+           arrow right; object ${B}];
+          [empty; empty; arrow ?*?:${g}?:line down;
+           empty; arrow down; empty; empty];
+          [object ${C'}; arrow ?*?*?:line right;
+           crossing vertical; arrow ?:${k'} right;
+           object ${D'}; empty; arrow ?:${h} down];
+          [empty; arrow ?*?:${c} (rd (1, 1)); arrow down;
+           empty; empty; arrow ?*?:${d} (rd (1, 1)); empty];
+          [empty; empty; object ${C}; empty;
+           arrow ?*?:${k} right; empty; object ${D}];
+        ]);%
+```);
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object ${A'}; empty; arrow ?:${f'} right;
+           empty; object ${B'}; empty; empty];
+          [empty; arrow ?*?:${a} (rd (1, 1)); empty;
+           empty; arrow ?*?:${h'}?:line down;
+           arrow ?:${b} (rd (1, 1)); empty];
+          [arrow ?*?:${g'} down; empty; object ${A};
+           arrow ?:${f}?*?:line right; crossing horizontal;
+           arrow right; object ${B}];
+          [empty; empty; arrow ?*?:${g}?:line down;
+           empty; arrow down; empty; empty];
+          [object ${C'}; arrow ?*?*?:line right;
+           crossing vertical; arrow ?:${k'} right;
+           object ${D'}; empty; arrow ?:${h} down];
+          [empty; arrow ?*?:${c} (rd (1, 1)); arrow down;
+           empty; empty; arrow ?*?:${d} (rd (1, 1)); empty];
+          [empty; empty; object ${C}; empty;
+           arrow ?*?:${k} right; empty; object ${D}];
+        ]);%
       }
     >
   >
