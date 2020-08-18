@@ -204,6 +204,29 @@ arrow ?:left-label ?:right-label direction
         empty; empty; object ${K}; arrow right; object ${L}];
         ]);
       }
+      +p{
+        Note that, although the automatic arrow stretching prevents an arrow from overlapping with its source or target, an arrow may overlap with other objects and arrows, especially when using diagonal arrows.
+        \d-code(```
+        \NCSq.cd(open NCSq in [
+          [object ${A}];
+          [arrow down];
+          [object ${B}; arrow right; object ${\text!{LARGE OBJECT}};
+           arrow (rd (3, 2))];
+          [arrow down; empty; arrow down];
+          [object ${C}; arrow right; object ${E};
+           arrow right; object ${F}; arrow right; object ${G}];
+        ]);
+```);%
+        \NCSq.cd(open NCSq in [
+          [object ${A}];
+          [arrow down];
+          [object ${B}; arrow right; object ${\text!{LARGE OBJECT}};
+           arrow (rd (3, 2))];
+          [arrow down; empty; arrow down];
+          [object ${C}; arrow right; object ${E};
+           arrow right; object ${F}; arrow right; object ${G}];
+        ]);%
+      }
     >
     +section{The \code(`ncsq/easy-cd`); package}<
       +p{
