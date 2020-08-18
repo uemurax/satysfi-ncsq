@@ -31,6 +31,7 @@ val stack : h-or-v -> cell list -> cell
 % a point is invisible but can be the source or the target of an arrow.
 val point : cell
 val crossing : float ?-> NCSqArrowStyle.t ?-> h-or-v -> cell
+val eqarrow : arrow-direction -> cell
 
 % directions
 val left : arrow-direction
@@ -142,6 +143,8 @@ Arrow (|
   left-label-o = Option.map m2it ml-o;
   right-label-o = Option.map m2it mr-o;
 |)
+
+let eqarrow dir = arrow ?*?*?:equal dir
 
 let stack dir cell-l = Stack (|
   direction = dir;
