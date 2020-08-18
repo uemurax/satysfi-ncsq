@@ -2,7 +2,7 @@
 @require: zrbase/zlog0
 @require: assert-eq/assert-eq
 @require: base/string
-@import: ../src/qp
+@import: ../src/base/qp
 
 open AssertEq
 open ZLog0

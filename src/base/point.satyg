@@ -1,5 +1,6 @@
 @require: base/length
 @require: base/float
+@import: ./real-matrix
 
 module Point : sig
 
@@ -21,6 +22,8 @@ val (+) : t -> t -> t
 val (-) : t -> t -> t
 val mid : t -> t -> t
 
+val shift-y : length -> t -> t
+
 val neg-x : t -> t
 val neg-y : t -> t
 val neg : t -> t
@@ -28,6 +31,7 @@ val neg : t -> t
 val is-zero : t -> bool
 
 val arg : t -> float option
+val abs : t -> length
 
 end = struct
 
@@ -55,6 +59,8 @@ let (+) = binop (+')
 let (-) = binop (-')
 let mid = binop (fun x y -> (x +' y) *' 0.5)
 
+let shift-y dy (x, y) = (x, y +' dy)
+
 let neg-x (x, y) = (Length.neg x, y)
 let neg-y (x, y) = (x, Length.neg y)
 let neg pt = neg-x (neg-y pt)
@@ -64,5 +70,8 @@ let is-zero (x, y) = Length.(x == 0pt && y == 0pt)
 let arg (x, y) =
 if is-zero (x, y) then None
 else Some (Float.atan2 (y /' 1pt) (x /' 1pt))
+
+let abs (x, y) =
+1pt *' RealVector.(norm (of-list [x /' 1pt; y /' 1pt]))
 
 end

@@ -746,6 +746,8 @@ val hook-r : t
 val triangle : t
 % |---->
 val mapsto : t
+% -----
+val line : t
 
 val harpoon-l : t
 val harpoon-r : t
@@ -824,5 +826,6 @@ let triangle = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.trian
 let mapsto = of-bth NCSqArrowBody.solid NCSqArrowTail.vdash NCSqArrowHead.vee
 let harpoon-l = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.harpoon-l
 let harpoon-r = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.harpoon-r
+let line = of-bth NCSqArrowBody.solid NCSqArrowTail.none NCSqArrowHead.none
 
 end

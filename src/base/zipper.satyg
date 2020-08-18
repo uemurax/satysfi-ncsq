@@ -1,0 +1,196 @@
+@require: base/list-ext
+@require: base/fn
+@require: base/option-ext
+@import: ./matrix
+
+module ListZipper : sig
+
+type 'a t
+
+val cursor : 'a t -> 'a
+val length : 'a t -> int
+val replace : 'a -> 'a t -> 'a t
+
+val go-forward : 'a t -> ('a t) option
+val go-begin : 'a t -> 'a t
+val move : int -> 'a t -> ('a t) option
+
+val reverse : 'a t -> 'a t
+val map : ('a -> 'b) -> 'a t -> 'b t
+val map-o : ('a -> 'b option) -> 'a t -> ('b t) option
+val distribute-o : ('a option) t -> ('a t) option
+
+val of-list : 'a list -> ('a t) option
+val to-list : 'a t -> 'a list
+val singleton : 'a -> 'a t
+
+end = struct
+
+type 'a t = 'a list * 'a * 'a list
+
+let cursor (_, x, _) = x
+let length (l-l, x, r-l) = List.(length l-l + 1 + length r-l)
+let reverse (l-l, x, r-l) = (r-l, x, l-l)
+let replace x (l-l, _, r-l) = (l-l, x, r-l)
+
+let to-list (l-l, x, r-l) = List.(
+  r-l
+  |> cons x
+  |> reverse-append l-l
+)
+
+let go-forward (l-l, x, r-l) =
+match r-l with
+| [] -> Option.none
+| y :: r-l1 -> Option.some (x :: l-l, y, r-l1)
+
+let-rec go-end z = Option.(
+  go-forward z
+  |> map-or z go-end
+)
+
+let go-begin z = reverse (go-end (reverse z))
+
+let-rec move-pos n z =
+if n <= 0 then Option.some z
+else (
+  go-forward z
+  |> Option.and-then (move-pos (n - 1))
+)
+
+let move n z =
+if n < 0 then (
+  reverse z
+  |> move-pos (Int.neg n)
+  |> Option.map reverse
+) else move-pos n z
+
+let map f (l-l, x, r-l) = List.((map f l-l, f x, map f r-l))
+
+let distribute-l-o = List.fold-right (fun x-o x-l-o -> (
+  x-o
+  |> Option.and-then (fun x -> (
+    x-l-o
+    |> Option.map (List.cons x)
+  ))
+)) (Option.some [])
+
+let distribute-o (l-o-l, x-o, r-o-l) = Option.(
+  x-o
+  |> and-then (fun x -> (
+    distribute-l-o l-o-l
+    |> and-then (fun l-l -> (
+      distribute-l-o r-o-l
+      |> map (fun r-l -> (l-l, x, r-l))
+    ))
+  ))
+)
+
+let map-o f = Fn.compose distribute-o (map f)
+
+let of-list x-l =
+match x-l with
+| [] -> Option.none
+| x :: x-l1 -> Option.some ([], x, x-l1)
+
+let singleton x = ([], x, [])
+
+end
+
+module MatrixZipper : sig
+
+type 'a t
+
+val cursor : 'a t -> 'a
+val cursor-row : 'a t -> 'a ListZipper.t
+val cursor-column : 'a t -> 'a ListZipper.t
+val size : 'a t -> (|
+  num-rows : int;
+  num-columns : int;
+|)
+
+val go-forward : 'a t -> ('a t) option
+val move : (|horiz : int; vert : int;|) -> 'a t -> ('a t) option
+
+val search : ('a -> bool) -> (|horiz : int; vert : int;|) -> 'a t -> ('a t * (|horiz : int; vert : int;|)) option
+val fold : ('b -> 'a t -> 'b) -> 'b -> 'a t -> 'b
+
+val of-matrix : 'a Matrix.t -> ('a t) option
+val singleton : 'a -> 'a t
+
+end = struct
+
+type 'a lzipper = 'a ListZipper.t
+type 'a t = ('a lzipper) lzipper % zipper of row zippers
+
+let op-o-col f = ListZipper.(map-o f)
+let op-col f = ListZipper.(map f)
+let op-o-row f = f
+let op-row f = f
+
+let cursor-row z = op-row ListZipper.cursor z
+let cursor-column z = op-col ListZipper.cursor z
+let cursor mz = ListZipper.cursor (cursor-row mz)
+
+let num-rows = ListZipper.length
+let num-columns = Fn.compose ListZipper.length cursor-row
+
+let size mz = (|
+  num-columns = num-columns mz;
+  num-rows = num-rows mz;
+|)
+
+let go-forward-col = op-o-col ListZipper.go-forward
+let go-begin-col = op-col ListZipper.go-begin
+let go-forward-row = op-o-row ListZipper.go-forward
+
+let go-forward mz = Option.(
+  go-forward-col mz
+  |> or-else (fun _ -> (
+    go-begin-col mz
+    |> go-forward-row
+  ))
+)
+
+let move-horiz n mz = op-o-col (ListZipper.move n) mz
+let move-vert n mz = op-o-row (ListZipper.move n) mz
+
+let move dir mz = (
+  mz
+  |> move-horiz dir#horiz
+  |> Option.and-then (move-vert dir#vert)
+)
+
+let search f dir mz =
+let-rec aux d mz = (
+  let x = cursor mz in
+  if f x then Option.some (mz, d)
+  else (
+    mz
+    |> move dir
+    |> Option.and-then (aux (|
+      horiz = d#horiz + dir#horiz;
+      vert = d#vert + dir#vert;
+    |))
+  )
+) in
+aux (|
+  horiz = 0;
+  vert = 0;
+|) mz
+
+let-rec fold f x mz =
+let y = f x mz in
+go-forward mz
+|> Option.map-or y (fold f y)
+
+let of-list-list x-ll = ListZipper.(
+  of-list x-ll
+  |> Option.and-then (map-o of-list)
+)
+
+let of-matrix mx = of-list-list (Matrix.to-list-of-rows mx)
+
+let singleton x = ListZipper.(singleton (singleton x))
+
+end
