@@ -522,6 +522,68 @@ NCSqArrowStyle.of-bth body tail head
         ]);%
       }
     >
+    +section{Crossed arrows}<
+      +p{
+        The \code(`NCSq`); module provides a function \code(`crossing`);.
+        \d-code(```
+crossing ?:padding ?:style direction
+```);%
+        \code(`direction`); can be \code(`horizontal`); or \code(`vertical`);.
+        Like \code(`point`);, it draws nothing and can be the source and the target of an arrow.
+        The difference is that \code(`crossing direction`); has paddings in the direction orthogonal to \code(`direction`);.
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [empty; empty; object ${A}];
+          [empty; empty; arrow ?:${f}?*?:line down];
+          [object ${B}; arrow ?:${g}?*?:line right;
+           crossing horizontal; arrow right; object ${D}];
+          [empty; empty; arrow down];
+          [empty; empty; object ${C}];
+        ]);
+```);
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [empty; empty; object ${A}];
+          [empty; empty; arrow ?:${f}?*?:line down];
+          [object ${B}; arrow ?:${g}?*?:line right;
+           crossing horizontal; arrow right; object ${D}];
+          [empty; empty; arrow down];
+          [empty; empty; object ${C}];
+        ]);%
+        The optional argument \code(`style`); tells the cell the width of the crossing arrow.
+        \d-code(```
+        \NCSq.cd(
+          open NCSq in open NCSqArrowStyle in
+          let bs = NCSqArrowBody.multi-solid 9 in
+          let sty1 = of-bth bs NCSqArrowTail.none NCSqArrowHead.none in
+          let sty2 = of-bth bs NCSqArrowTail.none NCSqArrowHead.vee in
+          [
+            [empty; empty; object ${A}];
+            [empty; empty; arrow ?:${f}?*?:line down];
+            [object ${B}; arrow ?:${g}?*?:sty1 right;
+             crossing ?*?:sty2 horizontal;
+             arrow ?*?*?:sty2 right; object ${D}];
+            [empty; empty; arrow down];
+            [empty; empty; object ${C}];
+          ]
+        );%
+```);
+        \NCSq.cd(
+          open NCSq in open NCSqArrowStyle in
+          let bs = NCSqArrowBody.multi-solid 9 in
+          let sty1 = of-bth bs NCSqArrowTail.none NCSqArrowHead.none in
+          let sty2 = of-bth bs NCSqArrowTail.none NCSqArrowHead.vee in
+          [
+            [empty; empty; object ${A}];
+            [empty; empty; arrow ?:${f}?*?:line down];
+            [object ${B}; arrow ?:${g}?*?:sty1 right;
+             crossing ?*?:sty2 horizontal;
+             arrow ?*?*?:sty2 right; object ${D}];
+            [empty; empty; arrow down];
+            [empty; empty; object ${C}];
+          ]
+        );%
+      }
+    >
   >
   +chapter{Utilities}<
     +p{
