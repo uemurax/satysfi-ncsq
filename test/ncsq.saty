@@ -118,6 +118,21 @@ let dg16 = NCSqFrontend.(open NCSqArrowStyle in [
   [empty; empty; object ${A}; arrow right; object ${C}];
 ])
 
+let dg17 = NCSqFrontend.(open NCSqArrowStyle in [
+  [object ${A}; empty ; arrow ?:${f} right; empty; object ${B}; empty; empty];
+  [empty; arrow ?:${g} (rd (1, 1)); empty; empty; arrow ?*?:${b}?:line down;
+   arrow ?:${h} (rd (1, 1)); empty];
+  [arrow ?*?:${a} down; empty; object ${C}; arrow ?*?:${k}?:line right;
+   crossing horizontal; arrow right ; object ${D}];
+  [empty; empty; arrow ?*?:${c}?:line down; empty; arrow down; empty; empty];
+  [object ${A'}; arrow ?*?*?:line right; crossing vertical;
+   arrow ?*?:${f'} right; object ${B'}; empty; arrow ?:${d} down];
+  [empty; arrow ?*?:${g'} (rd (1, 1)); arrow down; empty; empty;
+   arrow ?*?:${h'} (rd (1, 1)); empty];
+  [arrow down; empty; object ${C'}; empty; arrow ?*?:${k'} right;
+   empty; object ${D'}];
+])
+
 in
 
 document (|
@@ -166,6 +181,8 @@ document (|
     \NCSqFrontend.cd(dg15);%
     Pullback diagram.
     \NCSqFrontend.cd(dg16);%
+    Cube.
+    \NCSqFrontend.cd(dg17);%
   }
 >
 

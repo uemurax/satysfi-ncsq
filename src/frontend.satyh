@@ -15,7 +15,7 @@ module NCSqFrontend : sig
 
 type cell
 type arrow-direction
-type stack-direction
+type h-or-v
 
 % commands
 val cd : context -> (cell list) list -> inline-boxes
@@ -27,9 +27,10 @@ val \cd-m : [(cell list) list] math-cmd
 val empty : cell
 val object : float * float * float * float ?-> math -> cell
 val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
-val stack : stack-direction -> cell list -> cell
+val stack : h-or-v -> cell list -> cell
 % a point is invisible but can be the source or the target of an arrow.
 val point : cell
+val crossing : float ?-> NCSqArrowStyle.t ?-> h-or-v -> cell
 
 % directions
 val left : arrow-direction
@@ -41,8 +42,8 @@ val ru : int * int -> arrow-direction
 val ld : int * int -> arrow-direction
 val lu : int * int -> arrow-direction
 
-val horizontal : stack-direction
-val vertical : stack-direction
+val horizontal : h-or-v
+val vertical : h-or-v
 
 % arrow styles
 val solid : NCSqArrowStyle.t
@@ -86,7 +87,7 @@ type arrow = (|
   right-label-o : inline-text option;
 |)
 
-type stack-direction =
+type h-or-v =
 | Horizontal
 | Vertical
 
@@ -103,14 +104,20 @@ type cell =
 | Point
 | Arrow of arrow
 | Stack of (|
-  direction : stack-direction;
+  direction : h-or-v;
   cell-l : cell list;
+|)
+| Crossing of (|
+  direction : h-or-v;
+  padding : float;
+  style : NCSqArrowStyle.t;
 |)
 
 let is-source cell =
 match NCSqCellRaw.data cell with
 | Object _ -> true
 | Point -> true
+| Crossing _ -> true
 | _ -> false
 
 let shift-y = 0.33
@@ -139,6 +146,15 @@ Arrow (|
 let stack dir cell-l = Stack (|
   direction = dir;
   cell-l = cell-l;
+|)
+
+let crossing ?:padding-o ?:style-o dir =
+let padding = Option.from 0.25 padding-o in
+let style = Option.from NCSqArrowStyle.solid style-o in
+Crossing (|
+  direction = dir;
+  padding = padding;
+  style = style;
 |)
 
 let label-ctx ctx = ctx |> set-font-size (get-font-size ctx *' 0.75)
@@ -191,7 +207,7 @@ val bbox : t -> Rect.t
 val draw : Point.t -> Point.t -> t -> graphics list
 
 val of-arrow : context -> arrow -> t
-val of-stack : stack-direction -> (t * stack-direction-2) list -> t
+val of-stack : h-or-v -> (t * stack-direction-2) list -> t
 val of-object : ObjectRaw.t -> t
 
 end = struct
@@ -375,6 +391,19 @@ match cell with
   NCSqCellRaw.const cell (ObjectRaw.bbox obj1) (ObjectRaw.draw obj1)
 )
 | Point -> NCSqCellRaw.empty cell
+| Crossing crs -> (
+  let st = NCSqArrowStyle.destruct crs#style ctx in
+  let itv0 = st#body-itv in
+  let fs = get-font-size ctx in
+  let pd = fs *' crs#padding in
+  let itv = Interval.(neg (expand pd pd itv0)) in
+  let bbox = (
+    match crs#direction with
+    | Horizontal -> Rect.of-intervals (|horiz = Interval.zero; vert = itv|)
+    | Vertical -> Rect.of-intervals (|horiz = itv; vert = Interval.zero|)
+  ) in
+  NCSqCellRaw.const cell bbox []
+)
 | Arrow arr -> (
   let arr1 = ArrowRaw.of-arrow ctx arr in
   NCSqCellRaw.edge (|
