@@ -191,9 +191,11 @@ module NCSqCellRaw : sig
 
 type 'a t
 
-val draw : ('a t  * Point.t) MatrixZipper.t -> graphics list
-val constraints : ('a t) MatrixZipper.t -> NCSqConstraints.t
 val data : 'a t -> 'a
+val core : ('a t) MatrixZipper.t -> (|
+  constraints : NCSqConstraints.t;
+  draw : ('a t * Point.t) MatrixZipper.t -> graphics list;
+|)
 val natural-bbox : 'a t -> Rect.t
 
 val empty : 'a -> 'a t
@@ -219,22 +221,21 @@ type constr = NCSqConstraints.t
 type 'a t =
 | Cell of (|
   data : 'a;
-  draw : ('a t * point) mzipper -> graphics list;
-  constraints : ('a t) mzipper -> constr;
+  core : ('a t) mzipper -> (|
+    constraints : constr;
+    draw : ('a t * point) mzipper -> graphics list;
+  |);
 |)
 
 let data (Cell c) = c#data
 
-let draw cp-mz =
-match MatrixZipper.cursor cp-mz with
-| (Cell c, _) -> c#draw cp-mz
-
-let constraints c-mz =
+let core c-mz =
 match MatrixZipper.cursor c-mz with
-| Cell c -> c#constraints c-mz
+| Cell c -> c#core c-mz
 
 let natural-bbox c =
-let cstr = constraints (MatrixZipper.singleton c) in
+let k = core (MatrixZipper.singleton c) in
+let cstr = k#constraints in
 let res = NCSqConstraints.solve cstr in
 let ih = Option.unwrap (List.head res#horiz) in
 let iv = Option.unwrap (List.head res#vert) in
@@ -245,17 +246,21 @@ Rect.of-intervals (|
 
 let empty x = Cell (|
   data = x;
-  draw = fun _ -> [];
-  constraints = Fn.compose NCSqConstraints.nil MatrixZipper.size;
+  core = fun c-mz -> (|
+    constraints = NCSqConstraints.nil (MatrixZipper.size c-mz);
+    draw = fun _ -> [];
+  |);
 |)
 
 let const x rc gr-l = Cell (|
   data = x;
-  draw = fun cp-mz -> (
-    let (_, pt) = MatrixZipper.cursor cp-mz in
-    GraphicsList.shift pt gr-l
-  );
-  constraints = NCSqConstraints.of-rect rc;
+  core = fun c-mz -> (|
+    constraints = NCSqConstraints.of-rect rc c-mz;
+    draw = fun cp-mz -> (
+      let (_, pt) = MatrixZipper.cursor cp-mz in
+      GraphicsList.shift pt gr-l
+    );
+  |);
 |)
 
 let edge rec =
@@ -266,62 +271,62 @@ let ndir = (|
 |) in
 Cell (|
   data = rec#data;
-  draw = fun cp-mz -> (
-    let is-source (c, _) = rec#is-source c in
-    let is-target (c, _) = rec#is-target c in
-    let fallback _ = [] in
-    MatrixZipper.search is-target dir cp-mz
-    |> Option.map-or-else fallback (fun (tgt-mz, _) -> (
-      MatrixZipper.search is-source ndir cp-mz
-      |> Option.map-or-else fallback (fun (src-mz, _) -> (
-        let (src, sp) = MatrixZipper.cursor src-mz in
-        let (tgt, tp) = MatrixZipper.cursor tgt-mz in
-        Point.(arg (tp - sp))
-        |> Option.map-or-else fallback (fun a -> (
-          let from = Point.(sp + Rect.ray-intersection a (natural-bbox src)) in
-          let to = Point.(tp + Rect.ray-intersection (a +. Float.pi) (natural-bbox tgt)) in
-          rec#draw from to
-        ))
-      ))
-    ))
-  );
-  constraints = fun c-mz -> (
+  core = fun c-mz -> (
     let is-source = rec#is-source in
     let is-target = rec#is-target in
-    let fallback _ = NCSqConstraints.nil (MatrixZipper.size c-mz) in
+    let fallback _ = (|
+      constraints = NCSqConstraints.nil (MatrixZipper.size c-mz);
+      draw = fun _ -> []
+    |) in
     MatrixZipper.search is-target dir c-mz
     |> Option.map-or-else fallback (fun (tgt-mz, dirt) -> (
       MatrixZipper.search is-source ndir c-mz
       |> Option.map-or-else fallback (fun (src-mz, dirs) -> (
         let rcs = natural-bbox (MatrixZipper.cursor src-mz) in
         let rct = natural-bbox (MatrixZipper.cursor tgt-mz) in
-        let ch = (
-          if dirs#horiz < dirt#horiz then (
-            NCSqConstraints.of-region-h dirs#horiz dirt#horiz
-            Rect.(width rec#bbox +' (right rcs -' left rct))
-            c-mz
-          ) else if dirs#horiz == dirt#horiz then (
-            NCSqConstraints.of-interval-h Rect.(interval-h rec#bbox) c-mz
-          ) else (
-            NCSqConstraints.of-region-h dirt#horiz dirs#horiz
-            Rect.(width rec#bbox +' (right rct -' left rcs))
-            c-mz
-          )
-        ) in
-        let cv = (
-          if dirs#vert < dirt#vert then (
-            NCSqConstraints.of-region-v dirs#vert dirt#vert
-            Rect.(height rec#bbox +' (top rcs -' bottom rct))
-            c-mz
-          ) else if dirs#vert == dirt#vert then (
-            NCSqConstraints.of-interval-v Rect.(interval-v rec#bbox) c-mz
-          ) else (
-            NCSqConstraints.of-region-v dirt#vert dirs#vert
-            Rect.(height rec#bbox +' (top rct -' bottom rcs))
-            c-mz
-          )
-        ) in
-        NCSqConstraints.union ch cv
+        (|
+          constraints = (
+            let ch = (
+              if dirs#horiz < dirt#horiz then (
+                NCSqConstraints.of-region-h dirs#horiz dirt#horiz
+                Rect.(width rec#bbox +' (right rcs -' left rct))
+                c-mz
+              ) else if dirs#horiz == dirt#horiz then (
+                NCSqConstraints.of-interval-h Rect.(interval-h rec#bbox) c-mz
+              ) else (
+                NCSqConstraints.of-region-h dirt#horiz dirs#horiz
+                Rect.(width rec#bbox +' (right rct -' left rcs))
+                c-mz
+              )
+            ) in
+            let cv = (
+              if dirs#vert < dirt#vert then (
+                NCSqConstraints.of-region-v dirs#vert dirt#vert
+                Rect.(height rec#bbox +' (top rcs -' bottom rct))
+                c-mz
+              ) else if dirs#vert == dirt#vert then (
+                NCSqConstraints.of-interval-v Rect.(interval-v rec#bbox) c-mz
+              ) else (
+                NCSqConstraints.of-region-v dirt#vert dirs#vert
+                Rect.(height rec#bbox +' (top rct -' bottom rcs))
+                c-mz
+              )
+            ) in
+            NCSqConstraints.union ch cv
+          );
+          draw = fun cp-mz -> (
+            let src-mz = Option.unwrap (MatrixZipper.move dirs cp-mz) in
+            let tgt-mz = Option.unwrap (MatrixZipper.move dirt cp-mz) in
+            let (src, sp) = MatrixZipper.cursor src-mz in
+            let (tgt, tp) = MatrixZipper.cursor tgt-mz in
+            Point.(arg (tp - sp))
+            |> Option.map-or [] (fun a -> (
+              let from = Point.(sp + Rect.ray-intersection a rcs) in
+              let to = Point.(tp + Rect.ray-intersection (a +. Float.pi) rct) in
+              rec#draw from to
+            ))
+          );
+        |)
       ))
     ))
   );
@@ -335,15 +340,40 @@ val draw-cellss-auto : ('a NCSqCellRaw.t) Matrix.t -> graphics list
 
 end = struct
 
-let cellss-constraints c-mz =
-MatrixZipper.fold (fun cstr c-mz -> (
-  NCSqConstraints.union cstr (NCSqCellRaw.constraints c-mz)
-)) (NCSqConstraints.nil (MatrixZipper.size c-mz)) c-mz
+let cellss-core c-mz =
+let k1 = (
+  MatrixZipper.fold (fun acc c-mz -> (
+    let k = NCSqCellRaw.core c-mz in
+    let cstr1 = NCSqConstraints.union acc#constraints k#constraints in
+    let draw-l1 = k#draw :: acc#draw-l in
+    (|
+      constraints = cstr1;
+      draw-l = draw-l1;
+    |)
+  )) (|
+    constraints = NCSqConstraints.nil (MatrixZipper.size c-mz);
+    draw-l = [];
+  |) c-mz
+) in
+(|
+  k1 with
+  draw-l = List.reverse k1#draw-l;
+|)
 
-let cellss-draw =
-MatrixZipper.fold (fun gr-l c-mz -> (
-  List.append gr-l (NCSqCellRaw.draw c-mz)
-)) []
+let cellss-draw draw-l cp-mz =
+let a = (
+  MatrixZipper.fold (fun acc cp-mz -> (
+    let (draw, draw-l1) = Option.unwrap (List.uncons acc#draw-l) in
+    (|
+      gr-l = List.append acc#gr-l (draw cp-mz);
+      draw-l = draw-l1;
+    |)
+  )) (|
+    draw-l = draw-l;
+    gr-l = [];
+  |) cp-mz
+) in
+a#gr-l
 
 let make-grid itv-l =
 let (x-l, _) = (
@@ -358,14 +388,15 @@ let draw-cellss-auto c-mx =
 let fallback = [] in
 MatrixZipper.of-matrix c-mx
 |> Option.map-or fallback (fun c-mz -> (
-  let cstr = cellss-constraints c-mz in
+  let k = cellss-core c-mz in
+  let cstr = k#constraints in
   let a = NCSqConstraints.solve cstr in
   let hgrid = make-grid a#horiz in
   let vgrid = make-grid a#vert in
   let grid = Matrix.(map Point.of-point (outer-product hgrid vgrid)) in
   let cp-mx = Matrix.zip c-mx grid in
-  MatrixZipper.of-matrix cp-mx
-  |> Option.map-or fallback cellss-draw
+  let cp-mz = Option.unwrap (MatrixZipper.of-matrix cp-mx) in
+  cellss-draw k#draw-l cp-mz
 ))
 
 end
