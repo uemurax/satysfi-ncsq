@@ -1,5 +1,5 @@
-@import: ncsq-util
-@import: ncsq
+@import: ./base/matrix
+@import: ./ncsq
 
 module EasyCD : sig
 
@@ -70,6 +70,10 @@ let-block +cd m-ll = '<+NCSq.cd(convert m-ll);>
 let-inline \cd m-ll = {\NCSq.cd(convert m-ll);}
 let-math \cd-m m-ll = ${\NCSq.cd-m!(convert m-ll)}
 
-let transpose = NCSqUtil.transpose ${}
+let transpose m-ll = Matrix.(
+  of-list-of-rows ${} m-ll
+  |> transpose
+  |> to-list-of-rows
+)
 
 end

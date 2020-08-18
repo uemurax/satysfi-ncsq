@@ -1,50 +1,49 @@
 @require: stdjareport
-@import: ../src/backend
-@import: ../src/frontend
+@import: ../src/ncsq
 
-let dg1 = NCSqFrontend.([
+let dg1 = NCSq.([
   [empty; empty; empty];
   [empty; empty; empty];
   [empty];
 ])
 
-let dg2 = NCSqFrontend.([
+let dg2 = NCSq.([
   [object ${A}; empty; object ${B}; empty; object ${C}];
   [empty; empty; empty];
   [object ${D}; empty; empty; object ${E}];
 ])
 
-let dg3 = NCSqFrontend.([
+let dg3 = NCSq.([
   [object ${A}; arrow right; object ${B}];
   [arrow down; empty; arrow down];
   [object ${C}; arrow right; object ${D}];
 ])
 
-let dg4 = NCSqFrontend.([
+let dg4 = NCSq.([
   [object ${A}; arrow right; object ${B}];
   [empty; arrow (rd (1, 1)); arrow down];
   [empty; empty; object ${C}];
 ])
 
-let dg5 = NCSqFrontend.([
+let dg5 = NCSq.([
   [object ${A}; arrow right; object ${B}; arrow right; object ${C}];
   [arrow down; empty; arrow (ru (2, 1)); empty; arrow down];
   [object ${D}; arrow right; empty; empty; object ${E}];
 ])
 
-let dg6 = NCSqFrontend.(open NCSqArrowStyle in [
+let dg6 = NCSq.(open NCSqArrowStyle in [
   [object ${A}; arrow right; object ${B}];
   [arrow ?*?*?:tail down; arrow ?*?*?:dashed (ru (1, 1)); arrow ?*?*?:two-heads down];
   [object ${C}; arrow right; object ${D}];
 ])
 
-let dg7 = NCSqFrontend.([
+let dg7 = NCSq.([
   [object ${A}; arrow ?:${f} right; object ${B}];
   [arrow ?*?:${g} down; empty; arrow ?:${h} down];
   [object ${C}; arrow ?*?:${k} right; object ${D}];
 ])
 
-let dg8 = NCSqFrontend.([
+let dg8 = NCSq.([
   [object ${A}; arrow right; object ${B}; arrow ?:${\text!{looooooooooooooooooooooooooooooooooong label}} right; empty; empty; object ${C}];
   [arrow ?*?:${\frac{\frac{\frac{a}{b}}{\frac{c}{d}}}{\frac{\frac{e}{f}}{\frac{g}{h}}}} down; empty; arrow down; empty; empty; empty; arrow down];
   [empty; empty; object ${D}; arrow right; object ${\text!{HUGE OBJECT}}; arrow right; object ${F}];
@@ -54,20 +53,20 @@ let dg8 = NCSqFrontend.([
   [object ${J}; arrow ?*?:${\text!{another looooooooooooooooooooooooooooooooong label}} right; empty; empty; object ${K}; arrow right; object ${L}];
 ])
 
-let dg9 = NCSqFrontend.(open NCSqArrowStyle in [
+let dg9 = NCSq.(open NCSqArrowStyle in [
   [object ${A}; arrow ?:${f} right; object ${X}];
   [arrow ?:${\sim}?:${i}?:tail down ; arrow ?:${\text!{filler}}?*?:dashed (ru (1, 1)); arrow ?:${p}?*?:two-heads down];
   [object ${B}; arrow ?*?:${g} right; object ${Y}];
 ])
 
-let dg10 = NCSqFrontend.([
+let dg10 = NCSq.([
   [object ${A}; stack vertical [
     arrow ?:${f} right;
     arrow ?*?:${g} right;
   ]; object ${B}];
 ])
 
-let dg11 = NCSqFrontend.([
+let dg11 = NCSq.([
   [object ${A}];
   [stack horizontal [
     arrow ?:${f} up;
@@ -77,7 +76,7 @@ let dg11 = NCSqFrontend.([
   [object ${B}];
 ])
 
-let dg12 = NCSqFrontend.([
+let dg12 = NCSq.([
   [object ${A}; stack vertical [
     arrow ?:${f_{1}} right;
     arrow ?:${f_{2}} left;
@@ -86,7 +85,7 @@ let dg12 = NCSqFrontend.([
   [object ${C}; arrow ?*?:${k} right; object ${D}];
 ])
 
-let dg13 = NCSqFrontend.([
+let dg13 = NCSq.([
   [object ${A}; arrow right; object ${B}];
   [arrow down; empty; arrow down];
   [object ${C}; arrow right; object ${D}];
@@ -94,7 +93,7 @@ let dg13 = NCSqFrontend.([
   [object ${E}; arrow right; object ${F}];
 ])
 
-let dg14 = NCSqFrontend.([
+let dg14 = NCSq.([
   [object ${A}; arrow right; object ${B}];
   [arrow down; empty; arrow down];
   [object ${C'}; arrow right; object ${D'}];
@@ -102,7 +101,7 @@ let dg14 = NCSqFrontend.([
   [object ${E}; arrow right; object ${F}];
 ])
 
-let dg15 = NCSqFrontend.(open NCSqArrowStyle in [
+let dg15 = NCSq.(open NCSqArrowStyle in [
   [object ${A}; empty; arrow ?:${f} right; empty; object ${B}];
   [empty; empty; point; empty; empty];
   [arrow ?*?:${g} down; empty; arrow ?:${\text!{loooooooooooooooooooooong label}}?*?:solid-2 down; empty; arrow ?:${h} down];
@@ -110,7 +109,7 @@ let dg15 = NCSqFrontend.(open NCSqArrowStyle in [
   [object ${C}; empty; arrow ?*?:${k} right; empty; object ${D}];
 ])
 
-let dg16 = NCSqFrontend.(open NCSqArrowStyle in [
+let dg16 = NCSq.(open NCSqArrowStyle in [
   [object ${X}; arrow ?:${g}?*?:line right; point];
   [arrow ?*?:${f}?:line down; arrow ?*?:${\paren{f, g}}?:dashed (rd (1, 1)); empty; arrow (rd (1, 1))];
   [point; empty; object ${A \times_{C} B}; arrow ?*?:${q} right; object ${B}];
@@ -118,7 +117,7 @@ let dg16 = NCSqFrontend.(open NCSqArrowStyle in [
   [empty; empty; object ${A}; arrow right; object ${C}];
 ])
 
-let dg17 = NCSqFrontend.(open NCSqArrowStyle in [
+let dg17 = NCSq.(open NCSqArrowStyle in [
   [object ${A}; empty ; arrow ?:${f} right; empty; object ${B}; empty; empty];
   [empty; arrow ?:${g} (rd (1, 1)); empty; empty; arrow ?*?:${b}?:line down;
    arrow ?:${h} (rd (1, 1)); empty];
@@ -133,7 +132,7 @@ let dg17 = NCSqFrontend.(open NCSqArrowStyle in [
    empty; object ${D'}];
 ])
 
-let dg18 = NCSqFrontend.([
+let dg18 = NCSq.([
   [object ${A}; eqarrow right; object ${A}];
   [arrow down; empty; arrow down];
   [object ${B}; arrow ?*?:${f} right; object ${C}];
@@ -147,50 +146,50 @@ document (|
 |) '<
   +p{
     A diagram of empty cells.
-    \NCSqFrontend.cd(dg1);%
+    \NCSq.cd(dg1);%
     A diagram of objects.
-    \NCSqFrontend.cd(dg2);%
+    \NCSq.cd(dg2);%
     A diagram of objects and arrows.
-    \NCSqFrontend.cd(dg3);%
+    \NCSq.cd(dg3);%
     A diagonal arrow.
-    \NCSqFrontend.cd(dg4);%
+    \NCSq.cd(dg4);%
     Another diagonal arrow.
-    \NCSqFrontend.cd(dg5);%
+    \NCSq.cd(dg5);%
     Changing arrow styles.
-    \NCSqFrontend.cd(dg6);%
+    \NCSq.cd(dg6);%
     Arrow labels.
-    \NCSqFrontend.cd(dg7);%
+    \NCSq.cd(dg7);%
     Complex example.
-    \NCSqFrontend.cd(dg8);%
+    \NCSq.cd(dg8);%
     Diagonal arrows with labels.
-    \NCSqFrontend.cd(dg9);%
+    \NCSq.cd(dg9);%
     Stacks.
-    \NCSqFrontend.cd(dg10);%
-    \NCSqFrontend.cd(dg11);%
+    \NCSq.cd(dg10);%
+    \NCSq.cd(dg11);%
     Diagram transformation.
-    \NCSqFrontend.cd(dg12);%
+    \NCSq.cd(dg12);%
     Invert vertically.
-    \NCSqFrontend.cd(NCSqFrontend.invert-v dg12);%
+    \NCSq.cd(NCSq.invert-v dg12);%
     Invert horizontally.
-    \NCSqFrontend.cd(NCSqFrontend.invert-h dg12);%
+    \NCSq.cd(NCSq.invert-h dg12);%
     Transpose.
-    \NCSqFrontend.cd(NCSqFrontend.transpose dg12);%
+    \NCSq.cd(NCSq.transpose dg12);%
     Math command.
     \eqn(${
       \paren{
-        \NCSqFrontend.cd-m!(dg13)
+        \NCSq.cd-m!(dg13)
       } = \paren{
-        \NCSqFrontend.cd-m!(dg14)
+        \NCSq.cd-m!(dg14)
       }
     });%
     2-arrows.
-    \NCSqFrontend.cd(dg15);%
+    \NCSq.cd(dg15);%
     Pullback diagram.
-    \NCSqFrontend.cd(dg16);%
+    \NCSq.cd(dg16);%
     Cube.
-    \NCSqFrontend.cd(dg17);%
+    \NCSq.cd(dg17);%
     Equality arrow.
-    \NCSqFrontend.cd(dg18);%
+    \NCSq.cd(dg18);%
   }
 >
 
