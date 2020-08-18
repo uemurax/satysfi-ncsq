@@ -24,67 +24,55 @@ document (|
     +p{
       To draw a diagram, pass the \code(`\NCSq.cd`); command a rectangular array of cells.
       \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}; arrow right; object ${B};
-       arrow right; object ${C}];
-      [arrow down; empty; arrow down;
-       arrow-2 down; arrow down];
-      [object ${D}; arrow right; object ${E};
-       arrow right; object ${F}]
-    ]);
+      \NCSq.cd(open NCSq in [
+        [object ${A}; arrow right; object ${B}];
+        [arrow down; empty; arrow down];
+        [object ${C}; arrow right; object ${D}];
+      ]);
 ```);
       \NCSq.cd(open NCSq in [
-      [object ${A}; arrow right; object ${B};
-      arrow right; object ${C}];
-      [arrow down; empty; arrow down;
-      empty; arrow down];
-      [object ${D}; arrow right; object ${E};
-      arrow right; object ${F}]
+        [object ${A}; arrow right; object ${B}];
+        [arrow down; empty; arrow down];
+        [object ${C}; arrow right; object ${D}];
       ]);%
       Here, \code(`empty`);, \code(`object`);, and \code(`arrow`); are functions defined in the \code(`NCSq`); module for building cells.
       The constant \code(`empty`); is the empty cell.
       The function \code(`object math`); creates an object (0-cell) with label \code(`math`);.
       The function \code(`arrow direction`); creates an arrow (1-cell) towards \code(`direction`);.
-      Currently, \code(`direction`); can be \code(`left`);, \code(`right`);, \code(`up`);, or \code(`down`);, which are constants provided by the \code(`NCSq`); module, but diagonal arrows are not supported.
+      To draw orthogonal arrows, set \code(`direction`); to be \code(`left`);, \code(`right`);, \code(`up`);, or \code(`down`);.
       \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}; arrow left; object ${B}];
-    ]);
-```);
       \NCSq.cd(open NCSq in [
-      [object ${A}; arrow left; object ${B}];
+        [object ${A}; arrow right; object ${B}];
+        [arrow up; empty; arrow down];
+        [object ${D}; arrow left; object ${C}];
       ]);
-      \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}; arrow right; object ${B}];
-    ]);
 ```);
       \NCSq.cd(open NCSq in [
-      [object ${A}; arrow right; object ${B}];
-      ]);
+        [object ${A}; arrow right; object ${B}];
+        [arrow up; empty; arrow down];
+        [object ${D}; arrow left; object ${C}];
+      ]);%
+      To draw diagonal arrows, set \code(`direction`); to be \code(`rd (m, n)`);, \code(`ru (m, n)`);, \code(`ld (m, n)`);, or \code(`lu (m, n)`);.
+      Here, \code(`rd`);, \code(`ru`);, \code(`ld`);, and \code(`lu`); specifies rough direction of the arrow.
+      \code(`r`);, \code(`l`);, \code(`d`);, and \code(`u`); stand for “right“, “left”, “down”, and “up”, respectively.
+      \code(`(m, n)`);, where \code(`m`); and \code(`n`); are positive integers, determines the gradient of the arrow in numbers of cells.
       \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}];
-      [arrow up];
-      [object ${B}];
-    ]);
+      \NCSq.cd(open NCSq in [
+        [object ${A}; arrow right; object ${B};
+         arrow right; object ${C}; arrow right; object ${D}];
+        [arrow down; arrow (rd (1, 1)); arrow down;
+         empty; arrow (lu (2, 1)); empty; arrow down];
+        [object ${A'}; arrow right; object ${B'};
+         arrow right; object ${C'}; arrow right; object ${D'}];
+      ]);%
 ```);
       \NCSq.cd(open NCSq in [
-      [object ${A}];
-      [arrow up];
-      [object ${B}];
-      ]);
-      \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}];
-      [arrow down];
-      [object ${B}];
-    ]);
-```);
-      \NCSq.cd(open NCSq in [
-      [object ${A}];
-      [arrow down];
-      [object ${B}];
+        [object ${A}; arrow right; object ${B};
+         arrow right; object ${C}; arrow right; object ${D}];
+        [arrow down; arrow (rd (1, 1)); arrow down;
+         empty; arrow (lu (2, 1)); empty; arrow down];
+        [object ${A'}; arrow right; object ${B'};
+         arrow right; object ${C'}; arrow right; object ${D'}];
       ]);%
       The function \code(`arrow`); accepts optional arguments to make labels.
       \d-code(```
@@ -92,65 +80,57 @@ arrow ?:left-label ?:right-label direction
 ```);%
       \code(`left-label`); and \code(`right-label`); are labels on the left side and on the right side, respectively, facing the direction of an arrow.
       \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}; arrow ?:${f} right; object ${B}];
-    ]);
-```);
       \NCSq.cd(open NCSq in [
-      [object ${A}; arrow ?:${f} right; object ${B}];
+        [object ${A}; arrow ?:${f} right; object ${B};
+         arrow ?*?:${g} right; object ${C}];
+        [arrow ?*?:${h} down];
+        [object ${D}];
+        [arrow ?:${k} down];
+        [object ${E}];
       ]);
-      \d-code(```
-    \NCSq.cd(open NCSq in [
-      [object ${A}; arrow ?*?:${f} right; object ${B}];
-    ]);
 ```);
       \NCSq.cd(open NCSq in [
-      [object ${A}; arrow ?*?:${f} right; object ${B}];
+        [object ${A}; arrow ?:${f} right; object ${B};
+         arrow ?*?:${g} right; object ${C}];
+        [arrow ?*?:${h} down];
+        [object ${D}];
+        [arrow ?:${k} down];
+        [object ${E}];
       ]);%
     }
-%     +p{
-%       The \code(`NCSq`); module also provides a math command \code(`\NCSq.cd-m`); which is suitable for drawing diagrams in math formulas.
-%       \d-code(```
-%     \eqn(${
-%       \paren{
-%         \NCSq.cd-m!(open NCSq in [
-%           [object ${A}; arrow ?:${f} right; object ${B};
-%            eqarrow right; object ${B}];
-%           [eqarrow down; arrow-2 ?:${\epsilon} down;
-%            arrow ?:${g} down; arrow-2 ?:${\eta} down; eqarrow down];
-%           [object ${A}; eqarrow right; object ${A};
-%            arrow ?*?:${f} right; object ${B}];
-%         ])
-%       } =
-%       \paren{
-%         \NCSq.cd-m!(open NCSq in [
-%           [object ${A}; arrow ?:${f} right; object ${B}];
-%           [eqarrow down; empty; eqarrow down];
-%           [object ${A}; arrow ?*?:${f} right; object ${B}];
-%         ])
-%       }
-%     });
-% ```);
-%       \eqn(${
-%         \paren{
-%           \NCSq.cd-m!(open NCSq in [
-%             [object ${A}; arrow ?:${f} right; object ${B};
-%              eqarrow right; object ${B}];
-%             [eqarrow down; arrow-2 ?:${\epsilon} down;
-%              arrow ?:${g} down; arrow-2 ?:${\eta} down; eqarrow down];
-%             [object ${A}; eqarrow right; object ${A};
-%              arrow ?*?:${f} right; object ${B}];
-%           ])
-%         } =
-%         \paren{
-%           \NCSq.cd-m!(open NCSq in [
-%             [object ${A}; arrow ?:${f} right; object ${B}];
-%             [eqarrow down; empty; eqarrow down];
-%             [object ${A}; arrow ?*?:${f} right; object ${B}];
-%           ])
-%         }
-%       });
-%     }
+    +p{
+      The \code(`NCSq`); module also provides a math command \code(`\NCSq.cd-m`); which is suitable for drawing diagrams in math formulas.
+      \d-code(```
+      \eqn(${
+        \paren{
+          \NCSq.cd-m!(open NCSq in [
+            [object ${FA}; arrow ?:${Ff} right; object ${FB};
+             arrow ?:${h} right; object ${C}];
+          ])
+        }' =
+        \paren{
+          \NCSq.cd-m!(open NCSq in [
+            [object ${A}; arrow ?:${f} right; object ${B};
+             arrow ?:${h'} right; object ${GC}];
+          ])
+        }
+      });
+```);
+      \eqn(${
+        \paren{
+          \NCSq.cd-m!(open NCSq in [
+            [object ${FA}; arrow ?:${Ff} right; object ${FB};
+             arrow ?:${h} right; object ${C}];
+          ])
+        }' =
+        \paren{
+          \NCSq.cd-m!(open NCSq in [
+            [object ${A}; arrow ?:${f} right; object ${B};
+             arrow ?:${h'} right; object ${GC}];
+          ])
+        }
+      });%
+    }
     +section{Automatic arrow stretching}<
       +p{
         Arrows stretch automatically to match long labels and large objects.
@@ -467,24 +447,20 @@ NCSqArrowStyle.of-bth body tail head
         \d-code(```
         \NCSq.cd(open NCSq in open NCSqArrowStyle in [
           [object ${A}; arrow ?:${f} right; object ${X}];
-          [arrow ?:${\sim}?:${i}?:(tail) down; empty;
-           arrow ?*?*?:(equal) down];
-          [object ${B}; arrow ?:${h}?*?:(dashed) right;
-           object ${X}];
-          [arrow ?*?*?:(equal) down; empty;
-           arrow ?:${p}?*?:(two-heads) down];
-          [object ${B}; arrow ?*?:${g} right; object ${Y}];
+          [arrow ?:${\sim}?:${i}?:tail down;
+           arrow ?*?:${h}?:dashed (ru (1, 1));
+           arrow ?:${p}?*?:two-heads down];
+          [object ${Y}; arrow ?*?*?:equal right;
+           object ${Y}];
         ]);
 ```);%
         \NCSq.cd(open NCSq in open NCSqArrowStyle in [
           [object ${A}; arrow ?:${f} right; object ${X}];
-          [arrow ?:${\sim}?:${i}?:(tail) down; empty;
-           arrow ?*?*?:(equal) down];
-          [object ${B}; arrow ?:${h}?*?:(dashed) right;
-           object ${X}];
-          [arrow ?*?*?:(equal) down; empty;
-           arrow ?:${p}?*?:(two-heads) down];
-          [object ${B}; arrow ?*?:${g} right; object ${Y}];
+          [arrow ?:${\sim}?:${i}?:tail down;
+           arrow ?*?:${h}?:dashed (ru (1, 1));
+           arrow ?:${p}?*?:two-heads down];
+          [object ${Y}; arrow ?*?*?:equal right;
+           object ${Y}];
         ]);%
         \d-code(```
         \NCSq.cd(open NCSq in open NCSqArrowStyle in [
