@@ -479,6 +479,50 @@ NCSqArrowStyle.of-bth body tail head
       }
     >
   >
+  +chapter{Advanced usage}<
+    +section{Invisible sources and targets}<
+      +p{
+        The \code(`NCSq`); module provides a constant cell \code(`point`);.
+        Like the \code(`empty`); cell, it draws nothing, but it can be the source and the target of an arrow.
+        This allows us, for example, to draw arrows between arrows.
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object ${A}; arrow ?:${f} right; object ${B}];
+          [empty; point; empty];
+          [arrow ?*?:${g} down; arrow ?:${\alpha}?*?:solid-2 down;
+           arrow ?:${h} down];
+          [empty; point; empty];
+          [object ${C}; arrow ?*?:${k} right; object ${D}];
+        ]);
+```);
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [object ${A}; arrow ?:${f} right; object ${B}];
+          [empty; point; empty];
+          [arrow ?*?:${g} down; arrow ?:${\alpha}?*?:solid-2 down;
+           arrow ?:${h} down];
+          [empty; point; empty];
+          [object ${C}; arrow ?*?:${k} right; object ${D}];
+        ]);%
+        Another usage is to draw polylines.
+        \d-code(```
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [point; arrow ?:${f_{\!}}?*?:line right; point];
+          [arrow ?*?*?:line up; empty; arrow down];
+          [object ${C}; arrow ?:${f^{\ast}}left; object ${D}];
+          [arrow ?*?*?:line down; empty; arrow up];
+          [point; arrow ?*?:${f_{\ast}}?:line right; point];
+        ]);
+```);
+        \NCSq.cd(open NCSq in open NCSqArrowStyle in [
+          [point; arrow ?:${f_{\!}}?*?:line right; point];
+          [arrow ?*?*?:line up; empty; arrow down];
+          [object ${C}; arrow ?:${f^{\ast}}left; object ${D}];
+          [arrow ?*?*?:line down; empty; arrow up];
+          [point; arrow ?*?:${f_{\ast}}?:line right; point];
+        ]);%
+      }
+    >
+  >
   +chapter{Utilities}<
     +p{
       The \code(`NCSq`); module provides some utilities for building diagrams.
