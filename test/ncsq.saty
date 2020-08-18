@@ -110,6 +110,14 @@ let dg15 = NCSqFrontend.(open NCSqArrowStyle in [
   [object ${C}; empty; arrow ?*?:${k} right; empty; object ${D}];
 ])
 
+let dg16 = NCSqFrontend.(open NCSqArrowStyle in [
+  [object ${X}; arrow ?:${g}?*?:line right; point];
+  [arrow ?*?:${f}?:line down; arrow ?*?:${\paren{f, g}}?:dashed (rd (1, 1)); empty; arrow (rd (1, 1))];
+  [point; empty; object ${A \times_{C} B}; arrow ?*?:${q} right; object ${B}];
+  [empty; arrow (rd (1, 1)); arrow ?:${p} down; empty; arrow down];
+  [empty; empty; object ${A}; arrow right; object ${C}];
+])
+
 in
 
 document (|
@@ -156,6 +164,8 @@ document (|
     });%
     2-arrows.
     \NCSqFrontend.cd(dg15);%
+    Pullback diagram.
+    \NCSqFrontend.cd(dg16);%
   }
 >
 

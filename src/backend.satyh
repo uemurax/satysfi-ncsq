@@ -278,10 +278,8 @@ Cell (|
         let (tgt, tp) = MatrixZipper.cursor tgt-mz in
         Point.(arg (tp - sp))
         |> Option.map-or-else fallback (fun a -> (
-          let rcs = natural-bbox src |> Rect.shift sp in
-          let rct = natural-bbox tgt |> Rect.shift tp in
-          let from = Rect.ray-intersection a rcs in
-          let to = Rect.ray-intersection Float.(a +. pi) rct in
+          let from = Point.(sp + Rect.ray-intersection a (natural-bbox src)) in
+          let to = Point.(tp + Rect.ray-intersection (a +. Float.pi) (natural-bbox tgt)) in
           rec#draw from to
         ))
       ))

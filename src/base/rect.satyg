@@ -68,14 +68,11 @@ let width rc = Interval.width (interval-h rc)
 let height rc = Interval.width (interval-v rc)
 
 let ray-intersection a rc =
-let c = center rc in
-let nc = Point.neg c in
-let rc1 = shift nc rc in
-let ((l, b), (r, t)) = to-rect rc1 in
+let ((l, b), (r, t)) = to-rect rc in
 let cs = Float.cos a in
 let pt = (
   if Float.(abs cs < 0.0000000001) then (
-    if Float.(Float.sin a > 0.0) then (0pt, t)
+    if Float.(sin a > 0.0) then (0pt, t)
     else (0pt, b)
   ) else (
     let tn = Float.tan a in
@@ -92,6 +89,6 @@ let pt = (
     )
   )
 ) in
-Point.(c + of-point pt)
+Point.(of-point pt)
 
 end

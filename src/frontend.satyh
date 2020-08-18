@@ -1,10 +1,13 @@
 @require: base/option-ext
-@require: gr
+@require: base/list-ext
+@require: base/float
+@require: base/length
 @import: ./backend
 @import: ./base/matrix
 @import: ./base/graphics
 @import: ./base/rect
 @import: ./base/point
+@import: ./base/interval
 @import: ./base/paddings
 @import: ./arrows
 
@@ -97,15 +100,17 @@ type stack-direction-2 =
 type cell =
 | Empty
 | Object of object
+| Point
 | Arrow of arrow
 | Stack of (|
   direction : stack-direction;
   cell-l : cell list;
 |)
 
-let is-object cell =
-match cell with
+let is-source cell =
+match NCSqCellRaw.data cell with
 | Object _ -> true
+| Point -> true
 | _ -> false
 
 let shift-y = 0.33
@@ -120,10 +125,7 @@ Object (|
   label = it;
 |)
 
-let point = Object (|
-  paddings = (0.0, 0.0, 0.0, 0.0);
-  label = {};
-|)
+let point = Point
 
 let arrow ?:ml-o ?:mr-o ?:style-o dir =
 let m2it m = {${#m}} in
@@ -167,8 +169,9 @@ let pds = Paddings.relative obj#paddings fs in
 let gr = draw-text (0pt, 0pt) (read-inline ctx obj#label) in
 let rc = Rect.of-rect (get-graphics-bbox gr) in
 let c0 = Rect.center rc in
-let dy = fs *' 0.33 in
-let nc = Point.(neg (shift-y (Length.neg dy) c0)) in
+let cx = Point.x c0 in
+let dy = fs *' shift-y in
+let nc = Point.(of-y (Length.neg dy) - of-x cx) in
 (|
   bbox = Rect.(
     rc
@@ -371,9 +374,9 @@ match cell with
   let obj1 = ObjectRaw.of-object ctx obj in
   NCSqCellRaw.const cell (ObjectRaw.bbox obj1) (ObjectRaw.draw obj1)
 )
+| Point -> NCSqCellRaw.empty cell
 | Arrow arr -> (
   let arr1 = ArrowRaw.of-arrow ctx arr in
-  let is-source c = is-object (NCSqCellRaw.data c) in
   NCSqCellRaw.edge (|
     data = cell;
     is-source = is-source;
@@ -417,7 +420,6 @@ match cell with
   ) in
   let arr-l = aux [] stk#cell-l in
   let arr = ArrowRaw.of-stack stk#direction arr-l in
-  let is-source c = is-object (NCSqCellRaw.data c) in
   let dir = (
     match stk#direction with
     | Horizontal -> down
