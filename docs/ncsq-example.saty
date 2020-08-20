@@ -879,7 +879,7 @@ let cellss1 = open NCSq in open NCSqArrowStyle in [
         [empty; empty;
          arrow ?:${\frac{\frac{\frac{i}{j}}{\frac{k}{l}}}
                    {\frac{\frac{m}{n}}{\frac{o}{p}}}} down];
-        [object ${D}; arrow right; empty];
+        [object ${D}; empty; empty];
         [arrow down; empty; empty];
         [object ${E}; arrow right; object ${F}];
       ]);

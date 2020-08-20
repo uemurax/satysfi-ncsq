@@ -9,6 +9,7 @@
 @import: ./base/qp
 @import: ./base/rect
 @import: ./base/graphics
+@import: ./log
 
 module NCSqConstraints : sig
 
@@ -210,6 +211,7 @@ val edge : (|
   |);
   bbox : Rect.t;
   draw : Point.t -> Point.t -> graphics list;
+  show : (('a t) MatrixZipper.t -> string) option;
 |) -> 'a t
 
 end = struct
@@ -274,14 +276,29 @@ Cell (|
   core = fun c-mz -> (
     let is-source = rec#is-source in
     let is-target = rec#is-target in
-    let fallback _ = (|
-      constraints = NCSqConstraints.nil (MatrixZipper.size c-mz);
-      draw = fun _ -> []
-    |) in
+    let fallback = (
+      let res _ = (|
+        constraints = NCSqConstraints.nil (MatrixZipper.size c-mz);
+        draw = fun _ -> []
+      |) in
+      match rec#show with
+      | None -> fun s _ -> (
+        let _ = NCSqLog.warn s in
+        res ()
+      )
+      | Some f -> fun s _ -> (
+        let _ = NCSqLog.warn (s ^ `: `# ^ f c-mz) in
+        res ()
+      )
+    ) in
     MatrixZipper.search is-target dir c-mz
-    |> Option.map-or-else fallback (fun (tgt-mz, dirt) -> (
+    |> Option.map-or-else (
+      fallback `target not found`
+    ) (fun (tgt-mz, dirt) -> (
       MatrixZipper.search is-source ndir c-mz
-      |> Option.map-or-else fallback (fun (src-mz, dirs) -> (
+      |> Option.map-or-else (
+        fallback `source not found`
+      ) (fun (src-mz, dirs) -> (
         let rcs = natural-bbox (MatrixZipper.cursor src-mz) in
         let rct = natural-bbox (MatrixZipper.cursor tgt-mz) in
         (|
