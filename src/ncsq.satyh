@@ -463,7 +463,10 @@ match cell with
       | Vertical -> acc
     )
     | cell :: cell-l1 -> (
-      let fallback _ = aux acc cell-l1 in
+      let fallback _ = (
+        let _ = NCSqLog.warn `Invalid cell in a stack` in
+        aux acc cell-l1
+      ) in
       match cell with
       | Arrow arr -> (
         let dir = arr#direction in
