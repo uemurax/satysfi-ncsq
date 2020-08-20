@@ -1,0 +1,13 @@
+@require: zrbase/zlog0
+
+module NCSqLog : sig
+
+val warn : string -> unit
+
+end = struct
+
+let prefix = `NCSq: `#
+
+let warn s = ZLog0.warn (prefix ^ s)
+
+end

@@ -19,6 +19,7 @@ val reverse : 'a t -> 'a t
 val map : ('a -> 'b) -> 'a t -> 'b t
 val map-o : ('a -> 'b option) -> 'a t -> ('b t) option
 val distribute-o : ('a option) t -> ('a t) option
+val index : 'a t -> int
 
 val of-list : 'a list -> ('a t) option
 val to-list : 'a t -> 'a list
@@ -32,6 +33,7 @@ let cursor (_, x, _) = x
 let length (l-l, x, r-l) = List.(length l-l + 1 + length r-l)
 let reverse (l-l, x, r-l) = (r-l, x, l-l)
 let replace x (l-l, _, r-l) = (l-l, x, r-l)
+let index (l-l, _, _) = List.length l-l
 
 let to-list (l-l, x, r-l) = List.(
   r-l
@@ -108,6 +110,10 @@ val size : 'a t -> (|
   num-rows : int;
   num-columns : int;
 |)
+val index : 'a t -> (|
+  row : int;
+  column : int;
+|)
 
 val go-forward : 'a t -> ('a t) option
 val move : (|horiz : int; vert : int;|) -> 'a t -> ('a t) option
@@ -138,6 +144,14 @@ let num-columns = Fn.compose ListZipper.length cursor-row
 let size mz = (|
   num-columns = num-columns mz;
   num-rows = num-rows mz;
+|)
+
+let index-row = ListZipper.index
+let index-column = Fn.compose ListZipper.index cursor-row
+
+let index mz = (|
+  row = index-row mz;
+  column = index-column mz;
 |)
 
 let go-forward-col = op-o-col ListZipper.go-forward

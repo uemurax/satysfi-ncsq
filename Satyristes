@@ -8,6 +8,7 @@
  (opam "satysfi-ncsq.opam")
  (dependencies
   ((base ())
+   (zrbase ())
    (dist ()))))
 
 (libraryDoc

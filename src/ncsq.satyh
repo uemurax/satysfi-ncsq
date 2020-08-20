@@ -2,6 +2,8 @@
 @require: base/list-ext
 @require: base/float
 @require: base/length
+@require: base/char
+@require: base/string
 @import: ./backend
 @import: ./base/matrix
 @import: ./base/graphics
@@ -113,6 +115,21 @@ type cell =
   padding : float;
   style : NCSqArrowStyle.t;
 |)
+
+let show-dir dir = match dir with
+| Horizontal -> `horizontal`
+| Vertical -> `vertical`
+
+let show-cell cell = match cell with
+| Empty -> `Empty`
+| Object _ -> `Object`
+| Point -> `Point`
+| Arrow arr -> (
+  `Arrow of direction (`
+  ^ arabic arr#direction#horiz ^ `, `# ^ arabic arr#direction#vert ^ `)`
+)
+| Stack stk -> `Stack `# ^ show-dir stk#direction
+| Crossing crs -> `Crossing `# ^ show-dir crs#direction
 
 let is-source cell =
 match NCSqCellRaw.data cell with
@@ -386,6 +403,26 @@ let draw from to = (
 
 end
 
+let space = String.of-char (Char.space)
+
+let edge-def = (|
+  data = empty;
+  is-source = is-source;
+  is-target = is-source;
+  direction = (|
+    horiz = 1;
+    vert = 0;
+  |);
+  bbox = Rect.zero;
+  draw = fun _ _ -> [];
+  show = Some (fun c-mz -> (
+    let idx = MatrixZipper.(index c-mz) in
+    let cell = MatrixZipper.cursor c-mz in
+    let s = show-cell (NCSqCellRaw.data cell) in
+    s ^ space ^ `at (` ^ arabic idx#row ^ `,` ^ space ^ arabic idx#column ^ `)`
+  ));
+|)
+
 let make-cell-raw ctx cell =
 match cell with
 | Empty -> NCSqCellRaw.empty cell
@@ -410,9 +447,8 @@ match cell with
 | Arrow arr -> (
   let arr1 = ArrowRaw.of-arrow ctx arr in
   NCSqCellRaw.edge (|
+    edge-def with
     data = cell;
-    is-source = is-source;
-    is-target = is-source;
     direction = arr#direction;
     bbox = ArrowRaw.bbox arr1;
     draw = fun from to -> ArrowRaw.draw from to arr1;
@@ -427,7 +463,10 @@ match cell with
       | Vertical -> acc
     )
     | cell :: cell-l1 -> (
-      let fallback _ = aux acc cell-l1 in
+      let fallback _ = (
+        let _ = NCSqLog.warn `Invalid cell in a stack` in
+        aux acc cell-l1
+      ) in
       match cell with
       | Arrow arr -> (
         let dir = arr#direction in
@@ -458,9 +497,8 @@ match cell with
     | Vertical -> right
   ) in
   NCSqCellRaw.edge (|
+    edge-def with
     data = cell;
-    is-source = is-source;
-    is-target = is-source;
     direction = dir;
     bbox = ArrowRaw.bbox arr;
     draw = fun from to -> ArrowRaw.draw from to arr;
