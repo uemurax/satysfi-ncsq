@@ -353,7 +353,10 @@ end
 
 module NCSqBackend : sig
 
-val draw-cellss-auto : ('a NCSqCellRaw.t) Matrix.t -> graphics list
+val draw-cellss-auto : ('a NCSqCellRaw.t) Matrix.t -> (|
+  graphics : graphics list;
+  bbox : Rect.t
+|)
 
 end = struct
 
@@ -393,27 +396,39 @@ let a = (
 a#gr-l
 
 let make-grid itv-l =
-let (x-l, _) = (
+let (x-l, w) = (
   List.fold-left (fun (x-l, x) itv -> (
     (let x1 = x -' Interval.left itv in
      (x1 :: x-l, x1 +' Interval.right itv))
   )) ([], 0pt) itv-l
 ) in
-List.reverse x-l
+(List.reverse x-l, w)
 
 let draw-cellss-auto c-mx =
-let fallback = [] in
+let fallback _ = (|
+  graphics = [];
+  bbox = Rect.zero;
+|) in
 MatrixZipper.of-matrix c-mx
-|> Option.map-or fallback (fun c-mz -> (
+|> Option.map-or-else fallback (fun c-mz -> (
   let k = cellss-core c-mz in
   let cstr = k#constraints in
   let a = NCSqConstraints.solve cstr in
-  let hgrid = make-grid a#horiz in
-  let vgrid = make-grid a#vert in
+  let (hgrid, w) = make-grid a#horiz in
+  let (vgrid, h) = make-grid a#vert in
   let grid = Matrix.(map Point.of-point (outer-product hgrid vgrid)) in
   let cp-mx = Matrix.zip c-mx grid in
   let cp-mz = Option.unwrap (MatrixZipper.of-matrix cp-mx) in
-  cellss-draw k#draw-l cp-mz
+  let gr-l = cellss-draw k#draw-l cp-mz in
+  let rc = GraphicsList.bbox gr-l in
+  let w0 = Rect.width rc in
+  let h0 = Rect.height rc in
+  let dw = (w -' w0) *' 0.5 in
+  let dh = (h -' h0) *' 0.5 in
+  (|
+    graphics = gr-l;
+    bbox = Rect.pad Paddings.(of-paddings (dw, dw, dh, dh)) rc;
+  |)
 ))
 
 end

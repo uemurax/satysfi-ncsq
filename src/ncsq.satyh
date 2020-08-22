@@ -282,7 +282,13 @@ let mk-bbox a = (
   let lt = l1 +' tail in
   let lh = l1 +' head in
   let rc3 = Rect.(of-points (Point.(neg (of-arg lt a))) (Point.of-arg lh a)) in
-  Rect.(union rc1 (union rc2 rc3))
+  let (pdv0, pdh0) = Point.(to-point (of-arg d0 a)) in
+  let pdv = Length.abs pdv0 in
+  let pdh = Length.abs pdh0 in
+  Rect.(
+    union rc1 (union rc2 rc3)
+    |> pad Paddings.(of-paddings (pdh, pdh, pdv, pdv))
+  )
 ) in
 let pi = Float.pi in
 let pi2 = pi *. 0.5 in
@@ -509,8 +515,9 @@ let cd ctx cell-ll0 =
 let cell-ll = List.reverse cell-ll0 in
 let cell-raw-ll = List.(map (map (make-cell-raw ctx)) cell-ll) in
 let c-mx = Matrix.of-list-of-rows (make-cell-raw ctx empty) cell-raw-ll in
-let gr-l = NCSqBackend.draw-cellss-auto c-mx in
-let rc = GraphicsList.bbox gr-l in
+let rec = NCSqBackend.draw-cellss-auto c-mx in
+let gr-l = rec#graphics in
+let rc = rec#bbox in
 let ih = Rect.interval-h rc in
 let iv = Rect.interval-v rc in
 let w = Interval.width ih in
