@@ -243,7 +243,7 @@ type t = (|
 let bbox arr = arr#bbox
 let draw from to arr = arr#draw from to
 
-let locate-label a rc =
+let width-in-dir a rc =
 let w = Rect.width rc in
 let h = Rect.height rc in
 let cs = Float.cos a in
@@ -256,32 +256,36 @@ let style = NCSqArrowStyle.destruct arr#style ctx in
 let gr-o = Option.map (fun it -> draw-text (0pt, 0pt) (read-inline (label-ctx ctx) it)) in
 let grl-o = gr-o arr#left-label-o in
 let grr-o = gr-o arr#right-label-o in
-let rc = Option.map-or Rect.zero (fun gr -> Rect.of-rect (get-graphics-bbox gr)) in
-let rcl = rc grl-o in
-let rcr = rc grr-o in
 let tail = style#tail-padding in
 let head = style#head-padding in
 let body = style#body-length in
 let (l, r) = Interval.to-interval style#body-itv in
 let d0 = fs *' 0.25 in
-let dl = d0 +' Length.neg l in
-let dr = d0 +' r in
-let dir = arr#direction in
+let dl = Length.neg l in
+let dr = r in
+let mk-rc a pd d gr-o = (
+  gr-o
+  |> Option.map-or Rect.zero (fun gr -> (
+    let rc = Rect.of-rect (get-graphics-bbox gr) in
+    let l = d +' pd +' width-in-dir a rc in
+    let c = Point.of-arg l a in
+    Rect.(shift Point.(c - center rc) rc)
+  ))
+) in
 let mk-bbox a = (
   let al = a +. Float.pi *. 0.5 in
-  let ll = dl +' locate-label al rcl in
-  let ll1 = locate-label a rcl in
-  let ptl = Point.of-arg ll al in
   let ar = a -. Float.pi *. 0.5 in
-  let lr = dr +' locate-label ar rcr in
-  let lr1 = locate-label a rcr in
-  let ptr = Point.of-arg lr ar in
+  let rc1 = mk-rc al d0 dl grl-o in
+  let rc2 = mk-rc ar d0 dr grr-o in
+  let ll1 = width-in-dir a rc1 in
+  let lr1 = width-in-dir a rc2 in
   let l1 = Length.(max ll1 (max lr1 (body *' 0.5))) in
-  let rc1 = Rect.(shift Point.(ptl - center rcl) rcl) in
-  let rc2 = Rect.(shift Point.(ptr - center rcr) rcr) in
   let lt = l1 +' tail in
   let lh = l1 +' head in
-  let rc3 = Rect.(of-points (Point.(neg (of-arg lt a))) (Point.of-arg lh a)) in
+  let rc4 = Rect.(of-points (Point.(neg (of-arg lt a))) (Point.of-arg lh a)) in
+  let rc5 = Rect.(shift Point.(of-arg dl al) rc4) in
+  let rc6 = Rect.(shift Point.(of-arg dr ar) rc4) in
+  let rc3 = Rect.union rc5 rc6 in
   let (pdv0, pdh0) = Point.(to-point (of-arg d0 a)) in
   let pdv = Length.abs pdv0 in
   let pdh = Length.abs pdh0 in
@@ -293,6 +297,7 @@ let mk-bbox a = (
 let pi = Float.pi in
 let pi2 = pi *. 0.5 in
 let npi2 = Float.(neg pi2) in
+let dir = arr#direction in
 let bbox = (
   if dir#horiz < 0 then (
     let rc1 = mk-bbox pi in
@@ -326,18 +331,18 @@ let draw from to = (
   let gr-l1 = style#draw from to in
   Point.(arg (to - from))
   |> Option.map-or gr-l1 (fun a -> (
-    let grl d a gr-o = (
+    let grl d pd a gr-o = (
       gr-o
       |> Option.map-or [] (fun gr -> (
         let rc = Rect.of-rect (get-graphics-bbox gr) in
-        let l = d +' locate-label a rc in
+        let l = d +' pd +' width-in-dir a rc in
         let pt = Point.of-arg l a in
         let gr-1 = shift-graphics Point.(to-point (pt - Rect.center rc)) gr in
         [gr-1]
       ))
     ) in
-    let grl-l = grl dl (a +. Float.pi *. 0.5) grl-o in
-    let grr-l = grl dr (a -. Float.pi *. 0.5) grr-o in
+    let grl-l = grl dl d0 (a +. Float.pi *. 0.5) grl-o in
+    let grr-l = grl dr d0 (a -. Float.pi *. 0.5) grr-o in
     let gr-l2 = List.append grl-l grr-l in
     let dt = Point.of-arg tail a in
     let dh = Point.(neg (of-arg head a)) in
