@@ -1,0 +1,65 @@
+@import: ./ncsq
+@import: ./arrows
+
+module NCSqAliases : sig
+
+% cells
+
+% empty
+val e : NCSq.cell
+% object
+val o : float * float * float * float ?-> math -> NCSq.cell
+% arrow
+val a : math ?-> math ?-> NCSqArrowStyle.t ?-> NCSq.arrow-direction -> NCSq.cell
+% stack
+val s : NCSq.h-or-v -> NCSq.cell list -> NCSq.cell
+% point
+val p : NCSq.cell
+% crossing
+val x : float ?-> NCSqArrowStyle.t ?-> NCSq.h-or-v -> NCSq.cell
+
+% directions
+
+% left
+val l : NCSq.arrow-direction
+% right
+val r : NCSq.arrow-direction
+% up
+val u : NCSq.arrow-direction
+% down
+val d : NCSq.arrow-direction
+% right-down
+val rd : int * int -> NCSq.arrow-direction
+% right-up
+val ru : int * int -> NCSq.arrow-direction
+% left-down
+val ld : int * int -> NCSq.arrow-direction
+% left-up
+val lu : int * int -> NCSq.arrow-direction
+% horizontal
+val h : NCSq.h-or-v
+% vertical
+val v : NCSq.h-or-v
+
+end = struct
+
+open NCSq
+
+let e = empty
+let o = object
+let a = arrow
+let s = stack
+let p = point
+let x = crossing
+let l = left
+let r = right
+let u = up
+let d = down
+let rd = rd
+let ru = ru
+let ld = ld
+let lu = lu
+let h = horizontal
+let v = vertical
+
+end
