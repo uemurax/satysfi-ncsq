@@ -28,11 +28,11 @@ val \cd-m : [(cell list) list] math-cmd
 % cells
 val empty : cell
 val object : float * float * float * float ?-> math -> cell
-val arrow : math ?-> math ?-> NCSqArrowStyle.t ?-> arrow-direction -> cell
+val arrow : math ?-> math ?-> Arrow.t ?-> arrow-direction -> cell
 val stack : h-or-v -> cell list -> cell
 % a point is invisible but can be the source or the target of an arrow.
 val point : cell
-val crossing : float ?-> NCSqArrowStyle.t ?-> h-or-v -> cell
+val crossing : float ?-> Arrow.t ?-> h-or-v -> cell
 val eqarrow : arrow-direction -> cell
 
 % directions
@@ -49,9 +49,9 @@ val horizontal : h-or-v
 val vertical : h-or-v
 
 % arrow styles
-val solid : NCSqArrowStyle.t
-val dashed : NCSqArrowStyle.t
-val equal : NCSqArrowStyle.t
+val solid : Arrow.t
+val dashed : Arrow.t
+val equal : Arrow.t
 
 % utilities
 val invert-v : (cell list) list -> (cell list) list
@@ -85,7 +85,7 @@ type object = (|
 
 type arrow = (|
   direction : arrow-direction;
-  style : NCSqArrowStyle.t;
+  style : Arrow.t;
   left-label-o : inline-text option;
   right-label-o : inline-text option;
 |)
@@ -113,7 +113,7 @@ type cell =
 | Crossing of (|
   direction : h-or-v;
   padding : float;
-  style : NCSqArrowStyle.t;
+  style : Arrow.t;
 |)
 
 let show-dir dir = match dir with
