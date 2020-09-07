@@ -5,7 +5,6 @@
 @require: base/float
 @require: gr
 @require: arrows/arrows
-@require: arrows/lib/interval
 @import: ./base/point
 @import: ./base/interval
 
@@ -254,7 +253,7 @@ let mb = m#body in
 let mh = m#head in
 let mt = m#tail in
 (|
-  body-itv = Interval.of-interval Arrow-Interval.((left mb#mid, right mb#mid));
+  body-itv = Interval.of-interval (mb#left,  mb#right);
   body-length = mb#length;
   tail-padding = mt#length +' pd;
   head-padding = mh#length +' pd;
