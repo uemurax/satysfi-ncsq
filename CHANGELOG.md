@@ -2,7 +2,7 @@
 
 Notable changes from v2.0.0.
 
-## Unreleased ##
+## [Unreleased] ##
 
 ### Added ###
 
@@ -14,4 +14,5 @@ Notable changes from v2.0.0.
 
 - Provide commands for rectangular diagrams.
 
+[Unreleased]: https://github.com/uemurax/satysfi-ncsq/compare/2.0.0...HEAD
 [2.0.0]: https://github.com/uemurax/satysfi-ncsq/releases/tag/2.0.0
