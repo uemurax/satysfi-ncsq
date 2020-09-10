@@ -1,6 +1,6 @@
 # Changelog #
 
-Notable changes from v2.0.0.
+Notable changes since v2.0.0.
 
 ## [Unreleased] ##
 
