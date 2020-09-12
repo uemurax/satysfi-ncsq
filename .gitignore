@@ -1,3 +1,4 @@
 *.pdf
 *.satysfi-aux
 *.html
+node_modules
