@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Try to install ncsq and ncsq-doc
         run: |
-          export = HOME=/root
+          export HOME=/root
           eval $(opam env)
           opam update
           opam pin add "file://${PWD}"
