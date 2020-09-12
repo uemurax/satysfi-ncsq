@@ -17,3 +17,24 @@ jobs:
           opam update
           opam pin add "file://${PWD}"
           satyrographos install -l ncsq -l ncsq-doc
+  regression-test:
+    name: Run regression test
+    runs-on: ubuntu-latest
+    container:
+      image: zeptmeter/satysfi-yarn-diff-pdf:satysfi0.0.5
+    steps:
+      - uses: action/checkout@v2
+      - name: Install Yarn dependencies
+        run: yarn install
+      - name: Install Satyrographos dependencies
+        run: |
+          export HOME=/root
+          eval $(opam env)
+          opam update
+          opam pin satysfi-ncsq.opam "file://${PWD}"
+          satyrographos install -l satysfi-ncsq
+      - name: Run regression tests
+        run: |
+          export HOME=/root
+          eval $(opam env)
+          yarn test --ci
