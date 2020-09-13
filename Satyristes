@@ -2,7 +2,7 @@
 
 (library
  (name "ncsq")
- (version "2.0.0")
+ (version "2.1.0")
  (sources
   ((packageDir "src")))
  (opam "satysfi-ncsq.opam")
@@ -14,7 +14,7 @@
 
 (libraryDoc
  (name "ncsq-doc")
- (version "2.0.0")
+ (version "2.1.0")
  (workingDirectory "docs")
  (build
   ((satysfi "ncsq-example.saty" "-o" "ncsq-example.pdf" "-b")
