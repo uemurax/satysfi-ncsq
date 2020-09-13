@@ -21,3 +21,6 @@ Notable changes since v2.0.0.
 
 [Unreleased]: https://github.com/uemurax/satysfi-ncsq/compare/2.0.0...HEAD
 [2.0.0]: https://github.com/uemurax/satysfi-ncsq/releases/tag/2.0.0
+
+[#9]: https://github.com/uemurax/satysfi-ncsq/pull/9
+[#10]: https://github.com/uemurax/satysfi-ncsq/pull/10
