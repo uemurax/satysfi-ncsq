@@ -1,5 +1,6 @@
 @require: stdjareport
 @require: itemize
+@require: annot
 @import: ../src/ncsq
 @import: ../src/easy-cd
 @import: ../src/aliases
@@ -524,6 +525,10 @@ NCSqArrowStyle.of-bth body tail head
            arrow ?*?*?:(mapsto) down];
           [object ${B}; object ${\ni}; object ${b}];
         ]);%
+      }
+      +p{
+        NCSq uses \href(`https://github.com/uemurax/satysfi-arrows`){\code(`satysfi-arrows`);} package.
+        See the documentation of that package to define more arrow styles.
       }
     >
   >

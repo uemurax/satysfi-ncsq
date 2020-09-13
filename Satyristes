@@ -9,6 +9,7 @@
  (dependencies
   ((base ())
    (zrbase ())
+   (arrows ())
    (dist ()))))
 
 (libraryDoc

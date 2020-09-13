@@ -10,13 +10,13 @@ val e : NCSq.cell
 % object
 val o : float * float * float * float ?-> math -> NCSq.cell
 % arrow
-val a : math ?-> math ?-> NCSqArrowStyle.t ?-> NCSq.arrow-direction -> NCSq.cell
+val a : math ?-> math ?-> Arrow.t ?-> NCSq.arrow-direction -> NCSq.cell
 % stack
 val s : NCSq.h-or-v -> NCSq.cell list -> NCSq.cell
 % point
 val p : NCSq.cell
 % crossing
-val x : float ?-> NCSqArrowStyle.t ?-> NCSq.h-or-v -> NCSq.cell
+val x : float ?-> Arrow.t ?-> NCSq.h-or-v -> NCSq.cell
 
 % directions
 
